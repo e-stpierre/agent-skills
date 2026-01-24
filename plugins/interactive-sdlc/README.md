@@ -19,7 +19,7 @@ Commands are organized into logical categories. All paths are relative to the pr
 
 | Command                       | Description                               |
 | ----------------------------- | ----------------------------------------- |
-| `/configure` | Set up plugin configuration interactively |
+| `/configure-interactive-sdlc` | Set up plugin configuration interactively |
 
 ### Planning (`commands/plan/`)
 
@@ -160,7 +160,7 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ## Complete Examples
 
-### /configure
+### /configure-interactive-sdlc
 
 **Arguments:** None
 
@@ -168,7 +168,7 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Run interactive configuration
-/configure
+/configure-interactive-sdlc
 ```
 
 ### /plan-chore
