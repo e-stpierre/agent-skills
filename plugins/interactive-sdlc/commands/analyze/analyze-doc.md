@@ -4,7 +4,7 @@ description: Analyze documentation quality, accuracy, and completeness
 argument-hint: "[context]"
 ---
 
-# analyze Doc
+# Analyze Doc
 
 Analyze documentation quality, accuracy, and completeness.
 

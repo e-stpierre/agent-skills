@@ -4,7 +4,7 @@ description: Check code style, consistency, and best practices adherence
 argument-hint: "[context]"
 ---
 
-# analyze Style
+# Analyze Style
 
 Check code style, consistency, and best practices adherence.
 

@@ -4,7 +4,7 @@ description: Analyze codebase for bugs, logic errors, and runtime issues
 argument-hint: "[context]"
 ---
 
-# analyze Bug
+# Analyze Bug
 
 Analyze codebase for bugs, logic errors, and runtime issues.
 

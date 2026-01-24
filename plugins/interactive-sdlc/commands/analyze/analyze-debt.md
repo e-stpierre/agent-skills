@@ -4,7 +4,7 @@ description: Identify technical debt, optimization opportunities, and refactorin
 argument-hint: "[context]"
 ---
 
-# analyze Debt
+# Analyze Debt
 
 Identify technical debt, optimization opportunities, and refactoring needs.
 

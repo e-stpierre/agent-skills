@@ -4,7 +4,7 @@ description: Scan for security vulnerabilities, unsafe patterns, and dependency 
 argument-hint: "[context]"
 ---
 
-# analyze Security
+# Analyze Security
 
 Scan for security vulnerabilities, unsafe patterns, and dependency issues.
 
