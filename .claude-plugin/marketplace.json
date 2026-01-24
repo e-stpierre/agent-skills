@@ -18,6 +18,7 @@
         "name": "Étienne St-Pierre",
         "email": "me@estpierre.dev"
       },
+      "repository": "https://github.com/e-stpierre/clauding",
       "license": "MIT",
       "keywords": ["beta", "sdlc", "interactive"],
       "category": "sdlc",

@@ -2,10 +2,6 @@
 name: analyse-bug
 description: Analyze codebase for bugs, logic errors, and runtime issues
 argument-hint: "[context]"
-arguments:
-  - name: context
-    description: Specific areas or concerns to focus on, or directories/files to analyze
-    required: false
 ---
 
 # Analyse Bug

@@ -1,11 +1,7 @@
 ---
 name: git-commit
 description: Commit changes with a structured message
-argument-hint: [message]
-arguments:
-  - name: message
-    description: Override commit title. If not provided, auto-generate from changes
-    required: false
+argument-hint: "[message]"
 ---
 
 # Git Commit Command

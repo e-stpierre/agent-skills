@@ -1,14 +1,7 @@
 ---
 name: read-gh-issue
 description: Read a GitHub issue by number
-argument-hint: <issue-number> [--comments]
-arguments:
-  - name: issue-number
-    description: The issue number to read
-    required: true
-  - name: comments
-    description: Include issue comments in the output
-    required: false
+argument-hint: "[issue-number] [--comments]"
 ---
 
 # Read GitHub Issue Command
@@ -17,7 +10,7 @@ Reads a GitHub issue from the current repository and returns its content for use
 
 ## Arguments
 
-- **`<issue-number>`** (required): The issue number to read (e.g., `123`)
+- **`[issue-number]`** (required): The issue number to read (e.g., `123`)
 - **`--comments`** (optional): Include issue comments in the output
 
 ## Objective

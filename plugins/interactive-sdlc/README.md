@@ -79,12 +79,12 @@ All commands use the `/interactive-sdlc:` namespace prefix. Commands are organiz
 
 ### Build-Specific Arguments
 
-- `<plan-file>` - Required path to plan file (relative to project root)
-- `--checkpoint "<text>"` - Resume from specific task/milestone
+- `[plan-file]` - Required path to plan file (relative to project root)
+- `--checkpoint "[text]"` - Resume from specific task/milestone
 
 ### Validate-Specific Arguments
 
-- `--plan <plan-file>` - Plan file to verify compliance against
+- `--plan [plan-file]` - Plan file to verify compliance against
 - `--skip-tests` - Skip test execution
 - `--skip-build` - Skip build verification
 - `--skip-review` - Skip code review
@@ -238,9 +238,9 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 **Arguments:**
 
-- `<plan-file>` - Required path to plan file
+- `[plan-file]` - Required path to plan file
 - `--git` - Auto-commit at milestones
-- `--checkpoint "<text>"` - Resume from specific task/milestone
+- `--checkpoint "[text]"` - Resume from specific task/milestone
 - `[context]` - Implementation guidance
 
 **Examples:**
@@ -260,11 +260,11 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 **Arguments:**
 
-- `--plan <plan-file>` - Plan file to verify compliance
+- `--plan [plan-file]` - Plan file to verify compliance
 - `--skip-tests` - Skip test execution
 - `--skip-build` - Skip build verification
 - `--skip-review` - Skip code review
-- `--autofix <levels>` - Auto-fix issues (e.g., "critical,major")
+- `--autofix [levels]` - Auto-fix issues (e.g., "critical,major")
 
 **Examples:**
 
@@ -283,7 +283,7 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 **Arguments:**
 
-- `--output <path>` - Specify output file path
+- `--output [path]` - Specify output file path
 - `[context]` - Description of what to document
 
 **Examples:**
@@ -443,7 +443,7 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 **Arguments:**
 
 - `[category]` - Branch type: feature (default), hotfix, chore, docs, poc
-- `<branch-name>` - Short kebab-case description (required)
+- `[branch-name]` - Short kebab-case description (required)
 - `[issue-id]` - GitHub issue number
 
 When only one argument is provided, it is treated as the branch-name with category defaulting to `feature`.
@@ -497,11 +497,11 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `"<title>"` - Issue title (required, use quotes if it contains spaces)
-- `--body <body>` - Issue body/description
-- `--labels <labels>` - Comma-separated list of labels
-- `--milestone <milestone>` - Milestone to assign
-- `--assignee <assignee>` - GitHub username (use `@me` for self)
+- `"[title]"` - Issue title (required, use quotes if it contains spaces)
+- `--body [body]` - Issue body/description
+- `--labels [labels]` - Comma-separated list of labels
+- `--milestone [milestone]` - Milestone to assign
+- `--assignee [assignee]` - GitHub username (use `@me` for self)
 
 **Examples:**
 
@@ -520,7 +520,7 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `<issue-number>` - The issue number to read (required)
+- `[issue-number]` - The issue number to read (required)
 - `--comments` - Include issue comments in the output
 
 **Examples:**
