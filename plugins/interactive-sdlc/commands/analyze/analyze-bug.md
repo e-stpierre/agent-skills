@@ -6,15 +6,13 @@ argument-hint: "[context]"
 
 # Analyze Bug
 
-Analyze codebase for bugs, logic errors, and runtime issues.
+## Overview
+
+Analyze codebase for real bugs, logic errors, and runtime issues. Categorizes findings by criticality with specific file locations and actionable fix suggestions.
 
 ## Arguments
 
 - **`[context]`** (optional): Specific areas or concerns to focus on, or directories/files to analyze
-
-## Objective
-
-Analyze codebase for real bugs, logic errors, and runtime issues, categorizing findings by criticality with specific file locations and actionable fix suggestions.
 
 ## Core Principles
 
@@ -23,6 +21,8 @@ Analyze codebase for real bugs, logic errors, and runtime issues, categorizing f
 - Understand project patterns before flagging issues
 - Avoid false positives by considering framework conventions
 - Focus on bugs that will actually cause problems, not theoretical concerns
+- Check if apparent issues are handled elsewhere before flagging
+- Recognize test-specific patterns and intentional design choices
 
 ## Instructions
 
@@ -180,10 +180,3 @@ Instructions:
 -->
 ```
 
-## Important Notes
-
-- Only report real bugs, not theoretical concerns
-- Check if apparent issues are handled elsewhere before flagging
-- Understand framework conventions that handle common issues
-- Include exact file location, line number, and fix approach for each finding
-- Recognize test-specific patterns and intentional design choices

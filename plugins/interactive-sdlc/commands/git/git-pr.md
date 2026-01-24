@@ -6,15 +6,13 @@ argument-hint: "[base-branch]"
 
 # Git PR Command
 
-Creates a pull request using the GitHub CLI with a descriptive title and appropriately-sized description.
+## Overview
+
+Create a pull request with a title and description sized appropriately to the scope and impact of the changes using the GitHub CLI.
 
 ## Arguments
 
 - **`[base-branch]`** (optional): Target branch for the PR. Defaults to main/master.
-
-## Objective
-
-Create a pull request with a title and description sized appropriately to the scope and impact of the changes.
 
 ## Core Principles
 

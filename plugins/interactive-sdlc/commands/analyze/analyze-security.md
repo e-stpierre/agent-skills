@@ -6,23 +6,22 @@ argument-hint: "[context]"
 
 # Analyze Security
 
-Scan for security vulnerabilities, unsafe patterns, and dependency issues.
+## Overview
+
+Scan for security vulnerabilities, unsafe patterns, and dependency issues by checking for injection flaws, authentication issues, data exposure, and configuration problems.
 
 ## Arguments
 
 - **`[context]`** (optional): Specific areas or concerns to focus on
-
-## Objective
-
-Scan for security vulnerabilities, unsafe patterns, and dependency issues by checking for injection flaws, authentication issues, data exposure, and configuration problems.
 
 ## Core Principles
 
 - Only report REAL issues - security false positives waste time
 - Verify exploitability before reporting critical/high severity
 - Be specific with exact vulnerability type and exploitation scenario
-- Prioritize correctly - not everything is critical
-- This complements but doesn't replace SAST tools and security audits
+- Prioritize correctly - not everything is critical; consider defense in depth when assessing severity
+- Check if framework features mitigate the issue before reporting
+- This complements but does not replace SAST tools, dependency scanners, or security audits
 
 ## Command-Specific Guidelines
 
@@ -229,10 +228,3 @@ Instructions:
 -->
 ```
 
-## Important Notes
-
-- Verify exploitability before flagging critical/high severity issues
-- Include exact file location, line number, and exploitation scenario for each finding
-- Prioritize correctly - consider defense in depth when assessing severity
-- Check if framework features mitigate the issue before reporting
-- This analysis complements but does not replace SAST tools, dependency scanners, or security audits

@@ -6,23 +6,21 @@ argument-hint: "[context]"
 
 # Analyze Doc
 
-Analyze documentation quality, accuracy, and completeness.
+## Overview
+
+Analyze documentation quality, accuracy, and completeness by comparing against actual code implementation and identifying outdated, incorrect, or missing information.
 
 ## Arguments
 
 - **`[context]`** (optional): Specific documentation files or areas to focus on
-
-## Objective
-
-Analyze documentation quality, accuracy, and completeness by comparing against actual code implementation and identifying outdated, incorrect, or missing information.
 
 ## Core Principles
 
 - Only report REAL issues - good documentation is a success
 - Verify claims against code before marking as incorrect
 - Provide actionable fixes with correct information
-- Consider documentation might be ahead of code
-- Different documentation types have different standards
+- Consider documentation might be ahead of code (planned features)
+- Different documentation types have different standards (user guides vs API references vs internal docs)
 
 ## Command-Specific Guidelines
 
@@ -194,10 +192,3 @@ Instructions:
 -->
 ```
 
-## Important Notes
-
-- Focus on real issues - good documentation is a success, not a failure
-- Verify documentation against code before marking it as incorrect
-- Provide correct information when reporting issues
-- Apply appropriate standards based on documentation type (user guides vs API references vs internal docs)
-- Consider that documentation may be ahead of code (planned features)

@@ -5,9 +5,7 @@ description: Set up interactive-sdlc plugin configuration interactively
 
 # Configure interactive-sdlc
 
-Set up interactive-sdlc plugin configuration interactively.
-
-## Objective
+## Overview
 
 Set up interactive-sdlc plugin configuration interactively by reading existing settings, validating them, and prompting for missing or invalid values.
 
@@ -15,7 +13,13 @@ Set up interactive-sdlc plugin configuration interactively by reading existing s
 
 - Configuration is stored in `.claude/configs/interactive-sdlc.json`
 - All paths are relative to project root
-- Users can gitignore the config file if they want it local
+- Users can gitignore the config file if they want personal settings
+- Validate all user input before accepting
+- Ensure all settings are within valid ranges
+- If configuration file doesn't exist, create the directory and file
+- If file exists but is invalid JSON, warn the user, offer to backup, and create new valid configuration
+- If user provides invalid input, show error message explaining valid values and re-prompt
+- If file permission issues prevent automatic updates, provide manual configuration instructions
 
 ## Instructions
 
@@ -116,11 +120,3 @@ To change settings later, edit .claude/configs/interactive-sdlc.json directly
 or run /configure-interactive-sdlc again.
 ```
 
-## Important Notes
-
-- Validate all user input before accepting
-- Ensure all settings are within valid ranges
-- If `.claude/configs/interactive-sdlc.json` doesn't exist, create the directory and file
-- If file exists but is invalid JSON, warn the user, offer to backup existing file, and create new valid configuration
-- If user provides invalid input, show error message explaining valid values and re-prompt with suggestions
-- If file permission issues prevent automatic updates, provide manual configuration instructions

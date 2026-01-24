@@ -6,7 +6,9 @@ argument-hint: "[--git] [--pr] [--explore N] [context]"
 
 # Plan-Build-Validate
 
-Full guided workflow from planning through implementation to validation.
+## Overview
+
+Execute the complete development workflow from planning through implementation to validation, creating a draft PR if all checks pass.
 
 ## Arguments
 
@@ -15,10 +17,6 @@ Full guided workflow from planning through implementation to validation.
 - **`--explore N`** (optional): Override explore agent count for planning phase
 - **`[context]`** (optional): Task description to reduce prompts
 
-## Objective
-
-Execute the complete development workflow from planning through implementation to validation, creating a draft PR if all checks pass.
-
 ## Core Principles
 
 - This is the recommended workflow for non-trivial tasks
@@ -26,6 +24,9 @@ Execute the complete development workflow from planning through implementation t
 - Plan file is saved and can be referenced later
 - PR is only created if validation passes
 - Use --git to maintain atomic commits throughout
+- Always run validation, regardless of --pr flag
+- Fix all validation issues before creating a PR
+- Review the generated plan before proceeding to build
 
 ## Command-Specific Guidelines
 
@@ -159,10 +160,3 @@ Next steps:
 - Mark as ready for review when complete
 ```
 
-## Important Notes
-
-- Always run validation, regardless of --pr flag
-- Fix all validation issues before creating a PR
-- Each step must complete successfully before proceeding to the next
-- Use /one-shot for trivial tasks - this workflow is for non-trivial work
-- Review the generated plan before proceeding to build

@@ -6,7 +6,9 @@ argument-hint: '[plan-file] [--git] [--checkpoint "<text>"] [context]'
 
 # Build
 
-Implement a plan file with checkpoint support for resuming work.
+## Overview
+
+Implement all tasks from a plan file with checkpoint support for resuming work, progress tracking via TodoWrite, and optional git commits at logical milestones.
 
 ## Arguments
 
@@ -14,10 +16,6 @@ Implement a plan file with checkpoint support for resuming work.
 - **`--git`** (optional): Auto-commit changes at logical checkpoints
 - **`--checkpoint "[text]"`** (optional): Resume from specific task/milestone
 - **`[context]`** (optional): Optional freeform context for implementation guidance
-
-## Objective
-
-Implement all tasks from a plan file with checkpoint support for resuming work, progress tracking via TodoWrite, and optional git commits at logical milestones.
 
 ## Core Principles
 
@@ -27,6 +25,49 @@ Implement all tasks from a plan file with checkpoint support for resuming work, 
 - Maintain code quality and follow existing patterns in the codebase
 - Run tests frequently to catch issues early
 - Git commits should be atomic and meaningful, aligned with milestones or task groups
+- Ensure changes work before committing
+- If blocked on a task, explain the blocker and ask for guidance
+
+## Command-Specific Guidelines
+
+### Checkpoint System
+
+The checkpoint system allows resuming long-running builds:
+
+1. **Milestone Checkpoint**: Resume from start of a milestone
+
+   ```bash
+   --checkpoint "Milestone 2"
+   --checkpoint "Milestone 2: OAuth Integration"
+   ```
+
+2. **Task Checkpoint**: Resume from a specific task
+
+   ```bash
+   --checkpoint "Task 2.1"
+   --checkpoint "Add OAuth handlers"
+   ```
+
+3. **Text Matching**: Checkpoint matches against:
+   - Milestone numbers (e.g., "Milestone 2")
+   - Milestone titles (e.g., "OAuth Integration")
+   - Task numbers (e.g., "Task 2.1")
+   - Task descriptions (partial match supported)
+
+### Git Commit Strategy
+
+When `--git` flag is used:
+
+- **Feature plans**: Commit after each milestone
+  - Message: `feat(<scope>): <milestone-title>`
+
+- **Bug fix plans**: Commit after fix, again after tests
+  - Message: `fix(<scope>): <description>`
+
+- **Chore plans**: Commit after major task groups
+  - Message: `chore(<scope>): <description>`
+
+Scope is derived from the plan file name or affected directories.
 
 ## Instructions
 
@@ -99,50 +140,3 @@ Next steps:
 - Run validation: /validate --plan specs/feature-auth.md
 - Review changes and test functionality
 ```
-
-## Checkpoint System
-
-The checkpoint system allows resuming long-running builds:
-
-1. **Milestone Checkpoint**: Resume from start of a milestone
-
-   ```bash
-   --checkpoint "Milestone 2"
-   --checkpoint "Milestone 2: OAuth Integration"
-   ```
-
-2. **Task Checkpoint**: Resume from a specific task
-
-   ```bash
-   --checkpoint "Task 2.1"
-   --checkpoint "Add OAuth handlers"
-   ```
-
-3. **Text Matching**: Checkpoint matches against:
-   - Milestone numbers (e.g., "Milestone 2")
-   - Milestone titles (e.g., "OAuth Integration")
-   - Task numbers (e.g., "Task 2.1")
-   - Task descriptions (partial match supported)
-
-## Git Commit Strategy
-
-When `--git` flag is used:
-
-- **Feature plans**: Commit after each milestone
-  - Message: `feat(<scope>): <milestone-title>`
-
-- **Bug fix plans**: Commit after fix, again after tests
-  - Message: `fix(<scope>): <description>`
-
-- **Chore plans**: Commit after major task groups
-  - Message: `chore(<scope>): <description>`
-
-Scope is derived from the plan file name or affected directories.
-
-## Important Notes
-
-- The plan file is read-only documentation - never modify it during implementation
-- Ask questions when implementation details are unclear
-- Run tests frequently to catch issues early
-- Ensure changes work before committing
-- If blocked on a task, explain the blocker and ask for guidance

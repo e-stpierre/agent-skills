@@ -6,17 +6,15 @@ argument-hint: "[--explore N] [--git] [context]"
 
 # Plan Feature
 
-Plan a feature with milestones, architecture design, and comprehensive task breakdown.
+## Overview
+
+Plan a feature with comprehensive codebase exploration, architecture design, milestone breakdown, and task decomposition that enables incremental delivery.
 
 ## Arguments
 
 - **`--explore N`** (optional): Override default explore agent count (default: 3)
 - **`--git`** (optional): Commit plan file after creation
 - **`[context]`** (optional): Optional freeform context for argument inference
-
-## Objective
-
-Plan a feature with comprehensive codebase exploration, architecture design, milestone breakdown, and task decomposition that enables incremental delivery.
 
 ## Core Principles
 
@@ -216,10 +214,3 @@ Instructions:
 -->
 ```
 
-## Important Notes
-
-- Plans are static documentation - never modify them during implementation
-- Focus on actionable tasks, not time estimates or deadlines
-- Break features into logical milestones for incremental delivery
-- Explore existing patterns before making architectural decisions
-- Gather requirements thoroughly - clear requirements prevent rework

@@ -6,7 +6,9 @@ argument-hint: "[--git] [--validate] [--explore N] [context]"
 
 # One-Shot
 
-Quick task execution without a saved plan file. Ideal for small, well-defined tasks.
+## Overview
+
+Execute small, well-defined tasks quickly without creating a saved plan file, optimizing for speed over thoroughness.
 
 ## Arguments
 
@@ -15,17 +17,14 @@ Quick task execution without a saved plan file. Ideal for small, well-defined ta
 - **`--explore N`** (optional): Override explore agent count (default: 0 for speed)
 - **`[context]`** (optional): Task description
 
-## Objective
-
-Execute small, well-defined tasks quickly without creating a saved plan file, optimizing for speed over thoroughness.
-
 ## Core Principles
 
 - Optimized for speed - minimal exploration by default
 - No plan file is saved - use full planning workflow for documented work
 - Task must be well-defined and small in scope
 - Ask clarifying questions if task is unclear
-- Use --validate for critical changes to catch issues
+- Use --validate for critical or security-related changes to catch issues
+- Use full planning workflow for complex features, bugs requiring deep investigation, large refactoring, or unclear requirements
 
 ## Command-Specific Guidelines
 
@@ -105,10 +104,3 @@ Validation results: PASS/FAIL
 - Review: No critical issues
 ```
 
-## Important Notes
-
-- Use the full planning workflow for complex features requiring architecture decisions
-- Use the full planning workflow for bugs requiring deep investigation
-- Always use --validate for critical or security-related changes
-- Clarify requirements before proceeding - use planning workflow if unclear
-- Use the full planning workflow for large refactoring efforts
