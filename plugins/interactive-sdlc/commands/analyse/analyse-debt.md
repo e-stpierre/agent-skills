@@ -24,6 +24,31 @@ Identify technical debt, optimization opportunities, and refactoring needs by an
 - Prioritize by impact - frequently touched code > rarely touched
 - Avoid over-engineering and premature abstractions
 
+## Command-Specific Guidelines
+
+### Effort Estimation
+
+**Low Effort:**
+
+- Simple refactoring
+- Renaming for clarity
+- Extracting small functions
+- Adding types/documentation
+
+**Medium Effort:**
+
+- Extracting modules/classes
+- Refactoring patterns
+- Adding caching
+- Query optimization
+
+**High Effort:**
+
+- Architectural changes
+- Major refactoring
+- Database schema changes
+- API redesign
+
 ## Instructions
 
 1. **Read Configuration**
@@ -189,29 +214,6 @@ Instructions:
 - Include all performance debt items
 -->
 ```
-
-## Effort Estimation
-
-**Low Effort:**
-
-- Simple refactoring
-- Renaming for clarity
-- Extracting small functions
-- Adding types/documentation
-
-**Medium Effort:**
-
-- Extracting modules/classes
-- Refactoring patterns
-- Adding caching
-- Query optimization
-
-**High Effort:**
-
-- Architectural changes
-- Major refactoring
-- Database schema changes
-- API redesign
 
 ## Important Notes
 

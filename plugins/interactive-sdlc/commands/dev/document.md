@@ -70,9 +70,11 @@ Generate or update project documentation with appropriate mermaid diagrams, foll
    - Otherwise suggest appropriate location based on content type
    - Inform user of saved file path
 
-## Mermaid Diagram Types
+## Command-Specific Guidelines
 
-### Architecture Diagrams
+### Mermaid Diagram Types
+
+#### Architecture Diagrams
 
 ```mermaid
 graph TB
@@ -90,7 +92,7 @@ graph TB
     Service --> DB
 ```
 
-### Sequence Diagrams
+#### Sequence Diagrams
 
 ```mermaid
 sequenceDiagram
@@ -107,7 +109,7 @@ sequenceDiagram
     Frontend-->>User: Show confirmation
 ```
 
-### Flowcharts
+#### Flowcharts
 
 ```mermaid
 flowchart TD
@@ -118,7 +120,7 @@ flowchart TD
     E --> B
 ```
 
-### Class Diagrams
+#### Class Diagrams
 
 ```mermaid
 classDiagram
@@ -136,7 +138,7 @@ classDiagram
     User "1" --> "0..*" Session
 ```
 
-### State Diagrams
+#### State Diagrams
 
 ```mermaid
 stateDiagram-v2

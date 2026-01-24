@@ -24,6 +24,31 @@ Analyze documentation quality, accuracy, and completeness by comparing against a
 - Consider documentation might be ahead of code
 - Different documentation types have different standards
 
+## Command-Specific Guidelines
+
+### Issue Categories
+
+#### Critical (Wrong/Misleading)
+
+- Documents non-existent features
+- Wrong API signatures
+- Incorrect behavior descriptions
+- Security-related misinformation
+
+#### Major (Outdated/Incomplete)
+
+- Features added but not documented
+- Deprecated features still documented
+- Missing important sections
+- Outdated examples
+
+#### Minor (Improvements)
+
+- Typos and grammar issues
+- Unclear explanations
+- Missing examples
+- Better organization suggestions
+
 ## Instructions
 
 1. **Read Configuration**
@@ -168,29 +193,6 @@ Instructions:
 - Include all minor documentation improvements
 -->
 ```
-
-## Issue Categories
-
-### Critical (Wrong/Misleading)
-
-- Documents non-existent features
-- Wrong API signatures
-- Incorrect behavior descriptions
-- Security-related misinformation
-
-### Major (Outdated/Incomplete)
-
-- Features added but not documented
-- Deprecated features still documented
-- Missing important sections
-- Outdated examples
-
-### Minor (Improvements)
-
-- Typos and grammar issues
-- Unclear explanations
-- Missing examples
-- Better organization suggestions
 
 ## Important Notes
 

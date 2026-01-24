@@ -27,6 +27,20 @@ Execute the complete development workflow from planning through implementation t
 - PR is only created if validation passes
 - Use --git to maintain atomic commits throughout
 
+## Command-Specific Guidelines
+
+### Workflow Summary
+
+Determine Task Type -> Plan (plan-chore/plan-bug/plan-feature) -> Build -> Validate -> Create PR (if --pr and passes)
+
+**Step details:**
+
+1. **Determine Task Type**: Analyze context or ask user (chore/bug/feature)
+2. **Plan**: Execute appropriate planning command, saves plan file
+3. **Build**: Implement all tasks from the plan
+4. **Validate**: Run tests, code review, build verification, plan compliance
+5. **Create PR**: If `--pr` flag and validation passes, create draft PR
+
 ## Instructions
 
 ### 1. Determine Task Type
@@ -109,18 +123,6 @@ If validation fails:
 - Report issues found
 - Do not create PR
 - Suggest running `/validate --autofix critical,major`
-
-## Workflow Summary
-
-Determine Task Type -> Plan (plan-chore/plan-bug/plan-feature) -> Build -> Validate -> Create PR (if --pr and passes)
-
-**Step details:**
-
-1. **Determine Task Type**: Analyze context or ask user (chore/bug/feature)
-2. **Plan**: Execute appropriate planning command, saves plan file
-3. **Build**: Implement all tasks from the plan
-4. **Validate**: Run tests, code review, build verification, plan compliance
-5. **Create PR**: If `--pr` flag and validation passes, create draft PR
 
 ## Output Guidance
 

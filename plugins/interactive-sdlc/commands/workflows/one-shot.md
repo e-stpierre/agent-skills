@@ -27,6 +27,27 @@ Execute small, well-defined tasks quickly without creating a saved plan file, op
 - Ask clarifying questions if task is unclear
 - Use --validate for critical changes to catch issues
 
+## Command-Specific Guidelines
+
+### When to Use One-Shot
+
+**Good for:**
+
+- Typo fixes
+- Simple bug fixes with clear root cause
+- Small refactoring tasks
+- Adding minor functionality
+- Quick code cleanup
+
+**Not recommended for:**
+
+- Complex features requiring architecture decisions
+- Bugs requiring deep investigation
+- Tasks with unclear requirements
+- Large refactoring efforts
+
+For complex tasks, use the full planning workflow instead.
+
 ## Instructions
 
 1. **Parse Task**
@@ -83,25 +104,6 @@ Validation results: PASS/FAIL
 - Build: PASS
 - Review: No critical issues
 ```
-
-## When to Use One-Shot
-
-**Good for:**
-
-- Typo fixes
-- Simple bug fixes with clear root cause
-- Small refactoring tasks
-- Adding minor functionality
-- Quick code cleanup
-
-**Not recommended for:**
-
-- Complex features requiring architecture decisions
-- Bugs requiring deep investigation
-- Tasks with unclear requirements
-- Large refactoring efforts
-
-For complex tasks, use the full planning workflow instead.
 
 ## Important Notes
 

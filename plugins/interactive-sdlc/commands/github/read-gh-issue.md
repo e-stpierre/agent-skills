@@ -63,11 +63,3 @@ Format the output as a structured summary:
 **@username** (date):
 <comment body>
 ```
-
-## Examples
-
-```bash
-/read-gh-issue 123
-
-/read-gh-issue 456 --comments
-```

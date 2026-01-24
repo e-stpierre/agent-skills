@@ -29,6 +29,47 @@ Perform comprehensive validation of code changes including tests, build verifica
 - Plan compliance checks verify requirements are met
 - Re-run validation after auto-fix to confirm all issues resolved
 
+## Command-Specific Guidelines
+
+### Auto-Fix Behavior
+
+When `--autofix` is specified:
+
+1. Parse the comma-separated severity levels
+2. After completing all validation, identify fixable issues
+3. For each fixable issue at the specified severity levels:
+   - Describe the fix to be applied
+   - Apply the fix
+   - Mark as fixed in the report
+4. Re-run affected validations to confirm fixes
+
+Example:
+
+```bash
+--autofix critical,major  # Auto-fix critical and major issues
+--autofix critical        # Auto-fix only critical issues
+```
+
+### Test Framework Detection
+
+| File                                      | Framework | Command         |
+| ----------------------------------------- | --------- | --------------- |
+| `package.json` (test script)              | npm       | `npm test`      |
+| `pytest.ini` or `pyproject.toml` (pytest) | pytest    | `pytest`        |
+| `Cargo.toml`                              | Rust      | `cargo test`    |
+| `go.mod`                                  | Go        | `go test ./...` |
+| `Makefile` (test target)                  | Make      | `make test`     |
+
+### Build System Detection
+
+| File                          | System | Command          |
+| ----------------------------- | ------ | ---------------- |
+| `package.json` (build script) | npm    | `npm run build`  |
+| `Cargo.toml`                  | Cargo  | `cargo build`    |
+| `go.mod`                      | Go     | `go build ./...` |
+| `Makefile` (build target)     | Make   | `make build`     |
+| `pyproject.toml`              | Python | `uv build`       |
+
 ## Instructions
 
 Perform ALL validation types (unless skipped):
@@ -213,45 +254,6 @@ Instructions:
 - Include specific actions to resolve each issue
 -->
 ```
-
-## Auto-Fix Behavior
-
-When `--autofix` is specified:
-
-1. Parse the comma-separated severity levels
-2. After completing all validation, identify fixable issues
-3. For each fixable issue at the specified severity levels:
-   - Describe the fix to be applied
-   - Apply the fix
-   - Mark as fixed in the report
-4. Re-run affected validations to confirm fixes
-
-Example:
-
-```bash
---autofix critical,major  # Auto-fix critical and major issues
---autofix critical        # Auto-fix only critical issues
-```
-
-## Test Framework Detection
-
-| File                                      | Framework | Command         |
-| ----------------------------------------- | --------- | --------------- |
-| `package.json` (test script)              | npm       | `npm test`      |
-| `pytest.ini` or `pyproject.toml` (pytest) | pytest    | `pytest`        |
-| `Cargo.toml`                              | Rust      | `cargo test`    |
-| `go.mod`                                  | Go        | `go test ./...` |
-| `Makefile` (test target)                  | Make      | `make test`     |
-
-## Build System Detection
-
-| File                          | System | Command          |
-| ----------------------------- | ------ | ---------------- |
-| `package.json` (build script) | npm    | `npm run build`  |
-| `Cargo.toml`                  | Cargo  | `cargo build`    |
-| `go.mod`                      | Go     | `go build ./...` |
-| `Makefile` (build target)     | Make   | `make build`     |
-| `pyproject.toml`              | Python | `uv build`       |
 
 ## Important Notes
 

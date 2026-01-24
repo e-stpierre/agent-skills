@@ -6,14 +6,18 @@ This template defines the exact structure for Claude Code command prompts.
 REQUIRED FRONTMATTER FIELDS:
 - name: Kebab-case identifier for the command
 - description: One-line description shown in help menus (recommended: under 100 characters)
-- argument-hint: Usage pattern hint for interactive commands (e.g., "[type] [context]").
+- argument-hint: Usage pattern hint for interactive commands (e.g., "[type] [context]"). (if command takes arguments)
 
 REQUIRED SECTIONS:
-- Arguments (if command takes arguments)
+- Arguments (only if command takes arguments)
 - Objective
 - Core Principles
 - Instructions
 - Output Guidance
+
+VALIDATION RULES:
+- Arguments section and argument-hint frontmatter are REQUIRED only when the command takes arguments
+- Arguments section and argument-hint should be OMITTED when the command takes no arguments
 
 OPTIONAL SECTIONS:
 - Command-Specific Guidelines (for domain-specific behavioral guidance unique to this command)

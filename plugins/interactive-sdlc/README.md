@@ -442,7 +442,7 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 **Arguments:**
 
-- `[category]` - Branch type: feature (default), hotfix, chore, docs, poc
+- `[category]` - Branch type: feature (default), fix, chore, doc, poc, refactor
 - `[branch-name]` - Short kebab-case description (required)
 - `[issue-id]` - GitHub issue number
 
