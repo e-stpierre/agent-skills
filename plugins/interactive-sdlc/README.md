@@ -23,31 +23,31 @@ Commands are organized into logical categories. All paths are relative to the pr
 
 ### Planning (`commands/plan/`)
 
-| Command                          | Description                             |
-| -------------------------------- | --------------------------------------- |
+| Command         | Description                             |
+| --------------- | --------------------------------------- |
 | `/plan-chore`   | Plan a maintenance task                 |
 | `/plan-bug`     | Plan a bug fix with root cause analysis |
 | `/plan-feature` | Plan a feature with milestones          |
 
 ### Development (`commands/dev/`)
 
-| Command                      | Description                                                           |
-| ---------------------------- | --------------------------------------------------------------------- |
+| Command     | Description                                                           |
+| ----------- | --------------------------------------------------------------------- |
 | `/build`    | Implement a plan file with checkpoint support                         |
 | `/validate` | Comprehensive validation (tests, code review, build, plan compliance) |
 | `/document` | Generate or update documentation with mermaid diagrams                |
 
 ### Workflows (`commands/workflows/`)
 
-| Command                                 | Description                               |
-| --------------------------------------- | ----------------------------------------- |
+| Command                | Description                               |
+| ---------------------- | ----------------------------------------- |
 | `/one-shot`            | Quick task without saved plan file        |
 | `/plan-build-validate` | Full workflow from planning to validation |
 
 ### Analysis (`commands/analyse/`)
 
-| Command                              | Description                                           |
-| ------------------------------------ | ----------------------------------------------------- |
+| Command             | Description                                           |
+| ------------------- | ----------------------------------------------------- |
 | `/analyse-bug`      | Analyze codebase for bugs and logic errors            |
 | `/analyse-doc`      | Analyze documentation quality and accuracy            |
 | `/analyse-debt`     | Identify technical debt and refactoring opportunities |
@@ -56,16 +56,16 @@ Commands are organized into logical categories. All paths are relative to the pr
 
 ### Git (`commands/git/`)
 
-| Command                        | Description                                          |
-| ------------------------------ | ---------------------------------------------------- |
+| Command       | Description                                          |
+| ------------- | ---------------------------------------------------- |
 | `/git-branch` | Create branches with standardized naming conventions |
 | `/git-commit` | Commit changes with structured messages              |
 | `/git-pr`     | Create pull requests with contextual descriptions    |
 
 ### GitHub (`commands/github/`)
 
-| Command                             | Description                                       |
-| ----------------------------------- | ------------------------------------------------- |
+| Command            | Description                                       |
+| ------------------ | ------------------------------------------------- |
 | `/create-gh-issue` | Create GitHub issues with title, body, and labels |
 | `/read-gh-issue`   | Read GitHub issue content by number               |
 
