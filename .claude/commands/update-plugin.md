@@ -1,7 +1,6 @@
 ---
 name: update-plugin
 description: Update plugin versions based on changes from main branch
-argument-hint: ""
 ---
 
 # Update Plugin Version Command

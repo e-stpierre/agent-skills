@@ -130,7 +130,7 @@ Plans are static documentation of work to be done:
 
 ## Configuration
 
-Configure the plugin in `.claude/settings.json` (project scope, committed to git):
+Configure the plugin in `.claude/configs/plugin-name.json` (project scope, committed to git if not included in .gitignore):
 
 ```json
 {

@@ -52,7 +52,7 @@ Analyze documentation quality, accuracy, and completeness by comparing against a
 ## Instructions
 
 1. **Read Configuration**
-   - Read `.claude/settings.json` for `interactive-sdlc.analysisDirectory` (default: `analysis`)
+   - Read `.claude/configs/interactive-sdlc.json` for `analysisDirectory` (default: `analysis`)
 
 2. **Identify Documentation**
    - Find all documentation files (README, docs/, `*.md`)

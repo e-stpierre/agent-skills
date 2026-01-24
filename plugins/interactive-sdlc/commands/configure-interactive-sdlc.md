@@ -1,7 +1,6 @@
 ---
 name: configure-interactive-sdlc
 description: Set up interactive-sdlc plugin configuration interactively
-argument-hint: ""
 ---
 
 # Configure interactive-sdlc
@@ -14,17 +13,15 @@ Set up interactive-sdlc plugin configuration interactively by reading existing s
 
 ## Core Principles
 
-- Configuration is stored in project scope (.claude/settings.json)
-- Personal overrides go in .claude/settings.local.json (gitignored)
-- Settings hierarchy: local > project > defaults
+- Configuration is stored in `.claude/configs/interactive-sdlc.json`
 - All paths are relative to project root
-- Only update interactive-sdlc section - preserve other settings
+- Users can gitignore the config file if they want it local
 
 ## Instructions
 
 1. **Read Existing Configuration**
-   - Check if `.claude/settings.json` exists
-   - Parse current `interactive-sdlc` settings if present
+   - Check if `.claude/configs/interactive-sdlc.json` exists
+   - Parse current settings if present
    - Identify which settings are missing or invalid
 
 2. **Validate Current Configuration**
@@ -41,7 +38,7 @@ Set up interactive-sdlc plugin configuration interactively by reading existing s
 3. **If Configuration is Valid and Complete**
    - Display success message
    - Show current configuration summary
-   - Inform user they can edit `.claude/settings.json` directly for changes
+   - Inform user they can edit `.claude/configs/interactive-sdlc.json` directly for changes
    - Exit command
 
 4. **If Configuration is Missing or Invalid**
@@ -57,45 +54,27 @@ Set up interactive-sdlc plugin configuration interactively by reading existing s
    - How many explore agents for feature planning? (0-10, default: 3)
 
 5. **Update Configuration**
-   - Create `.claude/` directory if it doesn't exist
-   - Create or update `.claude/settings.json`
-   - Preserve other settings in the file (only update `interactive-sdlc` section)
+   - Create `.claude/configs/` directory if it doesn't exist
+   - Create or update `.claude/configs/interactive-sdlc.json`
    - Confirm successful configuration with summary
 
 ## Configuration
 
-### Project Configuration (`.claude/settings.json`)
-
-Committed to git, shared across team:
+### Configuration File (`.claude/configs/interactive-sdlc.json`)
 
 ```json
 {
-  "interactive-sdlc": {
-    "planDirectory": "specs",
-    "analysisDirectory": "analysis",
-    "defaultExploreAgents": {
-      "chore": 2,
-      "bug": 2,
-      "feature": 3
-    }
+  "planDirectory": "specs",
+  "analysisDirectory": "analysis",
+  "defaultExploreAgents": {
+    "chore": 2,
+    "bug": 2,
+    "feature": 3
   }
 }
 ```
 
-### Personal Overrides (`.claude/settings.local.json`)
-
-Gitignored, personal preferences:
-
-```json
-{
-  "interactive-sdlc": {
-    "planDirectory": "my-specs",
-    "defaultExploreAgents": {
-      "feature": 5
-    }
-  }
-}
-```
+Users can gitignore this file if they want personal settings.
 
 ## Output Guidance
 
@@ -114,7 +93,7 @@ Current interactive-sdlc configuration:
     bug: 2
     feature: 3
 
-To change settings, edit .claude/settings.json directly
+To change settings, edit .claude/configs/interactive-sdlc.json directly
 or run /configure-interactive-sdlc again.
 ```
 
@@ -131,20 +110,17 @@ Current configuration:
     bug: 2
     feature: 3
 
-Configuration saved to .claude/settings.json
+Configuration saved to .claude/configs/interactive-sdlc.json
 
-To change settings later, edit .claude/settings.json directly
+To change settings later, edit .claude/configs/interactive-sdlc.json directly
 or run /configure-interactive-sdlc again.
 ```
 
 ## Important Notes
 
-- Only update the interactive-sdlc section in .claude/settings.json - preserve all other settings
 - Validate all user input before accepting
-- Preserve existing settings when adding new ones
 - Ensure all settings are within valid ranges
-- If `.claude/settings.json` doesn't exist, create the directory and file with the interactive-sdlc section
+- If `.claude/configs/interactive-sdlc.json` doesn't exist, create the directory and file
 - If file exists but is invalid JSON, warn the user, offer to backup existing file, and create new valid configuration
-- If file exists but missing `interactive-sdlc` section, add it while preserving all other existing settings
 - If user provides invalid input, show error message explaining valid values and re-prompt with suggestions
 - If file permission issues prevent automatic updates, provide manual configuration instructions

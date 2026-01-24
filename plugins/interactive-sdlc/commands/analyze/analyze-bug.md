@@ -27,7 +27,7 @@ Analyze codebase for real bugs, logic errors, and runtime issues, categorizing f
 ## Instructions
 
 1. **Read Configuration**
-   - Read `.claude/settings.json` for `interactive-sdlc.analysisDirectory` (default: `analysis`)
+   - Read `.claude/configs/interactive-sdlc.json` for `analysisDirectory` (default: `analysis`)
 
 2. **Determine Scope**
    - If `[context]` specifies files/directories, focus on those

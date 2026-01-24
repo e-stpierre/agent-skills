@@ -29,8 +29,8 @@ Plan a maintenance task with comprehensive codebase exploration, gathering user 
 ## Instructions
 
 1. **Read Configuration**
-   - Read `.claude/settings.json` for `interactive-sdlc.planDirectory` (default: `specs`)
-   - Read `interactive-sdlc.defaultExploreAgents.chore` (default: 2)
+   - Read `.claude/configs/interactive-sdlc.json` for `planDirectory` (default: `specs`)
+   - Read `defaultExploreAgents.chore` (default: 2)
 
 2. **Explore Codebase**
    - Launch N explore agents (from config or --explore flag)
