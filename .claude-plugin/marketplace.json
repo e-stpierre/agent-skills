@@ -1,0 +1,29 @@
+{
+  "name": "clauding",
+  "owner": {
+    "name": "Étienne St-Pierre",
+    "email": "me@estpierre.dev"
+  },
+  "metadata": {
+    "description": "A collection of human-in-the-loop interactive prompts for Claude Code, enabling structured, repeatable workflows across diverse tasks and domains.",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "interactive-sdlc",
+      "source": "./plugins/interactive-sdlc",
+      "description": "[Beta] Interactive SDLC commands for guided development within Claude Code sessions",
+      "version": "0.1.0",
+      "author": {
+        "name": "Étienne St-Pierre",
+        "email": "me@estpierre.dev"
+      },
+      "homepage": "https://github.com/e-stpierre/clauding",
+      "repository": "https://github.com/e-stpierre/clauding",
+      "license": "MIT",
+      "keywords": ["beta", "sdlc", "interactive"],
+      "category": "sdlc",
+      "strict": false
+    }
+  ]
+}

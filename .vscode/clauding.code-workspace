@@ -1,0 +1,26 @@
+{
+  "folders": [
+    {
+      "path": ".."
+    }
+  ],
+  "settings": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.wordWrap": "on",
+    "files.exclude": {
+      "**/.git": true
+    },
+    "search.exclude": {
+      "**/.git": true
+    },
+    "markdownlint.run": "onSave",
+    "prettier.resolveGlobalModules": false
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "davidanson.vscode-markdownlint"
+    ]
+  }
+}
