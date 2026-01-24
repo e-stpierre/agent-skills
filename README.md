@@ -5,6 +5,7 @@
 <h1 align="center">Clauding</h1>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version 0.1.0">
   <a href="https://claude.ai/code"><img src="https://img.shields.io/badge/Built%20for-Claude%20Code-orange" alt="Built for Claude Code"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
 </p>
