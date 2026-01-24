@@ -2,6 +2,12 @@
 
 All notable changes to the interactive-sdlc plugin will be documented in this file.
 
+## [0.1.1] - 2026-01-23
+
+### Changed
+
+- Update configuration path from `.claude/settings.json` to `.claude/configs/interactive-sdlc.json`
+
 ## [0.1.0] - 2025-12-21
 
 ### Added
