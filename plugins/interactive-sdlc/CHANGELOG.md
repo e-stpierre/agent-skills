@@ -12,7 +12,7 @@ All notable changes to the interactive-sdlc plugin will be documented in this fi
 - Validation command: `/validate` with tests, code review, build verification, and plan compliance
 - Workflow commands: `/one-shot`, `/plan-build-validate`
 - Documentation command: `/document` with mermaid diagram support
-- Analysis commands: `/analyse-bug`, `/analyse-doc`, `/analyse-debt`, `/analyse-style`, `/analyse-security`
+- Analysis commands: `/analyze-bug`, `/analyze-doc`, `/analyze-debt`, `/analyze-style`, `/analyze-security`
 - Git commands: `/git-branch`, `/git-commit`, `/git-pr`
 - GitHub commands: `/create-gh-issue`, `/read-gh-issue`
 - Configuration command: `/configure-interactive-sdlc`

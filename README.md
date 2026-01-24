@@ -56,7 +56,7 @@ See [Interactive-SDLC README](plugins/interactive-sdlc/README.md) for all comman
 /plan-feature
 
 # Run analysis on your codebase (bugs, docs, debt, style, security)
-/analyse-security
+/analyze-security
 
 # Full workflow from branch creation to PR with user interaction
 /one-shot

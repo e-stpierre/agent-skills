@@ -44,15 +44,15 @@ Commands are organized into logical categories. All paths are relative to the pr
 | `/one-shot`            | Quick task without saved plan file        |
 | `/plan-build-validate` | Full workflow from planning to validation |
 
-### Analysis (`commands/analyse/`)
+### Analysis (`commands/analyze/`)
 
 | Command             | Description                                           |
 | ------------------- | ----------------------------------------------------- |
-| `/analyse-bug`      | Analyze codebase for bugs and logic errors            |
-| `/analyse-doc`      | Analyze documentation quality and accuracy            |
-| `/analyse-debt`     | Identify technical debt and refactoring opportunities |
-| `/analyse-style`    | Check code style, consistency, and best practices     |
-| `/analyse-security` | Scan for security vulnerabilities and unsafe patterns |
+| `/analyze-bug`      | Analyze codebase for bugs and logic errors            |
+| `/analyze-doc`      | Analyze documentation quality and accuracy            |
+| `/analyze-debt`     | Identify technical debt and refactoring opportunities |
+| `/analyze-style`    | Check code style, consistency, and best practices     |
+| `/analyze-security` | Scan for security vulnerabilities and unsafe patterns |
 
 ### Git (`commands/git/`)
 
@@ -343,7 +343,7 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 /plan-build-validate --explore 5 --git --pr Implement user notifications
 ```
 
-### /analyse-bug
+### /analyze-bug
 
 **Arguments:**
 
@@ -353,16 +353,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full bug analysis
-/analyse-bug
+/analyze-bug
 
 # Focused analysis
-/analyse-bug Focus on error handling in API routes
+/analyze-bug Focus on error handling in API routes
 
 # Directory-specific
-/analyse-bug src/api/ src/services/
+/analyze-bug src/api/ src/services/
 ```
 
-### /analyse-doc
+### /analyze-doc
 
 **Arguments:**
 
@@ -372,16 +372,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full documentation analysis
-/analyse-doc
+/analyze-doc
 
 # Focused analysis
-/analyse-doc Check API documentation accuracy
+/analyze-doc Check API documentation accuracy
 
 # Specific files
-/analyse-doc docs/api.md README.md
+/analyze-doc docs/api.md README.md
 ```
 
-### /analyse-debt
+### /analyze-debt
 
 **Arguments:**
 
@@ -391,16 +391,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full debt analysis
-/analyse-debt
+/analyze-debt
 
 # Focused analysis
-/analyse-debt Focus on database access patterns
+/analyze-debt Focus on database access patterns
 
 # Module-specific
-/analyse-debt src/legacy/
+/analyze-debt src/legacy/
 ```
 
-### /analyse-style
+### /analyze-style
 
 **Arguments:**
 
@@ -410,16 +410,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full style analysis
-/analyse-style
+/analyze-style
 
 # Focused analysis
-/analyse-style Check naming conventions in React components
+/analyze-style Check naming conventions in React components
 
 # Directory-specific
-/analyse-style src/components/
+/analyze-style src/components/
 ```
 
-### /analyse-security
+### /analyze-security
 
 **Arguments:**
 
@@ -429,13 +429,13 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full security analysis
-/analyse-security
+/analyze-security
 
 # Focused analysis
-/analyse-security Focus on authentication and session management
+/analyze-security Focus on authentication and session management
 
 # Directory-specific
-/analyse-security src/api/ src/auth/
+/analyze-security src/api/ src/auth/
 ```
 
 ### /git-branch
