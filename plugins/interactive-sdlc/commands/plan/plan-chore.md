@@ -72,8 +72,8 @@ Plan saved to specs/chore-{slugified-title}.md
 - Validation criteria defined
 
 Next steps:
-- Implement with: /interactive-sdlc:build specs/chore-{slugified-title}.md
-- Or run full workflow: /interactive-sdlc:plan-build-validate
+- Implement with: /build specs/chore-{slugified-title}.md
+- Or run full workflow: /plan-build-validate
 ```
 
 ## Templates

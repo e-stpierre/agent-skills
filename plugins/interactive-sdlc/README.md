@@ -6,68 +6,68 @@ Human-in-the-loop plugin for guided development within Claude Code sessions. Pro
 
 The Interactive SDLC plugin provides guided workflows for planning, implementing, and validating development tasks. Commands ask clarifying questions when needed and support context arguments for automation.
 
-- `/interactive-sdlc:plan-feature Add OAuth login` - Plan a feature with milestones
-- `/interactive-sdlc:build specs/feature-auth.md --git` - Implement a plan with auto-commits
-- `/interactive-sdlc:validate --plan specs/feature-auth.md` - Validate implementation
-- `/interactive-sdlc:one-shot --git Fix login timeout` - Quick task without saved plan
+- `/plan-feature Add OAuth login` - Plan a feature with milestones
+- `/build specs/feature-auth.md --git` - Implement a plan with auto-commits
+- `/validate --plan specs/feature-auth.md` - Validate implementation
+- `/one-shot --git Fix login timeout` - Quick task without saved plan
 
 ## Commands
 
-All commands use the `/interactive-sdlc:` namespace prefix. Commands are organized into logical categories. All paths are relative to the project root.
+Commands are organized into logical categories. All paths are relative to the project root.
 
 ### Setup
 
 | Command                       | Description                               |
 | ----------------------------- | ----------------------------------------- |
-| `/interactive-sdlc:configure` | Set up plugin configuration interactively |
+| `/configure` | Set up plugin configuration interactively |
 
 ### Planning (`commands/plan/`)
 
 | Command                          | Description                             |
 | -------------------------------- | --------------------------------------- |
-| `/interactive-sdlc:plan-chore`   | Plan a maintenance task                 |
-| `/interactive-sdlc:plan-bug`     | Plan a bug fix with root cause analysis |
-| `/interactive-sdlc:plan-feature` | Plan a feature with milestones          |
+| `/plan-chore`   | Plan a maintenance task                 |
+| `/plan-bug`     | Plan a bug fix with root cause analysis |
+| `/plan-feature` | Plan a feature with milestones          |
 
 ### Development (`commands/dev/`)
 
 | Command                      | Description                                                           |
 | ---------------------------- | --------------------------------------------------------------------- |
-| `/interactive-sdlc:build`    | Implement a plan file with checkpoint support                         |
-| `/interactive-sdlc:validate` | Comprehensive validation (tests, code review, build, plan compliance) |
-| `/interactive-sdlc:document` | Generate or update documentation with mermaid diagrams                |
+| `/build`    | Implement a plan file with checkpoint support                         |
+| `/validate` | Comprehensive validation (tests, code review, build, plan compliance) |
+| `/document` | Generate or update documentation with mermaid diagrams                |
 
 ### Workflows (`commands/workflows/`)
 
 | Command                                 | Description                               |
 | --------------------------------------- | ----------------------------------------- |
-| `/interactive-sdlc:one-shot`            | Quick task without saved plan file        |
-| `/interactive-sdlc:plan-build-validate` | Full workflow from planning to validation |
+| `/one-shot`            | Quick task without saved plan file        |
+| `/plan-build-validate` | Full workflow from planning to validation |
 
 ### Analysis (`commands/analyse/`)
 
 | Command                              | Description                                           |
 | ------------------------------------ | ----------------------------------------------------- |
-| `/interactive-sdlc:analyse-bug`      | Analyze codebase for bugs and logic errors            |
-| `/interactive-sdlc:analyse-doc`      | Analyze documentation quality and accuracy            |
-| `/interactive-sdlc:analyse-debt`     | Identify technical debt and refactoring opportunities |
-| `/interactive-sdlc:analyse-style`    | Check code style, consistency, and best practices     |
-| `/interactive-sdlc:analyse-security` | Scan for security vulnerabilities and unsafe patterns |
+| `/analyse-bug`      | Analyze codebase for bugs and logic errors            |
+| `/analyse-doc`      | Analyze documentation quality and accuracy            |
+| `/analyse-debt`     | Identify technical debt and refactoring opportunities |
+| `/analyse-style`    | Check code style, consistency, and best practices     |
+| `/analyse-security` | Scan for security vulnerabilities and unsafe patterns |
 
 ### Git (`commands/git/`)
 
 | Command                        | Description                                          |
 | ------------------------------ | ---------------------------------------------------- |
-| `/interactive-sdlc:git-branch` | Create branches with standardized naming conventions |
-| `/interactive-sdlc:git-commit` | Commit changes with structured messages              |
-| `/interactive-sdlc:git-pr`     | Create pull requests with contextual descriptions    |
+| `/git-branch` | Create branches with standardized naming conventions |
+| `/git-commit` | Commit changes with structured messages              |
+| `/git-pr`     | Create pull requests with contextual descriptions    |
 
 ### GitHub (`commands/github/`)
 
 | Command                             | Description                                       |
 | ----------------------------------- | ------------------------------------------------- |
-| `/interactive-sdlc:create-gh-issue` | Create GitHub issues with title, body, and labels |
-| `/interactive-sdlc:read-gh-issue`   | Read GitHub issue content by number               |
+| `/create-gh-issue` | Create GitHub issues with title, body, and labels |
+| `/read-gh-issue`   | Read GitHub issue content by number               |
 
 ## Arguments Reference
 
@@ -110,13 +110,13 @@ All commands support an optional `[context]` argument as the last parameter. Thi
 
 ```bash
 # With context - minimal prompts
-/interactive-sdlc:plan-bug --explore 3 Login fails on Safari when using OAuth.
+/plan-bug --explore 3 Login fails on Safari when using OAuth.
 Users click login button, get redirected to OAuth provider,
 but after successful auth they are redirected to a blank page
 instead of the dashboard.
 
 # Without context - interactive prompts
-/interactive-sdlc:plan-bug --explore 3
+/plan-bug --explore 3
 ```
 
 ## Plan File Principles
@@ -160,7 +160,7 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ## Complete Examples
 
-### /interactive-sdlc:configure
+### /configure
 
 **Arguments:** None
 
@@ -168,10 +168,10 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Run interactive configuration
-/interactive-sdlc:configure
+/configure
 ```
 
-### /interactive-sdlc:plan-chore
+### /plan-chore
 
 **Arguments:**
 
@@ -183,16 +183,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Plan with context
-/interactive-sdlc:plan-chore Update all npm dependencies to latest versions
+/plan-chore Update all npm dependencies to latest versions
 
 # Plan with exploration
-/interactive-sdlc:plan-chore --explore 3 Refactor database connection pooling
+/plan-chore --explore 3 Refactor database connection pooling
 
 # Plan and commit
-/interactive-sdlc:plan-chore --git Clean up unused imports across codebase
+/plan-chore --git Clean up unused imports across codebase
 ```
 
-### /interactive-sdlc:plan-bug
+### /plan-bug
 
 **Arguments:**
 
@@ -204,16 +204,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Plan with context
-/interactive-sdlc:plan-bug Login fails on Safari when using OAuth
+/plan-bug Login fails on Safari when using OAuth
 
 # Plan with exploration
-/interactive-sdlc:plan-bug --explore 3 Memory leak in WebSocket handler
+/plan-bug --explore 3 Memory leak in WebSocket handler
 
 # Plan and commit
-/interactive-sdlc:plan-bug --git Race condition in checkout flow
+/plan-bug --git Race condition in checkout flow
 ```
 
-### /interactive-sdlc:plan-feature
+### /plan-feature
 
 **Arguments:**
 
@@ -225,16 +225,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Plan with context
-/interactive-sdlc:plan-feature Add user authentication with OAuth for Google and GitHub
+/plan-feature Add user authentication with OAuth for Google and GitHub
 
 # Plan with more exploration
-/interactive-sdlc:plan-feature --explore 5 Implement real-time notifications
+/plan-feature --explore 5 Implement real-time notifications
 
 # Plan and commit
-/interactive-sdlc:plan-feature --git --explore 4 Add dark mode toggle
+/plan-feature --git --explore 4 Add dark mode toggle
 ```
 
-### /interactive-sdlc:build
+### /build
 
 **Arguments:**
 
@@ -247,16 +247,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Basic build
-/interactive-sdlc:build specs/feature-auth.md
+/build specs/feature-auth.md
 
 # Build with auto-commit
-/interactive-sdlc:build specs/feature-auth.md --git
+/build specs/feature-auth.md --git
 
 # Resume from checkpoint
-/interactive-sdlc:build specs/feature-auth.md --checkpoint "Milestone 2" --git
+/build specs/feature-auth.md --checkpoint "Milestone 2" --git
 ```
 
-### /interactive-sdlc:validate
+### /validate
 
 **Arguments:**
 
@@ -270,16 +270,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full validation
-/interactive-sdlc:validate --plan specs/feature-auth.md
+/validate --plan specs/feature-auth.md
 
 # Skip tests, auto-fix critical
-/interactive-sdlc:validate --skip-tests --autofix critical
+/validate --skip-tests --autofix critical
 
 # Quick validation
-/interactive-sdlc:validate --skip-tests --skip-build
+/validate --skip-tests --skip-build
 ```
 
-### /interactive-sdlc:document
+### /document
 
 **Arguments:**
 
@@ -290,16 +290,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Document API endpoints
-/interactive-sdlc:document --output docs/api.md Document the REST API endpoints
+/document --output docs/api.md Document the REST API endpoints
 
 # Document architecture
-/interactive-sdlc:document --output docs/architecture.md Document the system architecture
+/document --output docs/architecture.md Document the system architecture
 
 # Auto-detect output location
-/interactive-sdlc:document Document the authentication flow
+/document Document the authentication flow
 ```
 
-### /interactive-sdlc:one-shot
+### /one-shot
 
 **Arguments:**
 
@@ -312,16 +312,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Quick fix
-/interactive-sdlc:one-shot Fix typo in README
+/one-shot Fix typo in README
 
 # Fix with commit and validation
-/interactive-sdlc:one-shot --git --validate Fix login timeout on Safari
+/one-shot --git --validate Fix login timeout on Safari
 
 # With exploration
-/interactive-sdlc:one-shot --explore 2 --git Refactor auth middleware
+/one-shot --explore 2 --git Refactor auth middleware
 ```
 
-### /interactive-sdlc:plan-build-validate
+### /plan-build-validate
 
 **Arguments:**
 
@@ -334,16 +334,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full workflow with PR
-/interactive-sdlc:plan-build-validate --git --pr Add dark mode toggle
+/plan-build-validate --git --pr Add dark mode toggle
 
 # Without PR creation
-/interactive-sdlc:plan-build-validate --git Fix authentication timeout issue
+/plan-build-validate --git Fix authentication timeout issue
 
 # With extra exploration
-/interactive-sdlc:plan-build-validate --explore 5 --git --pr Implement user notifications
+/plan-build-validate --explore 5 --git --pr Implement user notifications
 ```
 
-### /interactive-sdlc:analyse-bug
+### /analyse-bug
 
 **Arguments:**
 
@@ -353,16 +353,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full bug analysis
-/interactive-sdlc:analyse-bug
+/analyse-bug
 
 # Focused analysis
-/interactive-sdlc:analyse-bug Focus on error handling in API routes
+/analyse-bug Focus on error handling in API routes
 
 # Directory-specific
-/interactive-sdlc:analyse-bug src/api/ src/services/
+/analyse-bug src/api/ src/services/
 ```
 
-### /interactive-sdlc:analyse-doc
+### /analyse-doc
 
 **Arguments:**
 
@@ -372,16 +372,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full documentation analysis
-/interactive-sdlc:analyse-doc
+/analyse-doc
 
 # Focused analysis
-/interactive-sdlc:analyse-doc Check API documentation accuracy
+/analyse-doc Check API documentation accuracy
 
 # Specific files
-/interactive-sdlc:analyse-doc docs/api.md README.md
+/analyse-doc docs/api.md README.md
 ```
 
-### /interactive-sdlc:analyse-debt
+### /analyse-debt
 
 **Arguments:**
 
@@ -391,16 +391,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full debt analysis
-/interactive-sdlc:analyse-debt
+/analyse-debt
 
 # Focused analysis
-/interactive-sdlc:analyse-debt Focus on database access patterns
+/analyse-debt Focus on database access patterns
 
 # Module-specific
-/interactive-sdlc:analyse-debt src/legacy/
+/analyse-debt src/legacy/
 ```
 
-### /interactive-sdlc:analyse-style
+### /analyse-style
 
 **Arguments:**
 
@@ -410,16 +410,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full style analysis
-/interactive-sdlc:analyse-style
+/analyse-style
 
 # Focused analysis
-/interactive-sdlc:analyse-style Check naming conventions in React components
+/analyse-style Check naming conventions in React components
 
 # Directory-specific
-/interactive-sdlc:analyse-style src/components/
+/analyse-style src/components/
 ```
 
-### /interactive-sdlc:analyse-security
+### /analyse-security
 
 **Arguments:**
 
@@ -429,16 +429,16 @@ Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ```bash
 # Full security analysis
-/interactive-sdlc:analyse-security
+/analyse-security
 
 # Focused analysis
-/interactive-sdlc:analyse-security Focus on authentication and session management
+/analyse-security Focus on authentication and session management
 
 # Directory-specific
-/interactive-sdlc:analyse-security src/api/ src/auth/
+/analyse-security src/api/ src/auth/
 ```
 
-### /interactive-sdlc:git-branch
+### /git-branch
 
 **Arguments:**
 
@@ -452,16 +452,16 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 ```bash
 # Simple branch (defaults to feature/add-dark-mode)
-/interactive-sdlc:git-branch add-dark-mode
+/git-branch add-dark-mode
 
 # With category
-/interactive-sdlc:git-branch hotfix login-timeout
+/git-branch hotfix login-timeout
 
 # With issue reference
-/interactive-sdlc:git-branch feature add-oauth 123
+/git-branch feature add-oauth 123
 ```
 
-### /interactive-sdlc:git-commit
+### /git-commit
 
 **Arguments:**
 
@@ -471,13 +471,13 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 ```bash
 # Auto-generate commit message from changes
-/interactive-sdlc:git-commit
+/git-commit
 
 # With custom message
-/interactive-sdlc:git-commit Fix login timeout on Safari
+/git-commit Fix login timeout on Safari
 ```
 
-### /interactive-sdlc:git-pr
+### /git-pr
 
 **Arguments:**
 
@@ -487,13 +487,13 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 ```bash
 # Create PR to default branch
-/interactive-sdlc:git-pr
+/git-pr
 
 # Create PR to specific branch
-/interactive-sdlc:git-pr develop
+/git-pr develop
 ```
 
-### /interactive-sdlc:create-gh-issue
+### /create-gh-issue
 
 **Arguments:**
 
@@ -507,16 +507,16 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 ```bash
 # Simple issue
-/interactive-sdlc:create-gh-issue "Fix login bug"
+/create-gh-issue "Fix login bug"
 
 # With body and labels
-/interactive-sdlc:create-gh-issue "Fix login bug" --body "Users cannot login with Safari" --labels bug,priority-high
+/create-gh-issue "Fix login bug" --body "Users cannot login with Safari" --labels bug,priority-high
 
 # With milestone and assignee
-/interactive-sdlc:create-gh-issue "Add dark mode" --labels enhancement,ui --milestone "v2.0" --assignee @me
+/create-gh-issue "Add dark mode" --labels enhancement,ui --milestone "v2.0" --assignee @me
 ```
 
-### /interactive-sdlc:read-gh-issue
+### /read-gh-issue
 
 **Arguments:**
 
@@ -527,8 +527,8 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 ```bash
 # Read issue
-/interactive-sdlc:read-gh-issue 123
+/read-gh-issue 123
 
 # Read issue with comments
-/interactive-sdlc:read-gh-issue 456 --comments
+/read-gh-issue 456 --comments
 ```

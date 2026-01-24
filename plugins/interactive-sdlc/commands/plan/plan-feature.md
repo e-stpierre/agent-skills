@@ -92,8 +92,8 @@ Architecture highlights:
 - [key architectural decisions]
 
 Next steps:
-- Implement with: /interactive-sdlc:build specs/feature-{slugified-title}.md
-- Or run full workflow: /interactive-sdlc:plan-build-validate
+- Implement with: /build specs/feature-{slugified-title}.md
+- Or run full workflow: /plan-build-validate
 ```
 
 ## Templates

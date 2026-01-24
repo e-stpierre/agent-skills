@@ -81,8 +81,8 @@ Plan saved to specs/bug-{slugified-title}.md
 - Test cases to add: X
 
 Next steps:
-- Implement with: /interactive-sdlc:build specs/bug-{slugified-title}.md
-- Or run full workflow: /interactive-sdlc:plan-build-validate
+- Implement with: /build specs/bug-{slugified-title}.md
+- Or run full workflow: /plan-build-validate
 ```
 
 ## Templates

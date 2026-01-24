@@ -61,7 +61,7 @@ Execute small, well-defined tasks quickly without creating a saved plan file, op
      - `chore: <description>` for chores
 
 6. **Validate (if --validate flag)**
-   - Run `/interactive-sdlc:validate`
+   - Run `/validate`
    - Report any issues found
 
 ## Output Guidance

@@ -41,9 +41,9 @@ Execute the complete development workflow from planning through implementation t
 
 Based on task type, invoke the appropriate planning command using full namespace:
 
-- **Chore**: `/interactive-sdlc:plan-chore`
-- **Bug**: `/interactive-sdlc:plan-bug`
-- **Feature**: `/interactive-sdlc:plan-feature`
+- **Chore**: `/plan-chore`
+- **Bug**: `/plan-bug`
+- **Feature**: `/plan-feature`
 
 Pass through:
 
@@ -58,7 +58,7 @@ Wait for plan generation to complete.
 Invoke the build command with the generated plan:
 
 ```
-/interactive-sdlc:build <plan-file-path>
+/build <plan-file-path>
 ```
 
 Pass through:
@@ -72,7 +72,7 @@ Implement all tasks from the plan.
 Invoke the validate command:
 
 ```
-/interactive-sdlc:validate --plan <plan-file-path>
+/validate --plan <plan-file-path>
 ```
 
 Run all validation checks:
@@ -108,7 +108,7 @@ If validation fails:
 
 - Report issues found
 - Do not create PR
-- Suggest running `/interactive-sdlc:validate --autofix critical,major`
+- Suggest running `/validate --autofix critical,major`
 
 ## Workflow Summary
 
@@ -162,5 +162,5 @@ Next steps:
 - Always run validation, regardless of --pr flag
 - Fix all validation issues before creating a PR
 - Each step must complete successfully before proceeding to the next
-- Use /interactive-sdlc:one-shot for trivial tasks - this workflow is for non-trivial work
+- Use /one-shot for trivial tasks - this workflow is for non-trivial work
 - Review the generated plan before proceeding to build

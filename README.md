@@ -52,13 +52,13 @@ See [Interactive-SDLC README](plugins/interactive-sdlc/README.md) for all comman
 
 ```bash
 # Plan a feature with milestones and implementation steps
-/interactive-sdlc:plan-feature
+/plan-feature
 
 # Run analysis on your codebase (bugs, docs, debt, style, security)
-/interactive-sdlc:analyse-security
+/analyse-security
 
 # Full workflow from branch creation to PR with user interaction
-/interactive-sdlc:one-shot
+/one-shot
 ```
 
 ## Contributing

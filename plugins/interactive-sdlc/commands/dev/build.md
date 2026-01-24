@@ -67,7 +67,7 @@ Implement all tasks from a plan file with checkpoint support for resuming work, 
    - Use descriptive commit messages
 
 6. **Validation**
-   - After completing all tasks, remind user to run `/interactive-sdlc:validate`
+   - After completing all tasks, remind user to run `/validate`
    - Provide summary of changes made
 
 ## Output Guidance
@@ -96,7 +96,7 @@ Changes summary:
 - [list key changes made]
 
 Next steps:
-- Run validation: /interactive-sdlc:validate --plan specs/feature-auth.md
+- Run validation: /validate --plan specs/feature-auth.md
 - Review changes and test functionality
 ```
 

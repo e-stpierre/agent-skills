@@ -1,10 +1,10 @@
 ---
-name: configure
+name: configure-interactive-sdlc
 description: Set up interactive-sdlc plugin configuration interactively
 argument-hint: ""
 ---
 
-# Configure
+# Configure interactive-sdlc
 
 Set up interactive-sdlc plugin configuration interactively.
 
@@ -115,7 +115,7 @@ Current interactive-sdlc configuration:
     feature: 3
 
 To change settings, edit .claude/settings.json directly
-or run /interactive-sdlc:configure again.
+or run /configure-interactive-sdlc again.
 ```
 
 **If configuration needed updates:**
@@ -134,7 +134,7 @@ Current configuration:
 Configuration saved to .claude/settings.json
 
 To change settings later, edit .claude/settings.json directly
-or run /interactive-sdlc:configure again.
+or run /configure-interactive-sdlc again.
 ```
 
 ## Important Notes
