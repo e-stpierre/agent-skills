@@ -29,8 +29,8 @@ Plan a feature with comprehensive codebase exploration, architecture design, mil
 ## Instructions
 
 1. **Read Configuration**
-   - Read `.claude/settings.json` for `interactive-sdlc.planDirectory` (default: `specs`)
-   - Read `interactive-sdlc.defaultExploreAgents.feature` (default: 3)
+   - Read `.claude/configs/interactive-sdlc.json` for `planDirectory` (default: `specs`)
+   - Read `defaultExploreAgents.feature` (default: 3)
 
 2. **Explore Codebase**
    - Launch N explore agents (from config or --explore flag)

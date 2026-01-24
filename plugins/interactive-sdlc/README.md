@@ -130,18 +130,16 @@ Plans are static documentation of work to be done:
 
 ## Configuration
 
-Configure the plugin in `.claude/settings.json` (project scope, committed to git):
+Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, committed to git if not included in .gitignore):
 
 ```json
 {
-  "interactive-sdlc": {
-    "planDirectory": "specs",
-    "analysisDirectory": "analysis",
-    "defaultExploreAgents": {
-      "chore": 2,
-      "bug": 2,
-      "feature": 3
-    }
+  "planDirectory": "specs",
+  "analysisDirectory": "analysis",
+  "defaultExploreAgents": {
+    "chore": 2,
+    "bug": 2,
+    "feature": 3
   }
 }
 ```

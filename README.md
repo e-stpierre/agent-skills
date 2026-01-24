@@ -5,9 +5,9 @@
 <h1 align="center">Clauding</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version 0.1.0">
+  <a href="https://github.com/e-stpierre/clauding/releases"><img src="https://img.shields.io/github/v/release/e-stpierre/clauding?include_prereleases" alt="GitHub release"></a>
   <a href="https://claude.ai/code"><img src="https://img.shields.io/badge/Built%20for-Claude%20Code-orange" alt="Built for Claude Code"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://github.com/e-stpierre/clauding/blob/main/LICENSE"><img src="https://img.shields.io/github/license/e-stpierre/clauding" alt="License"></a>
 </p>
 
 <p align="center">

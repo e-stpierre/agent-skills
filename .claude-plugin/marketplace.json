@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "A collection of human-in-the-loop interactive prompts for Claude Code, enabling structured, repeatable workflows across diverse tasks and domains.",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "plugins": [
     {
       "name": "interactive-sdlc",
       "source": "./plugins/interactive-sdlc",
       "description": "[Beta] Interactive SDLC commands for guided development within Claude Code sessions",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Étienne St-Pierre",
         "email": "me@estpierre.dev"

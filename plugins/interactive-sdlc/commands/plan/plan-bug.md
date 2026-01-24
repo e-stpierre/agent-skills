@@ -29,8 +29,8 @@ Plan a bug fix with thorough root cause analysis, reproduction steps, and a stru
 ## Instructions
 
 1. **Read Configuration**
-   - Read `.claude/settings.json` for `interactive-sdlc.planDirectory` (default: `specs`)
-   - Read `interactive-sdlc.defaultExploreAgents.bug` (default: 2)
+   - Read `.claude/configs/interactive-sdlc.json` for `planDirectory` (default: `specs`)
+   - Read `defaultExploreAgents.bug` (default: 2)
 
 2. **Explore Codebase**
    - Launch N explore agents (from config or --explore flag)

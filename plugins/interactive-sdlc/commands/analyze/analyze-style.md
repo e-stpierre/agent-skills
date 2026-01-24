@@ -4,7 +4,7 @@ description: Check code style, consistency, and best practices adherence
 argument-hint: "[context]"
 ---
 
-# analyze Style
+# Analyze Style
 
 Check code style, consistency, and best practices adherence.
 
@@ -51,7 +51,7 @@ Check code style, consistency, and best practices adherence by identifying incon
 ## Instructions
 
 1. **Read Configuration**
-   - Read `.claude/settings.json` for `interactive-sdlc.analysisDirectory` (default: `analysis`)
+   - Read `.claude/configs/interactive-sdlc.json` for `analysisDirectory` (default: `analysis`)
 
 2. **Understand Project Conventions**
    - Check for ESLint, Prettier, Ruff configs

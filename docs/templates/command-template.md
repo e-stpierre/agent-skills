@@ -27,8 +27,8 @@ OPTIONAL SECTIONS:
 
 ARGUMENT DESIGN PRINCIPLES:
 - If present, the [context] argument should always come last
-- Commands should NOT support arguments that can be configured in settings.json
-- Instead, provide defaults and read settings.json to override them
+- Commands should NOT support arguments that can be configured in .claude/configs/plugin-name.json
+- Instead, provide defaults and read .claude/configs/plugin-name.json to override them
 - Example: Plan commands should not have --output argument; use default /specs or read interactive-sdlc.planDirectory from settings
 -->
 
@@ -61,7 +61,7 @@ Instructions:
 - This section documents the arguments defined in the frontmatter for human readers
 - Include default values where applicable
 - If present, the [context] argument should always come last
-- Do NOT add arguments for values that can be configured in settings.json
+- Do NOT add arguments for values that can be configured in .claude/configs/plugin-name.json
 - Omit this section entirely if the command takes no arguments (frontmatter arguments can be empty list)
 -->
 
