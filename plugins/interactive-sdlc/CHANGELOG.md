@@ -2,6 +2,13 @@
 
 All notable changes to the interactive-sdlc plugin will be documented in this file.
 
+## [0.1.2] - 2026-01-24
+
+### Changed
+
+- Normalize all command prompts to follow template conventions
+- Update README documentation for clarity
+
 ## [0.1.1] - 2026-01-23
 
 ### Changed
