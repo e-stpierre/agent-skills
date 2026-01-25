@@ -227,4 +227,3 @@ Instructions:
 - Include all low-risk security issues
 -->
 ```
-

@@ -119,4 +119,3 @@ Configuration saved to .claude/configs/interactive-sdlc.json
 To change settings later, edit .claude/configs/interactive-sdlc.json directly
 or run /configure-interactive-sdlc again.
 ```
-
