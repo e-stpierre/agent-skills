@@ -144,8 +144,6 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 }
 ```
 
-Personal overrides can be added to `.claude/settings.local.json` (gitignored).
-
 ### Configuration Options
 
 | Setting                        | Type          | Default      | Description                          |
