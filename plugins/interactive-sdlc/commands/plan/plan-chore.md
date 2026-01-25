@@ -6,17 +6,15 @@ argument-hint: "[--explore N] [--git] [context]"
 
 # Plan Chore
 
-Plan a maintenance task with codebase exploration and structured plan generation.
+## Overview
+
+Plan a maintenance task with comprehensive codebase exploration, gathering user requirements, and generating a structured plan document that guides implementation.
 
 ## Arguments
 
 - **`--explore N`** (optional): Override default explore agent count (default: 2)
 - **`--git`** (optional): Commit plan file after creation
 - **`[context]`** (optional): Optional freeform context for argument inference
-
-## Objective
-
-Plan a maintenance task with comprehensive codebase exploration, gathering user requirements, and generating a structured plan document that guides implementation.
 
 ## Core Principles
 
@@ -139,11 +137,3 @@ Instructions:
 - Make criteria objective and measurable
 -->
 ```
-
-## Important Notes
-
-- Plans are static documentation - never modify them during implementation
-- Focus on actionable tasks, not time estimates or deadlines
-- Track progress via TodoWrite tool, not by updating plan files
-- Explore the codebase thoroughly to understand existing patterns
-- Ask clarifying questions when requirements are unclear

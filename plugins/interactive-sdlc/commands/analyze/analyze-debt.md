@@ -6,23 +6,22 @@ argument-hint: "[context]"
 
 # Analyze Debt
 
-Identify technical debt, optimization opportunities, and refactoring needs.
+## Overview
+
+Identify technical debt, optimization opportunities, and refactoring needs by analyzing architecture, code quality, patterns, and performance issues.
 
 ## Arguments
 
 - **`[context]`** (optional): Specific areas or concerns to focus on
 
-## Objective
-
-Identify technical debt, optimization opportunities, and refactoring needs by analyzing architecture, code quality, patterns, and performance issues.
-
 ## Core Principles
 
 - Focus on REAL debt - not everything needs refactoring
 - Working code has value - perfect is the enemy of good
-- Consider why patterns exist before flagging them
 - Prioritize by impact - frequently touched code > rarely touched
 - Avoid over-engineering and premature abstractions
+- Understand why patterns exist before flagging them - some "debt" is intentional
+- Base recommendations on concrete requirements, not hypothetical future needs
 
 ## Command-Specific Guidelines
 
@@ -214,11 +213,3 @@ Instructions:
 - Include all performance debt items
 -->
 ```
-
-## Important Notes
-
-- Focus on real debt - working code has value
-- Understand why patterns exist before flagging them - some "debt" is intentional
-- Avoid suggesting premature abstractions or over-engineering
-- Prioritize frequently-used code over rarely-touched code
-- Base recommendations on concrete requirements, not hypothetical future needs

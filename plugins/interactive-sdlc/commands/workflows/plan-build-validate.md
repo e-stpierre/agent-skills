@@ -6,7 +6,9 @@ argument-hint: "[--git] [--pr] [--explore N] [context]"
 
 # Plan-Build-Validate
 
-Full guided workflow from planning through implementation to validation.
+## Overview
+
+Execute the complete development workflow from planning through implementation to validation, creating a draft PR if all checks pass.
 
 ## Arguments
 
@@ -15,10 +17,6 @@ Full guided workflow from planning through implementation to validation.
 - **`--explore N`** (optional): Override explore agent count for planning phase
 - **`[context]`** (optional): Task description to reduce prompts
 
-## Objective
-
-Execute the complete development workflow from planning through implementation to validation, creating a draft PR if all checks pass.
-
 ## Core Principles
 
 - This is the recommended workflow for non-trivial tasks
@@ -26,20 +24,25 @@ Execute the complete development workflow from planning through implementation t
 - Plan file is saved and can be referenced later
 - PR is only created if validation passes
 - Use --git to maintain atomic commits throughout
+- Always run validation, regardless of --pr flag
+- Fix all validation issues before creating a PR
+- Review the generated plan before proceeding to build
 
 ## Command-Specific Guidelines
 
 ### Workflow Summary
 
-Determine Task Type -> Plan (plan-chore/plan-bug/plan-feature) -> Build -> Validate -> Create PR (if --pr and passes)
+Determine Task Type -> Plan -> Create Branch -> Commit Plan -> Build -> Validate -> Create PR (if --pr and passes)
 
 **Step details:**
 
 1. **Determine Task Type**: Analyze context or ask user (chore/bug/feature)
 2. **Plan**: Execute appropriate planning command, saves plan file
-3. **Build**: Implement all tasks from the plan
-4. **Validate**: Run tests, code review, build verification, plan compliance
-5. **Create PR**: If `--pr` flag and validation passes, create draft PR
+3. **Create Branch**: Create a new branch using `/git-branch` (if --git or --pr)
+4. **Commit Plan**: Commit the plan file using `/git-commit` (if --git or --pr)
+5. **Build**: Implement all tasks from the plan
+6. **Validate**: Run tests, code review, build verification, plan compliance
+7. **Create PR**: If `--pr` flag and validation passes, create draft PR using `/git-pr`
 
 ## Instructions
 
@@ -62,12 +65,24 @@ Based on task type, invoke the appropriate planning command using full namespace
 Pass through:
 
 - `--explore N` if specified
-- `--git` if specified
 - `[context]` if provided
 
 Wait for plan generation to complete.
 
-### 3. Execute Build Command
+### 3. Create Branch (if --git or --pr flag)
+
+Use `/git-branch` to create a new branch:
+
+- Branch category based on task type (fix/feature/chore)
+- Branch name derived from the plan title
+
+### 4. Commit Plan (if --git or --pr flag)
+
+Use `/git-commit` to commit the plan file with a message like:
+
+- `docs: Add implementation plan for <feature>`
+
+### 5. Execute Build Command
 
 Invoke the build command with the generated plan:
 
@@ -81,7 +96,7 @@ Pass through:
 
 Implement all tasks from the plan.
 
-### 4. Execute Validate Command
+### 6. Execute Validate Command
 
 Invoke the validate command:
 
@@ -96,27 +111,12 @@ Run all validation checks:
 - Build verification
 - Plan compliance
 
-### 5. Create PR (if --pr flag and validation passes)
+### 7. Create PR (if --pr flag and validation passes)
 
 If validation passes:
 
-1. Generate PR title from plan title
-2. Generate PR body from plan summary:
-
-   ```markdown
-   ## Summary
-
-   - Key changes from the plan
-
-   ## Test plan
-
-   - Validation criteria from the plan
-
-   🤖 Generated with [Claude Code](https://claude.com/claude-code)
-   ```
-
-3. Create draft PR using `gh pr create --draft`
-4. Report PR URL to user
+- Use `/git-pr --draft` to create a draft PR
+- Report PR URL to user
 
 If validation fails:
 
@@ -131,15 +131,20 @@ Provide progress updates at each stage and a final summary:
 **During workflow:**
 
 ```
-Step 1/5: Planning [COMPLETE]
+Step 1/7: Planning [COMPLETE]
 - Plan saved to /specs/feature-auth.md
 
-Step 2/5: Building [IN PROGRESS]
+Step 2/7: Create Branch [COMPLETE]
+- Created branch: feature/add-auth
+
+Step 3/7: Commit Plan [COMPLETE]
+
+Step 4/7: Building [IN PROGRESS]
 - Tasks: 5 completed, 3 remaining
 
-Step 3/5: Validation [PENDING]
+Step 5/7: Validation [PENDING]
 
-Step 4/5: PR Creation [PENDING]
+Step 6/7: PR Creation [PENDING]
 ```
 
 **On completion:**
@@ -148,6 +153,8 @@ Step 4/5: PR Creation [PENDING]
 ## Workflow Complete
 
 ✓ Planning: /specs/feature-auth.md
+✓ Branch: feature/add-auth
+✓ Plan committed
 ✓ Implementation: 8 tasks completed
 ✓ Validation: All checks passed
 ✓ PR Created: https://github.com/user/repo/pull/123 (draft)
@@ -158,11 +165,3 @@ Next steps:
 - Address any feedback
 - Mark as ready for review when complete
 ```
-
-## Important Notes
-
-- Always run validation, regardless of --pr flag
-- Fix all validation issues before creating a PR
-- Each step must complete successfully before proceeding to the next
-- Use /one-shot for trivial tasks - this workflow is for non-trivial work
-- Review the generated plan before proceeding to build

@@ -6,16 +6,14 @@ argument-hint: "[--output [path]] [context]"
 
 # Document
 
-Generate or update project documentation with mermaid diagrams.
+## Overview
+
+Generate or update project documentation with appropriate mermaid diagrams, following existing documentation conventions and ensuring proper formatting.
 
 ## Arguments
 
 - **`--output [path]`** (optional): Specify output file path
 - **`[context]`** (required): Description of what to document
-
-## Objective
-
-Generate or update project documentation with appropriate mermaid diagrams, following existing documentation conventions and ensuring proper formatting.
 
 ## Core Principles
 
@@ -24,7 +22,8 @@ Generate or update project documentation with appropriate mermaid diagrams, foll
 - Include practical examples with code snippets
 - Link to related documentation when available
 - Run markdownlint-cli2 to ensure proper formatting
-- Validate mermaid syntax before saving
+- Validate mermaid syntax before saving documentation
+- Keep diagrams as simple as possible while conveying the necessary information
 
 ## Instructions
 
@@ -234,11 +233,3 @@ Instructions:
 - Use markdown link format: [Link Text](url)
 -->
 ````
-
-## Important Notes
-
-- Validate mermaid syntax before saving documentation
-- Always run markdownlint-cli2 formatting to ensure consistency
-- Include practical examples in all documentation
-- Follow existing documentation conventions in the project
-- Keep diagrams as simple as possible while conveying the necessary information

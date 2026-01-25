@@ -6,23 +6,22 @@ argument-hint: "[context]"
 
 # Analyze Style
 
-Check code style, consistency, and best practices adherence.
+## Overview
+
+Check code style, consistency, and best practices adherence by identifying inconsistent patterns and normalizing the codebase to use one way of doing things.
 
 ## Arguments
 
 - **`[context]`** (optional): Specific areas or files to focus on
-
-## Objective
-
-Check code style, consistency, and best practices adherence by identifying inconsistent patterns and normalizing the codebase to use ONE way of doing things.
 
 ## Core Principles
 
 - Normalization is key - one way to do each thing reduces cognitive load
 - Respect existing patterns - work with the codebase, not against it
 - Majority pattern wins - align outliers to dominant pattern
-- Automated tools first - focus on what automation misses
+- Automated tools first - focus on what automation misses (ESLint/Prettier handle formatting)
 - Some inconsistency is acceptable for legacy code or external dependencies
+- Focus on actual inconsistencies, not stylistic preferences
 
 ## Command-Specific Guidelines
 
@@ -210,11 +209,3 @@ Instructions:
 - Include all minor style issues
 -->
 ```
-
-## Important Notes
-
-- Work with existing codebase patterns - identify the dominant style and normalize to it
-- Focus on issues that automated tools miss - ESLint/Prettier handle formatting
-- Consider context before normalizing legacy code
-- Focus on actual inconsistencies, not stylistic preferences
-- Recognize that external dependencies may require certain patterns

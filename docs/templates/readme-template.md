@@ -4,8 +4,8 @@ PLUGIN README TEMPLATE
 This template defines the exact structure for Claude Code plugin README files.
 
 REQUIRED SECTIONS:
-- Title + Description (merged philosophy/purpose, 1-5 sentences)
-- Overview (quick understanding + bullet-point examples)
+- Title (# Plugin Name)
+- Overview (description, philosophy, purpose, quick examples, and optional ### Key Features)
 - Complete Examples (full reference at end)
 
 PROMPT SECTIONS (include only if plugin contains prompts of that type):
@@ -15,23 +15,25 @@ PROMPT SECTIONS (include only if plugin contains prompts of that type):
 - Hooks (only if plugin has at least one hook)
 
 OPTIONAL SECTIONS (only include when applicable):
+- Documentation (only if plugin has additional docs to link to)
 - Dependencies (only if plugin depends on other plugins)
 - Configuration (only if plugin is configurable via command or CLAUDE.md)
 - Architecture (only when important to understand the plugin)
 - Limitations (only if there are noteworthy limitations)
 
 SECTION ORDER:
-1. Title + Description
-2. Overview
-3. Commands (if applicable)
-4. Agents (if applicable)
-5. Skills (if applicable)
-6. Hooks (if applicable)
-7. Dependencies (if applicable)
-8. Configuration (if applicable)
-9. Architecture (if applicable)
-10. Limitations (if applicable)
-11. Complete Examples (always last)
+1. Title (# Plugin Name)
+2. Overview (includes description, purpose, and optional ### Key Features)
+3. Documentation (if applicable - links to additional docs)
+4. Commands (if applicable)
+5. Agents (if applicable)
+6. Skills (if applicable)
+7. Hooks (if applicable)
+8. Dependencies (if applicable)
+9. Configuration (if applicable)
+10. Architecture (if applicable)
+11. Limitations (if applicable)
+12. Complete Examples (always last)
 
 NEVER INCLUDE:
 - Migration Notes (handle in CHANGELOG.md instead)
@@ -41,34 +43,53 @@ NEVER INCLUDE:
 
 # {{plugin_name}}
 
-{{description_and_philosophy}}
-
 <!--
 Instructions:
-- Replace {{plugin_name}} with the plugin name (e.g., "Interactive SDLC Plugin")
-- Replace {{description_and_philosophy}} with 1-5 sentences that merge:
-  - What the plugin does (purpose)
-  - The philosophy/approach it takes
-  - Target use case (CI/CD, interactive, etc.)
-- This paragraph should give immediate understanding of the plugin
+- Replace {{plugin_name}} with the plugin name (e.g., "Interactive SDLC")
+- Do NOT add a description paragraph directly after the title
+- All description content goes in the Overview section below
 -->
 
 ## Overview
 
-{{overview_content}}
+{{description_and_purpose}}
 
 {{overview_examples}}
 
+### Key Features
+
+{{key_features}}
+
 <!--
 Instructions:
-- Replace {{overview_content}} with 2-4 sentences explaining:
-  - The main capabilities
-  - When to use this plugin
-  - Key differentiators from similar plugins
+- Replace {{description_and_purpose}} with 1-5 sentences that merge:
+  - What the plugin does (purpose)
+  - The philosophy/approach it takes
+  - Target use case (CI/CD, interactive, etc.)
+  - Main capabilities and when to use this plugin
 - Replace {{overview_examples}} with bullet-point examples of the most important commands
-- Include up to one example per command (not multiple variations)
-- Less important commands can be omitted here (covered in Complete Examples)
-- Format examples as: `command` - brief description of what it does
+  - Include up to one example per command (not multiple variations)
+  - Less important commands can be omitted here (covered in Complete Examples)
+  - Format examples as: `command` - brief description of what it does
+- Replace {{key_features}} with bullet-point list of key features (OPTIONAL)
+  - OMIT the ### Key Features sub-section if there are no noteworthy features to highlight
+  - Use format: **Feature Name** - Brief description
+  - Include 4-8 key differentiating features
+-->
+
+## Documentation
+
+{{documentation_links}}
+
+<!--
+Instructions:
+- OMIT THIS SECTION ENTIRELY if plugin has no additional documentation
+- Replace {{documentation_links}} with links to additional documentation files
+- Use bullet-point format with markdown links
+- Example:
+  - **[Quick Start](docs/QuickStart.md)** - Get running in 5 minutes
+  - **[Workflow Guide](docs/WorkflowBuilder.md)** - Complete authoring documentation
+  - **[Contributing](docs/Contributing.md)** - Development guidelines
 -->
 
 ## Commands

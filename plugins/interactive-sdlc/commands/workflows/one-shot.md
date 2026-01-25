@@ -1,23 +1,22 @@
 ---
 name: one-shot
 description: Quick task execution without a saved plan file. Ideal for small, well-defined tasks
-argument-hint: "[--git] [--validate] [--explore N] [context]"
+argument-hint: "[--git] [--pr] [--validate] [--explore N] [context]"
 ---
 
 # One-Shot
 
-Quick task execution without a saved plan file. Ideal for small, well-defined tasks.
+## Overview
+
+Execute small, well-defined tasks quickly without creating a saved plan file, optimizing for speed over thoroughness.
 
 ## Arguments
 
 - **`--git`** (optional): Auto-commit changes when done
+- **`--pr`** (optional): Create a draft PR after completion (implies --git)
 - **`--validate`** (optional): Run validation after implementation
 - **`--explore N`** (optional): Override explore agent count (default: 0 for speed)
 - **`[context]`** (optional): Task description
-
-## Objective
-
-Execute small, well-defined tasks quickly without creating a saved plan file, optimizing for speed over thoroughness.
 
 ## Core Principles
 
@@ -25,7 +24,8 @@ Execute small, well-defined tasks quickly without creating a saved plan file, op
 - No plan file is saved - use full planning workflow for documented work
 - Task must be well-defined and small in scope
 - Ask clarifying questions if task is unclear
-- Use --validate for critical changes to catch issues
+- Use --validate for critical or security-related changes to catch issues
+- Use full planning workflow for complex features, bugs requiring deep investigation, large refactoring, or unclear requirements
 
 ## Command-Specific Guidelines
 
@@ -68,22 +68,26 @@ For complex tasks, use the full planning workflow instead.
      - Bug: root cause, fix strategy, testing
      - Feature: minimal milestones and tasks
 
-4. **Implement**
+4. **Create Branch (if --git or --pr flag)**
+   - Use `/git-branch` to create a new branch
+   - Branch category based on task type (fix/feature/chore)
+   - Branch name derived from task description
+
+5. **Implement**
    - Create todo list from in-memory plan
    - Implement each task sequentially
    - Mark todos as completed
    - Ask clarifying questions if needed
 
-5. **Git Commit (if --git flag)**
-   - Stage all changes
-   - Commit with descriptive message based on task type:
-     - `fix: <description>` for bugs
-     - `feat: <description>` for features
-     - `chore: <description>` for chores
+6. **Git Commit (if --git or --pr flag)**
+   - Use `/git-commit` to commit changes
 
-6. **Validate (if --validate flag)**
+7. **Validate (if --validate flag)**
    - Run `/validate`
    - Report any issues found
+
+8. **Create PR (if --pr flag)**
+   - Use `/git-pr --draft` to create a draft PR
 
 ## Output Guidance
 
@@ -97,6 +101,7 @@ Changes made:
 
 Files modified: X
 Committed: Yes/No
+PR created: <URL> (if --pr used)
 
 [If --validate used:]
 Validation results: PASS/FAIL
@@ -104,11 +109,3 @@ Validation results: PASS/FAIL
 - Build: PASS
 - Review: No critical issues
 ```
-
-## Important Notes
-
-- Use the full planning workflow for complex features requiring architecture decisions
-- Use the full planning workflow for bugs requiring deep investigation
-- Always use --validate for critical or security-related changes
-- Clarify requirements before proceeding - use planning workflow if unclear
-- Use the full planning workflow for large refactoring efforts

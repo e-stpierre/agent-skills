@@ -6,7 +6,9 @@ argument-hint: "[--explore N] [--git] [context]"
 
 # Plan Bug
 
-Plan a bug fix with root cause analysis, reproduction steps, and structured fix strategy.
+## Overview
+
+Plan a bug fix with thorough root cause analysis, reproduction steps, and a structured fix strategy that prevents regression.
 
 ## Arguments
 
@@ -14,17 +16,14 @@ Plan a bug fix with root cause analysis, reproduction steps, and structured fix 
 - **`--git`** (optional): Commit plan file after creation
 - **`[context]`** (optional): Optional freeform context for argument inference
 
-## Objective
-
-Plan a bug fix with thorough root cause analysis, reproduction steps, and a structured fix strategy that prevents regression.
-
 ## Core Principles
 
-- Root cause analysis should be thorough - understanding the cause is critical to the fix
+- Root cause analysis should be thorough - understanding the cause is critical to preventing recurring bugs
 - Include clear reproduction steps to verify the bug exists
 - Design fix strategy to address root cause, not just symptoms
 - Include test cases to prevent regression
 - Plans are static documentation - never modified during implementation
+- Focus on actionable tasks, not time estimates or deadlines
 
 ## Instructions
 
@@ -176,11 +175,3 @@ Instructions:
 - Specify unit tests, integration tests, or e2e tests as appropriate
 -->
 ```
-
-## Important Notes
-
-- Perform thorough root cause analysis - understanding the cause is critical to preventing recurring bugs
-- Plans are static documentation - never modify them during implementation
-- Focus on actionable tasks, not time estimates or deadlines
-- Identify the root cause clearly before proceeding with a fix
-- Include regression test cases to prevent future occurrences

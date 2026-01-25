@@ -110,10 +110,7 @@ All commands support an optional `[context]` argument as the last parameter. Thi
 
 ```bash
 # With context - minimal prompts
-/plan-bug --explore 3 Login fails on Safari when using OAuth.
-Users click login button, get redirected to OAuth provider,
-but after successful auth they are redirected to a blank page
-instead of the dashboard.
+/plan-bug --explore 3 "Login fails on Safari when using OAuth. Users click login button, get redirected to OAuth provider, but after successful auth they are redirected to a blank page instead of the dashboard."
 
 # Without context - interactive prompts
 /plan-bug --explore 3
@@ -143,8 +140,6 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
   }
 }
 ```
-
-Personal overrides can be added to `.claude/settings.local.json` (gitignored).
 
 ### Configuration Options
 

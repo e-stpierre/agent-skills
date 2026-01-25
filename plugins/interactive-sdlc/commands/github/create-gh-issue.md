@@ -6,7 +6,9 @@ argument-hint: '"[title]" [--body [body]] [--labels [labels]] [--milestone [mile
 
 # Create GitHub Issue Command
 
-Creates a GitHub issue in the current repository using the GitHub CLI.
+## Overview
+
+Create a well-formed GitHub issue using the `gh` CLI tool, returning the issue URL for reference.
 
 ## Arguments
 
@@ -15,10 +17,6 @@ Creates a GitHub issue in the current repository using the GitHub CLI.
 - **`--labels [labels]`** (optional): Comma-separated list of labels to apply
 - **`--milestone [milestone]`** (optional): Milestone to assign the issue to
 - **`--assignee [assignee]`** (optional): GitHub username to assign (use `@me` for self)
-
-## Objective
-
-Create a well-formed GitHub issue using the `gh` CLI tool, returning the issue URL for reference.
 
 ## Core Principles
 

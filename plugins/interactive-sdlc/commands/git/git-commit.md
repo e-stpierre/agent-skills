@@ -6,15 +6,13 @@ argument-hint: "[message]"
 
 # Git Commit Command
 
-Commits staged changes with a structured message.
+## Overview
+
+Create a well-structured commit with a concise title and optional bullet-point description for staged changes.
 
 ## Arguments
 
 - **`[message]`** (optional): Override commit title. If not provided, auto-generate from changes.
-
-## Objective
-
-Create a well-structured commit with a concise title and optional bullet-point description.
 
 ## Core Principles
 

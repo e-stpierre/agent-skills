@@ -6,16 +6,14 @@ argument-hint: "[issue-number] [--comments]"
 
 # Read GitHub Issue Command
 
-Reads a GitHub issue from the current repository and returns its content for use in workflows.
+## Overview
+
+Retrieve the complete content of a GitHub issue including title, body, labels, and metadata for use in SDLC workflows.
 
 ## Arguments
 
 - **`[issue-number]`** (required): The issue number to read (e.g., `123`)
 - **`--comments`** (optional): Include issue comments in the output
-
-## Objective
-
-Retrieve the complete content of a GitHub issue including title, body, labels, and metadata for use in SDLC workflows.
 
 ## Core Principles
 

@@ -6,17 +6,15 @@ argument-hint: "[category] [branch-name] [issue-id]"
 
 # Git Branch Command
 
-Creates a new git branch following the naming convention: `[category]/[issue-id]_[branch-name]` or `[category]/[branch-name]` when no issue ID is provided.
+## Overview
+
+Create and checkout a new branch with consistent naming that links to issue tracking when available. Uses the naming convention: `[category]/[issue-id]_[branch-name]` or `[category]/[branch-name]` when no issue ID is provided.
 
 ## Arguments
 
 - **`[category]`** (optional): Branch type. Common values: poc, feature, fix, chore, doc, refactor. Accepts any value. Defaults to `feature`
 - **`[branch-name]`** (required): Short kebab-case description of the work
 - **`[issue-id]`** (optional): GitHub issue number associated with this work
-
-## Objective
-
-Create and checkout a new branch with consistent naming that links to issue tracking when available.
 
 ## Core Principles
 

@@ -6,7 +6,9 @@ argument-hint: "[--plan [plan-file]] [--skip-tests] [--skip-build] [--skip-revie
 
 # Validate
 
-Comprehensive validation including tests, code review, build verification, and plan compliance.
+## Overview
+
+Perform comprehensive validation of code changes including tests, build verification, code review, and plan compliance to ensure implementation quality before deployment.
 
 ## Arguments
 
@@ -17,10 +19,6 @@ Comprehensive validation including tests, code review, build verification, and p
 - **`--autofix [levels]`** (optional): Comma-separated list of severity levels to auto-fix (e.g., "critical,major")
 - **`[context]`** (optional): Optional freeform context for validation focus
 
-## Objective
-
-Perform comprehensive validation of code changes including tests, build verification, code review, and plan compliance to ensure implementation quality before deployment.
-
 ## Core Principles
 
 - All validation types run by default unless explicitly skipped
@@ -28,6 +26,10 @@ Perform comprehensive validation of code changes including tests, build verifica
 - Auto-fix only applies to programmatically fixable issues
 - Plan compliance checks verify requirements are met
 - Re-run validation after auto-fix to confirm all issues resolved
+- Fix failed tests before proceeding
+- Understand what will be changed before using auto-fix
+- Verify each requirement explicitly - never assume plan compliance
+- Resolve all critical and major issues before deployment
 
 ## Command-Specific Guidelines
 
@@ -254,11 +256,3 @@ Instructions:
 - Include specific actions to resolve each issue
 -->
 ```
-
-## Important Notes
-
-- Run all validation checks unless there's a specific reason to skip - they catch critical issues
-- Fix failed tests before proceeding
-- Understand what will be changed before using auto-fix
-- Verify each requirement explicitly - never assume plan compliance
-- Resolve all critical and major issues before deployment
