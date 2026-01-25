@@ -56,18 +56,11 @@ The checkpoint system allows resuming long-running builds:
 
 ### Git Commit Strategy
 
-When `--git` flag is used:
+When `--git` flag is used, use `/git-commit` to commit at logical checkpoints:
 
 - **Feature plans**: Commit after each milestone
-  - Message: `feat(<scope>): <milestone-title>`
-
 - **Bug fix plans**: Commit after fix, again after tests
-  - Message: `fix(<scope>): <description>`
-
 - **Chore plans**: Commit after major task groups
-  - Message: `chore(<scope>): <description>`
-
-Scope is derived from the plan file name or affected directories.
 
 ## Instructions
 
@@ -100,12 +93,10 @@ Scope is derived from the plan file name or affected directories.
    - Mark task as completed when done
 
 5. **Git Commits (if --git flag)**
-   - Check CLAUDE.md for user's git command preferences
-   - Commit at logical checkpoints:
+   - Use `/git-commit` at logical checkpoints:
      - Features: after each milestone completion
      - Bugs: after fix implemented, after tests added
      - Chores: after major task groups
-   - Use descriptive commit messages
 
 6. **Validation**
    - After completing all tasks, remind user to run `/validate`

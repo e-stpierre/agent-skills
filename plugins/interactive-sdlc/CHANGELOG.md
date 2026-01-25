@@ -4,8 +4,19 @@ All notable changes to the interactive-sdlc plugin will be documented in this fi
 
 ## [0.1.2] - 2026-01-24
 
+### Added
+
+- Add `--draft` flag to `/git-pr` command for creating draft PRs
+- Add `--pr` flag to `/one-shot` workflow for creating draft PRs after completion
+
 ### Changed
 
+- Update `/one-shot` to create branch using `/git-branch` before implementation
+- Update `/one-shot` to use `/git-commit` for committing changes
+- Update `/plan-build-validate` to create branch using `/git-branch` before build
+- Update `/plan-build-validate` to commit plan file using `/git-commit` after branch creation
+- Update `/plan-build-validate` to use `/git-pr --draft` for PR creation
+- Update `/build` to use `/git-commit` for commits at logical checkpoints
 - Normalize all command prompts to follow template conventions
 - Update README documentation for clarity
 

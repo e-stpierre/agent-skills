@@ -1,7 +1,7 @@
 ---
 name: git-pr
 description: Create a pull request with contextual title and description
-argument-hint: "[base-branch]"
+argument-hint: "[--draft] [base-branch]"
 ---
 
 # Git PR Command
@@ -13,6 +13,7 @@ Create a pull request with a title and description sized appropriately to the sc
 ## Arguments
 
 - **`[base-branch]`** (optional): Target branch for the PR. Defaults to main/master.
+- **`--draft`** (optional): Create the PR as a draft.
 
 ## Core Principles
 
@@ -55,8 +56,9 @@ Create a pull request with a title and description sized appropriately to the sc
    🤖 Generated with [Claude Code](https://claude.com/product/claude-code)"
    ```
 
-6. Execute `gh pr create` with constructed content
-7. Report the PR URL
+6. If `--draft` flag is specified, add `--draft` to the gh command
+7. Execute `gh pr create` with constructed content
+8. Report the PR URL
 
 ## Output Guidance
 
