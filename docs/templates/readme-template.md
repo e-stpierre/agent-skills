@@ -207,10 +207,8 @@ Instructions:
   Configure in `.claude/configs/plugin-name.json`:
   ```json
   {
-    "plugin-name": {
-      "option1": "value",
-      "option2": true
-    }
+    "option1": "value",
+    "option2": true
   }
   ```
 -->

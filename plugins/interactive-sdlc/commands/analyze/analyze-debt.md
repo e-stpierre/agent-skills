@@ -18,7 +18,6 @@ Identify technical debt, optimization opportunities, and refactoring needs by an
 
 - Focus on REAL debt - not everything needs refactoring
 - Working code has value - perfect is the enemy of good
-- Consider why patterns exist before flagging them
 - Prioritize by impact - frequently touched code > rarely touched
 - Avoid over-engineering and premature abstractions
 - Understand why patterns exist before flagging them - some "debt" is intentional
