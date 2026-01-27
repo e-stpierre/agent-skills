@@ -1,30 +1,44 @@
----
-name: analyze-security
-description: Scan for security vulnerabilities, unsafe patterns, and dependency issues
-argument-hint: "[context]"
----
+# Security Analysis Reference
 
-# Analyze Security
+## Analysis Criteria
 
-## Overview
+Check for common security issues:
 
-Scan for security vulnerabilities, unsafe patterns, and dependency issues by checking for injection flaws, authentication issues, data exposure, and configuration problems. Use this to identify security risks before they become exploitable vulnerabilities in production.
+**Injection:**
 
-## Arguments
+- SQL injection
+- Command injection
+- XSS (Cross-Site Scripting)
+- Template injection
+- Path traversal
 
-### Definitions
+**Authentication/Authorization:**
 
-- **`[context]`** (optional): Specific areas or concerns to focus on. Defaults to analyzing the entire codebase.
+- Hardcoded credentials
+- Weak authentication
+- Missing authorization checks
+- Session management issues
+- Insecure token storage
 
-### Values
+**Data Exposure:**
 
-$ARGUMENTS
+- Sensitive data in logs
+- Secrets in code/config
+- Insecure data transmission
+- Improper error messages
 
-## Configuration
+**Dependencies:**
 
-This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
+- Known vulnerable packages
+- Outdated dependencies
+- Unused but risky dependencies
 
-- **`analysisDirectory`**: Directory where analysis reports are saved. Defaults to `analysis`.
+**Configuration:**
+
+- Debug mode in production
+- Insecure defaults
+- Missing security headers
+- CORS misconfigurations
 
 ## Core Principles
 
@@ -35,9 +49,7 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 - Check if framework features mitigate the issue before reporting
 - This complements but does not replace SAST tools, dependency scanners, or security audits
 
-## Skill-Specific Guidelines
-
-### OWASP Top 10 Coverage
+## OWASP Top 10 Coverage
 
 | Category                           | What to Check                                    |
 | ---------------------------------- | ------------------------------------------------ |
@@ -52,95 +64,14 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 | A09:2021 Logging Failures          | Missing logs, sensitive data in logs             |
 | A10:2021 SSRF                      | Server-side request forgery                      |
 
-## Instructions
+## Severity Guidelines
 
-1. **Read Configuration**
-   - Read `.claude/configs/interactive-sdlc.json` for `analysisDirectory` (default: `analysis`)
+- **Critical**: Actively exploitable, high impact
+- **High**: Exploitable with some conditions
+- **Medium**: Potential risk, limited impact
+- **Low**: Best practice violation, minimal risk
 
-2. **Scan for Vulnerabilities**
-   Check for common security issues:
-
-   **Injection:**
-   - SQL injection
-   - Command injection
-   - XSS (Cross-Site Scripting)
-   - Template injection
-   - Path traversal
-
-   **Authentication/Authorization:**
-   - Hardcoded credentials
-   - Weak authentication
-   - Missing authorization checks
-   - Session management issues
-   - Insecure token storage
-
-   **Data Exposure:**
-   - Sensitive data in logs
-   - Secrets in code/config
-   - Insecure data transmission
-   - Improper error messages
-
-   **Dependencies:**
-   - Known vulnerable packages
-   - Outdated dependencies
-   - Unused but risky dependencies
-
-   **Configuration:**
-   - Debug mode in production
-   - Insecure defaults
-   - Missing security headers
-   - CORS misconfigurations
-
-3. **Categorize Findings**
-   Rate by risk level:
-   - **Critical**: Actively exploitable, high impact
-   - **High**: Exploitable with some conditions
-   - **Medium**: Potential risk, limited impact
-   - **Low**: Best practice violation, minimal risk
-
-4. **Generate Report**
-   - Save to `{analysisDirectory}/security.md`
-   - Include remediation steps
-
-## Output Guidance
-
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "reportPath": "analysis/security.md",
-  "summary": {
-    "critical": 0,
-    "high": 0,
-    "medium": 0,
-    "low": 0
-  }
-}
-```
-
-Also present a user-friendly summary:
-
-```
-Security analysis complete. Report saved to analysis/security.md
-
-## Summary
-| Risk Level | Issues |
-|------------|--------|
-| Critical | X |
-| High | Y |
-| Medium | Z |
-| Low | W |
-
-[If critical/high found:]
-⚠️ Critical and high-risk issues require immediate attention.
-
-Review the report and address issues by priority.
-```
-
-## Templates
-
-### Report Structure
+## Report Template
 
 ```markdown
 # Security Analysis

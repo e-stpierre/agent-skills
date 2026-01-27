@@ -1,30 +1,33 @@
----
-name: analyze-style
-description: Check code style, consistency, and best practices adherence
-argument-hint: "[context]"
----
+# Style Analysis Reference
 
-# Analyze Style
+## Analysis Criteria
 
-## Overview
+Focus on NORMALIZATION - there should be ONE way of doing things:
 
-Check code style, consistency, and best practices adherence by identifying inconsistent patterns and normalizing the codebase to use one way of doing things. Use this to reduce cognitive load by ensuring there's a consistent approach throughout the codebase.
+**Naming:**
 
-## Arguments
+- Inconsistent naming conventions
+- Mixed camelCase/snake_case
+- Inconsistent abbreviations
 
-### Definitions
+**Patterns:**
 
-- **`[context]`** (optional): Specific areas or files to focus on. Defaults to analyzing the entire codebase.
+- Different ways of handling the same thing
+- Inconsistent error handling patterns
+- Mixed async patterns (callbacks vs promises vs async/await)
+- Inconsistent component patterns
 
-### Values
+**Structure:**
 
-$ARGUMENTS
+- Inconsistent file organization
+- Mixed import styles
+- Inconsistent export patterns
 
-## Configuration
+**Formatting:**
 
-This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
-
-- **`analysisDirectory`**: Directory where analysis reports are saved. Defaults to `analysis`.
+- Issues not caught by automated formatters
+- Inconsistent whitespace in logic
+- Comment style inconsistencies
 
 ## Core Principles
 
@@ -35,11 +38,9 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 - Some inconsistency is acceptable for legacy code or external dependencies
 - Focus on actual inconsistencies, not stylistic preferences
 
-## Skill-Specific Guidelines
+## What to Check
 
-### What to Check
-
-#### Naming Conventions
+### Naming Conventions
 
 | Pattern    | Variations to Detect                                |
 | ---------- | --------------------------------------------------- |
@@ -49,7 +50,7 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 | Components | `UserCard` vs `userCard` vs `User_Card`             |
 | Files      | `UserCard.tsx` vs `user-card.tsx` vs `userCard.tsx` |
 
-#### Patterns
+### Patterns
 
 | Area           | Variations to Detect                      |
 | -------------- | ----------------------------------------- |
@@ -59,84 +60,12 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 | Props          | destructuring vs props.x                  |
 | Exports        | named vs default vs barrel files          |
 
-## Instructions
+## Severity Guidelines
 
-1. **Read Configuration**
-   - Read `.claude/configs/interactive-sdlc.json` for `analysisDirectory` (default: `analysis`)
+- **Major**: Widespread inconsistency affecting readability and maintainability
+- **Minor**: Isolated inconsistencies, minor deviations from patterns
 
-2. **Understand Project Conventions**
-   - Check for ESLint, Prettier, Ruff configs
-   - Read CLAUDE.md for project-specific guidelines
-   - Analyze existing code patterns
-   - Identify the "standard" way of doing things
-
-3. **Analyze for Inconsistencies**
-   Focus on NORMALIZATION - there should be ONE way of doing things:
-
-   **Naming:**
-   - Inconsistent naming conventions
-   - Mixed camelCase/snake_case
-   - Inconsistent abbreviations
-
-   **Patterns:**
-   - Different ways of handling the same thing
-   - Inconsistent error handling patterns
-   - Mixed async patterns (callbacks vs promises vs async/await)
-   - Inconsistent component patterns
-
-   **Structure:**
-   - Inconsistent file organization
-   - Mixed import styles
-   - Inconsistent export patterns
-
-   **Formatting:**
-   - Issues not caught by automated formatters
-   - Inconsistent whitespace in logic
-   - Comment style inconsistencies
-
-4. **Generate Report**
-   - Save to `{analysisDirectory}/style.md`
-   - Group by category
-
-## Output Guidance
-
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "reportPath": "analysis/style.md",
-  "summary": {
-    "major": 0,
-    "minor": 0
-  },
-  "standards": {
-    "naming": "camelCase for functions, PascalCase for components",
-    "errorHandling": "try/catch with custom Error classes",
-    "async": "async/await preferred",
-    "imports": "absolute imports with @ alias"
-  }
-}
-```
-
-Also present a user-friendly summary:
-
-```
-Style & consistency analysis complete. Report saved to analysis/style.md
-
-## Summary
-- Major Inconsistencies: X issues
-- Minor Issues: Y issues
-
-Project standards identified:
-- [list of established patterns]
-
-Review the report to normalize outliers to the dominant patterns.
-```
-
-## Templates
-
-### Report Structure
+## Report Template
 
 ```markdown
 # Style & Consistency Issues

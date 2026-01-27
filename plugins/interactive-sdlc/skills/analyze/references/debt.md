@@ -1,30 +1,37 @@
----
-name: analyze-debt
-description: Identify technical debt, optimization opportunities, and refactoring needs
-argument-hint: "[context]"
----
+# Technical Debt Analysis Reference
 
-# Analyze Debt
+## Analysis Criteria
 
-## Overview
+Look for technical debt indicators:
 
-Identify technical debt, optimization opportunities, and refactoring needs by analyzing architecture, code quality, patterns, and performance issues. Use this to find areas where the codebase could be improved for maintainability and efficiency.
+**Architecture:**
 
-## Arguments
+- Circular dependencies
+- Overly complex module structures
+- Missing abstraction layers
+- Tight coupling between components
 
-### Definitions
+**Code Quality:**
 
-- **`[context]`** (optional): Specific areas or concerns to focus on. Defaults to analyzing the entire codebase.
+- Code duplication
+- Complex functions (high cyclomatic complexity)
+- Long methods/classes
+- Poor naming conventions
+- Magic numbers/strings
 
-### Values
+**Patterns:**
 
-$ARGUMENTS
+- Outdated patterns (callbacks vs async/await)
+- Inconsistent patterns across codebase
+- Anti-patterns
+- Framework misuse
 
-## Configuration
+**Performance:**
 
-This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
-
-- **`analysisDirectory`**: Directory where analysis reports are saved. Defaults to `analysis`.
+- Obvious performance bottlenecks
+- N+1 query patterns
+- Unnecessary re-renders
+- Missing caching opportunities
 
 ## Core Principles
 
@@ -35,9 +42,7 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 - Understand why patterns exist before flagging them - some "debt" is intentional
 - Base recommendations on concrete requirements, not hypothetical future needs
 
-## Skill-Specific Guidelines
-
-### Effort Estimation
+## Effort Estimation
 
 **Low Effort:**
 
@@ -60,91 +65,7 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 - Database schema changes
 - API redesign
 
-## Instructions
-
-1. **Read Configuration**
-   - Read `.claude/configs/interactive-sdlc.json` for `analysisDirectory` (default: `analysis`)
-
-2. **Analyze Codebase**
-   Look for technical debt indicators:
-
-   **Architecture:**
-   - Circular dependencies
-   - Overly complex module structures
-   - Missing abstraction layers
-   - Tight coupling between components
-
-   **Code Quality:**
-   - Code duplication
-   - Complex functions (high cyclomatic complexity)
-   - Long methods/classes
-   - Poor naming conventions
-   - Magic numbers/strings
-
-   **Patterns:**
-   - Outdated patterns (callbacks vs async/await)
-   - Inconsistent patterns across codebase
-   - Anti-patterns
-   - Framework misuse
-
-   **Performance:**
-   - Obvious performance bottlenecks
-   - N+1 query patterns
-   - Unnecessary re-renders
-   - Missing caching opportunities
-
-3. **Categorize Findings**
-   Rate each finding by:
-   - **Effort**: Low / Medium / High
-   - **Benefit**: Impact of addressing the debt
-
-4. **Generate Report**
-   - Save to `{analysisDirectory}/debt.md`
-   - Group by category
-
-## Output Guidance
-
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "reportPath": "analysis/debt.md",
-  "summary": {
-    "architecture": {
-      "count": 0,
-      "effort": "Low"
-    },
-    "codeQuality": {
-      "count": 0,
-      "effort": "Medium"
-    },
-    "performance": {
-      "count": 0,
-      "effort": "High"
-    }
-  }
-}
-```
-
-Also present a user-friendly summary:
-
-```
-Technical debt analysis complete. Report saved to analysis/debt.md
-
-## Summary
-| Category | Issues | Total Effort |
-|----------|--------|--------------|
-| Architecture | X | Low/Med/High |
-| Code Quality | Y | Low/Med/High |
-| Performance | Z | Low/Med/High |
-
-Review the report and prioritize by impact and effort.
-```
-
-## Templates
-
-### Report Structure
+## Report Template
 
 ```markdown
 # Tech Debt
