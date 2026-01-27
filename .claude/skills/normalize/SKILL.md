@@ -4,7 +4,7 @@ description: Validate files against prompt reference guidelines
 argument-hint: [--autofix] [paths...]
 ---
 
-# Normalize Command
+# Normalize
 
 ## Overview
 
@@ -12,7 +12,6 @@ Validate that prompt files and plugin READMEs conform to the exact structure def
 
 Templates used for validation:
 
-- `docs/templates/command-template.md` for commands
 - `docs/templates/agent-template.md` for agents
 - `docs/templates/skill-template.md` for skills
 - `docs/templates/readme-template.md` for plugin READMEs
@@ -21,13 +20,19 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 
 ## Arguments
 
+### Definitions
+
 - **`[--autofix]`** (optional): Automatically modify files to make them compliant with the templates. Without this flag, only reports issues.
 - **`[paths...]`** (optional): One or more paths to files or directories to validate. If omitted, validates all prompt files and READMEs in the repository.
+
+### Values
+
+\$ARGUMENTS
 
 ## Core Principles
 
 - Always read the template file to determine validation rules
-- Never hardcode template requirements in this command - defer to templates
+- Never hardcode template requirements in this skill - defer to templates
 - Templates are the single source of truth for structure and content
 - Section names must match exactly (case-sensitive)
 - Required sections are listed in the template header comment
@@ -48,8 +53,7 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 
    **Pass 1: Gather all markdown files using broad patterns**
    - `plugins/**/*.md` - All markdown files in plugins
-   - `.claude/commands/*.md` - Repository-level commands
-   - `.claude/skills/*.md` - Repository-level skills
+   - `.claude/skills/**/SKILL.md` - Repository-level skills
 
    **Pass 2: Filter and classify discovered files**
    - Exclude non-prompt files: `CHANGELOG.md`, `CLAUDE.example.md`, and similar
@@ -61,16 +65,15 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 
    Determine the file type by checking if the file path contains these directory patterns:
 
-   | Path Contains              | Type    | Template to Read                     |
-   | -------------------------- | ------- | ------------------------------------ |
-   | `/commands/` or `commands` | Command | `docs/templates/command-template.md` |
-   | `/agents/` or `agents`     | Agent   | `docs/templates/agent-template.md`   |
-   | `/skills/` or `skills`     | Skill   | `docs/templates/skill-template.md`   |
-   | `/hooks/` or `hooks`       | Hook    | (no template - skip validation)      |
-   | Filename is `README.md`    | README  | `docs/templates/readme-template.md`  |
+   | Path Contains           | Type   | Template to Read                                       |
+   | ----------------------- | ------ | ------------------------------------------------------ |
+   | `/agents/` or `agents`  | Agent  | `docs/templates/agent-template.md`                     |
+   | `/skills/` or `skills`  | Skill  | `docs/templates/skill-template.md`                     |
+   | `/hooks/` or `hooks`    | Hook   | (no template - skip validation)                        |
+   | Filename is `README.md` | README | `docs/templates/readme-template.md`                    |
 
    **Classification rules:**
-   - Check path segments, not substrings (e.g., `/commands/` not just `command`)
+   - Check path segments, not substrings (e.g., `/agents/` not just `agent`)
    - README.md files in plugin roots are validated; README.md in subdirectories are skipped
    - Files like CHANGELOG.md, CLAUDE.example.md are skipped (not prompts)
    - If a file cannot be classified, skip it and note in the report
@@ -86,7 +89,7 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 
 4. **Validate Frontmatter**
 
-   For prompt files (commands, agents, skills):
+   For prompt files (agents, skills):
    - Parse the YAML frontmatter from the file being validated
    - Compare against frontmatter fields defined in the template
    - Validate:
@@ -110,13 +113,13 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
      - Unexpected sections not in template
 
    For README files, also check:
-   - Prompt sections (Commands, Agents, Skills, Hooks) are only present if plugin has those prompts
+   - Prompt sections (Agents, Skills, Hooks) are only present if plugin has those prompts
    - Optional sections are only present when applicable (per template instructions)
 
 6. **Validate Section Content**
 
    Based on template HTML comments, validate content patterns:
-   - Check for ASCII-only content (no special Unicode characters)
+   - Check character encoding (code files: ASCII only; markdown files: ASCII plus minimal functional emojis allowed)
    - Verify `{{placeholders}}` are replaced with actual values
    - Verify HTML comments from template are removed
 
@@ -176,15 +179,14 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 ### File Discovery
 
 - Files found: 35
-- Commands: 27
 - Agents: 2
-- Skills: 4
+- Skills: 31
 - READMEs: 2
 - Skipped (non-prompt): 3 (CHANGELOG.md, CLAUDE.example.md, etc.)
 
-### path/to/file.md (Command)
+### path/to/skill/SKILL.md (Skill)
 
-Template: docs/templates/command-template.md
+Template: docs/templates/skill-template.md
 
 **Frontmatter:**
 
@@ -226,12 +228,12 @@ Template: docs/templates/readme-template.md
 ### File Discovery
 
 - Files found: 35
-- Commands: 27, Agents: 2, Skills: 4, READMEs: 2
+- Agents: 2, Skills: 31, READMEs: 2
 - Skipped: 3
 
-### path/to/file.md (Command)
+### path/to/skill/SKILL.md (Skill)
 
-Template: docs/templates/command-template.md
+Template: docs/templates/skill-template.md
 
 - [FIXED] Added missing section: "Output Guidance"
 - [FIXED] Renamed section: "## arguments" -> "## Arguments"
@@ -239,10 +241,10 @@ Template: docs/templates/command-template.md
 
 ## Summary
 
-- Files checked: 32
+- Files checked: 35
 - Files modified: 2
 - Issues auto-fixed: 4
-- Files now passing: 31
+- Files now passing: 34
 ```
 
 If all files pass validation:
@@ -253,8 +255,8 @@ If all files pass validation:
 ### File Discovery
 
 - Files found: 35
-- Commands: 27, Agents: 2, Skills: 4, READMEs: 2
+- Agents: 2, Skills: 31, READMEs: 2
 - Skipped: 3
 
-All 32 files pass validation - 100% compliant with templates.
+All 35 files pass validation - 100% compliant with templates.
 ```

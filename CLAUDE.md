@@ -61,7 +61,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 ### Naming Conventions
 
 - **Agents**: Use descriptive names with domain prefix (e.g., `devops-agent.md`, `test-agent.md`)
-- **Skills**: Use kebab-case directory names (e.g., `git-branch/`, `plan-feature/`) with `SKILL.md` inside
+- **Skills**: Use kebab-case directory names (e.g., `git-branch/`, `sdlc-plan/`) with `SKILL.md` inside
 - **Hooks**: Include event name (e.g., `session-start-hook.sh`, `tool-call-hook.sh`)
 
 ### Documentation Guidelines

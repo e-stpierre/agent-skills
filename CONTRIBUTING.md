@@ -27,7 +27,7 @@ Thank you for your interest in contributing! This guide will help you get starte
 
 ### Commit Messages
 
-Write clear, concise commit messages that describe the change. For example: `Add retry logic to workflow executor` or `Fix validation error in analyze-bug command`.
+Write clear, concise commit messages that describe the change. For example: `Add retry logic to workflow executor` or `Fix validation error in analyze skill`.
 
 ### Code Formatting
 
@@ -77,7 +77,7 @@ All prompts must follow the templates in [`docs/templates/`](docs/templates/). U
 /normalize
 
 # Validate specific files
-/normalize plugins/my-plugin/commands/
+/normalize plugins/my-plugin/skills/
 
 # Auto-fix non-compliant files
 /normalize --autofix plugins/my-plugin/

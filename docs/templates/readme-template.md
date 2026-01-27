@@ -104,14 +104,14 @@ Instructions:
 - If commands are organized in subfolders, use ### sub-sections matching folder structure
 - Example structure for subfolder-organized commands:
 
-### Planning (`commands/plan/`)
+### Planning (`skills/planning/`)
 
-| Command | Description |
-|---------|-------------|
-| `/plugin:plan-feature` | Generate a feature implementation plan |
-| `/plugin:plan-bug` | Generate a bug fix plan |
+| Skill | Description |
+|-------|-------------|
+| `/plugin:sdlc-plan feature` | Generate a feature implementation plan |
+| `/plugin:sdlc-plan bug` | Generate a bug fix plan |
 
-### Development (`commands/dev/`)
+### Development (`skills/dev/`)
 
 | Command | Description |
 |---------|-------------|

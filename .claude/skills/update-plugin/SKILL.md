@@ -3,11 +3,11 @@ name: update-plugin
 description: Update plugin versions based on changes from main branch
 ---
 
-# Update Plugin Version Command
+# Update Plugin Version
 
 ## Overview
 
-Detect changed plugins, analyze the nature of changes, update CHANGELOGs, and update version numbers appropriately following semantic versioning.
+Analyze changes in the current branch compared to main and update plugin versions accordingly. Detects changed plugins, analyzes the nature of changes, updates CHANGELOGs, and updates version numbers appropriately following semantic versioning.
 
 ## Core Principles
 
@@ -77,6 +77,9 @@ Detect changed plugins, analyze the nature of changes, update CHANGELOGs, and up
    After updating the CHANGELOG, update the plugin's version in `.claude-plugin/marketplace.json`:
    - Find the plugin entry in the `plugins` array
    - Update its `version` field to the new version
+   - If `plugins/<plugin-name>/pyproject.toml` exists, also update the `version` field in `[project]` section
+
+   **Version Synchronization Requirement**: When a plugin has both a marketplace.json entry and a pyproject.toml file, both versions MUST be updated to the same value. The pyproject.toml version analysis is independent from Claude prompt changes - the plugin as a whole should always have a single consistent version across all version declarations.
 
 6. **Update Marketplace Root Version**
 
@@ -129,5 +132,3 @@ Report the analysis and version changes:
 ### Commit
 [Commit hash and message]
 ```
-
-Proceed with the analysis and updates now. Report your findings and the version changes made.
