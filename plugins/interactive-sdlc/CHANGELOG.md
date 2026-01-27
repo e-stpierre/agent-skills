@@ -10,11 +10,15 @@ All notable changes to the interactive-sdlc plugin will be documented in this fi
 - Commands now located in `skills/` directory with `SKILL.md` files
 - Updated all skills to return JSON output
 - Renamed `/configure-interactive-sdlc` to `/configure`
+- Consolidated `/plan-chore`, `/plan-bug`, `/plan-feature` into single `/plan` skill with type argument
+- Consolidated `/analyze-bug`, `/analyze-doc`, `/analyze-debt`, `/analyze-style`, `/analyze-security` into single `/analyze` skill with type argument
 
 ### Breaking Changes
 
 - Commands directory structure replaced with skills directory structure
 - All skills must now be invoked using the skill invocation format
+- Planning skills now use `/plan <type>` syntax (e.g., `/plan feature`, `/plan bug`, `/plan chore`)
+- Analysis skills now use `/analyze <type>` syntax (e.g., `/analyze bug`, `/analyze security`)
 
 ## [0.1.2] - 2026-01-24
 

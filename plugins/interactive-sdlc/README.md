@@ -6,7 +6,7 @@ Human-in-the-loop plugin for guided development within Claude Code sessions. Pro
 
 The Interactive SDLC plugin provides guided workflows for planning, implementing, and validating development tasks. Commands ask clarifying questions when needed and support context arguments for automation.
 
-- `/plan-feature Add OAuth login` - Plan a feature with milestones
+- `/plan feature Add OAuth login` - Plan a feature with milestones
 - `/build specs/feature-auth.md --git` - Implement a plan with auto-commits
 - `/validate --plan specs/feature-auth.md` - Validate implementation
 - `/one-shot --git Fix login timeout` - Quick task without saved plan
@@ -23,11 +23,9 @@ Skills are organized into logical categories. All paths are relative to `plugins
 
 ### Planning
 
-| Skill           | Description                             |
-| --------------- | --------------------------------------- |
-| `/plan-chore`   | Plan a maintenance task                 |
-| `/plan-bug`     | Plan a bug fix with root cause analysis |
-| `/plan-feature` | Plan a feature with milestones          |
+| Skill   | Description                                            |
+| ------- | ------------------------------------------------------ |
+| `/plan` | Create an implementation plan (feature, bug, or chore) |
 
 ### Development
 
@@ -46,13 +44,9 @@ Skills are organized into logical categories. All paths are relative to `plugins
 
 ### Analysis
 
-| Skill               | Description                                           |
-| ------------------- | ----------------------------------------------------- |
-| `/analyze-bug`      | Analyze codebase for bugs and logic errors            |
-| `/analyze-doc`      | Analyze documentation quality and accuracy            |
-| `/analyze-debt`     | Identify technical debt and refactoring opportunities |
-| `/analyze-style`    | Check code style, consistency, and best practices     |
-| `/analyze-security` | Scan for security vulnerabilities and unsafe patterns |
+| Skill      | Description                                               |
+| ---------- | --------------------------------------------------------- |
+| `/analyze` | Analyze codebase for bugs, debt, docs, security, or style |
 
 ### Git
 
@@ -110,10 +104,10 @@ All commands support an optional `[context]` argument as the last parameter. Thi
 
 ```bash
 # With context - minimal prompts
-/plan-bug --explore 3 "Login fails on Safari when using OAuth. Users click login button, get redirected to OAuth provider, but after successful auth they are redirected to a blank page instead of the dashboard."
+/plan bug --explore 3 "Login fails on Safari when using OAuth. Users click login button, get redirected to OAuth provider, but after successful auth they are redirected to a blank page instead of the dashboard."
 
 # Without context - interactive prompts
-/plan-bug --explore 3
+/plan bug --explore 3
 ```
 
 ## Plan File Principles
@@ -164,67 +158,32 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /configure
 ```
 
-### /plan-chore
+### /plan
 
 **Arguments:**
 
-- `--explore N` - Override default explore agent count (default: 2)
+- `[type]` - Plan type: `feature`, `bug`, `chore`, or `auto` (default: `auto`)
+- `--explore N` - Override default explore agent count
 - `--git` - Commit plan file after creation
-- `[context]` - Chore description
+- `[context]` - Task description
 
 **Examples:**
 
 ```bash
-# Plan with context
-/plan-chore Update all npm dependencies to latest versions
+# Plan a feature with context
+/plan feature Add user authentication with OAuth for Google and GitHub
 
-# Plan with exploration
-/plan-chore --explore 3 Refactor database connection pooling
+# Plan a bug fix
+/plan bug Login fails on Safari when using OAuth
 
-# Plan and commit
-/plan-chore --git Clean up unused imports across codebase
-```
+# Plan a chore
+/plan chore Update all npm dependencies to latest versions
 
-### /plan-bug
+# Auto-detect type from context
+/plan Fix the login timeout issue
 
-**Arguments:**
-
-- `--explore N` - Override default explore agent count (default: 2)
-- `--git` - Commit plan file after creation
-- `[context]` - Bug description
-
-**Examples:**
-
-```bash
-# Plan with context
-/plan-bug Login fails on Safari when using OAuth
-
-# Plan with exploration
-/plan-bug --explore 3 Memory leak in WebSocket handler
-
-# Plan and commit
-/plan-bug --git Race condition in checkout flow
-```
-
-### /plan-feature
-
-**Arguments:**
-
-- `--explore N` - Override default explore agent count (default: 3)
-- `--git` - Commit plan file after creation
-- `[context]` - Feature description
-
-**Examples:**
-
-```bash
-# Plan with context
-/plan-feature Add user authentication with OAuth for Google and GitHub
-
-# Plan with more exploration
-/plan-feature --explore 5 Implement real-time notifications
-
-# Plan and commit
-/plan-feature --git --explore 4 Add dark mode toggle
+# Plan with exploration and commit
+/plan feature --explore 5 --git Implement real-time notifications
 ```
 
 ### /build
@@ -336,99 +295,40 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /plan-build-validate --explore 5 --git --pr Implement user notifications
 ```
 
-### /analyze-bug
+### /analyze
 
 **Arguments:**
 
+- `<type>` - Analysis type: `bug`, `debt`, `doc`, `security`, or `style` (required)
 - `[context]` - Focus areas or directories to analyze
 
 **Examples:**
 
 ```bash
-# Full bug analysis
-/analyze-bug
+# Bug analysis
+/analyze bug
+/analyze bug Focus on error handling in API routes
+/analyze bug src/api/ src/services/
 
-# Focused analysis
-/analyze-bug Focus on error handling in API routes
+# Documentation analysis
+/analyze doc
+/analyze doc Check API documentation accuracy
+/analyze doc docs/api.md README.md
 
-# Directory-specific
-/analyze-bug src/api/ src/services/
-```
+# Technical debt analysis
+/analyze debt
+/analyze debt Focus on database access patterns
+/analyze debt src/legacy/
 
-### /analyze-doc
+# Style analysis
+/analyze style
+/analyze style Check naming conventions in React components
+/analyze style src/components/
 
-**Arguments:**
-
-- `[context]` - Specific documentation files or areas to focus on
-
-**Examples:**
-
-```bash
-# Full documentation analysis
-/analyze-doc
-
-# Focused analysis
-/analyze-doc Check API documentation accuracy
-
-# Specific files
-/analyze-doc docs/api.md README.md
-```
-
-### /analyze-debt
-
-**Arguments:**
-
-- `[context]` - Specific areas or concerns to focus on
-
-**Examples:**
-
-```bash
-# Full debt analysis
-/analyze-debt
-
-# Focused analysis
-/analyze-debt Focus on database access patterns
-
-# Module-specific
-/analyze-debt src/legacy/
-```
-
-### /analyze-style
-
-**Arguments:**
-
-- `[context]` - Specific areas or files to focus on
-
-**Examples:**
-
-```bash
-# Full style analysis
-/analyze-style
-
-# Focused analysis
-/analyze-style Check naming conventions in React components
-
-# Directory-specific
-/analyze-style src/components/
-```
-
-### /analyze-security
-
-**Arguments:**
-
-- `[context]` - Focus areas or directories to analyze
-
-**Examples:**
-
-```bash
-# Full security analysis
-/analyze-security
-
-# Focused analysis
-/analyze-security Focus on authentication and session management
-
-# Directory-specific
-/analyze-security src/api/ src/auth/
+# Security analysis
+/analyze security
+/analyze security Focus on authentication and session management
+/analyze security src/api/ src/auth/
 ```
 
 ### /git-branch
