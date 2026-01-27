@@ -1,5 +1,5 @@
 ---
-name: plan
+name: sdlc-plan
 description: Create an implementation plan for a task (feature, bug fix, or chore)
 argument-hint: [type] [--explore N] [--git] [context]
 ---

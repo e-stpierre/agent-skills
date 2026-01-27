@@ -62,11 +62,13 @@ Determine Task Type -> Plan -> Create Branch -> Commit Plan -> Build -> Validate
 
 ### 2. Execute Planning Command
 
-Based on task type, invoke the appropriate planning command using full namespace:
+Based on task type, invoke the planning command:
 
-- **Chore**: `/plan-chore`
-- **Bug**: `/plan-bug`
-- **Feature**: `/plan-feature`
+```
+/sdlc-plan <type>
+```
+
+Where `<type>` is one of: `chore`, `bug`, or `feature`.
 
 Pass through:
 
@@ -104,10 +106,10 @@ Implement all tasks from the plan.
 
 ### 6. Execute Validate Command
 
-Invoke the validate command:
+Invoke the review command:
 
 ```
-/validate --plan <plan-file-path>
+/sdlc-review --plan <plan-file-path>
 ```
 
 Run all validation checks:
@@ -128,7 +130,7 @@ If validation fails:
 
 - Report issues found
 - Do not create PR
-- Suggest running `/validate --autofix critical,major`
+- Suggest running `/sdlc-review --autofix critical,major`
 
 ## Output Guidance
 

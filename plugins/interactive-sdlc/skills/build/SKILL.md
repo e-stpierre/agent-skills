@@ -105,7 +105,7 @@ When `--git` flag is used, use `/git-commit` to commit at logical checkpoints:
      - Chores: after major task groups
 
 6. **Validation**
-   - After completing all tasks, remind user to run `/validate`
+   - After completing all tasks, remind user to run `/sdlc-review`
    - Provide summary of changes made
 
 ## Output Guidance
@@ -122,7 +122,7 @@ Return a JSON object with the following structure:
   "commits_created": 0,
   "summary": "Implementation complete. Brief description of changes made.",
   "next_steps": [
-    "Run validation: /validate --plan <plan-file>",
+    "Run validation: /sdlc-review --plan <plan-file>",
     "Review changes and test functionality"
   ]
 }
@@ -150,6 +150,6 @@ Changes summary:
 - [list key changes made]
 
 Next steps:
-- Run validation: /validate --plan specs/feature-auth.md
+- Run validation: /sdlc-review --plan specs/feature-auth.md
 - Review changes and test functionality
 ```

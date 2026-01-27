@@ -53,10 +53,10 @@ See [Interactive-SDLC README](plugins/interactive-sdlc/README.md) for all comman
 
 ```bash
 # Plan a feature with milestones and implementation steps
-/plan-feature
+/sdlc-plan feature Add OAuth login
 
 # Run analysis on your codebase (bugs, docs, debt, style, security)
-/analyze-security
+/analyze security
 
 # Full workflow from branch creation to PR with user interaction
 /one-shot

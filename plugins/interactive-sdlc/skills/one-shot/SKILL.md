@@ -89,7 +89,7 @@ For complex tasks, use the full planning workflow instead.
    - Use `/git-commit` to commit changes
 
 7. **Validate (if --validate flag)**
-   - Run `/validate`
+   - Run `/sdlc-review`
    - Report any issues found
 
 8. **Create PR (if --pr flag)**

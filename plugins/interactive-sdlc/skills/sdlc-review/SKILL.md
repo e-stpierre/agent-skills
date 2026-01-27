@@ -1,10 +1,10 @@
 ---
-name: validate
+name: sdlc-review
 description: Comprehensive validation including tests, code review, build verification, and plan compliance
 argument-hint: "[--plan [plan-file]] [--skip-tests] [--skip-build] [--skip-review] [--autofix [levels]] [context]"
 ---
 
-# Validate
+# Review
 
 ## Overview
 

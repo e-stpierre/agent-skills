@@ -6,9 +6,9 @@ Human-in-the-loop plugin for guided development within Claude Code sessions. Pro
 
 The Interactive SDLC plugin provides guided workflows for planning, implementing, and validating development tasks. Commands ask clarifying questions when needed and support context arguments for automation.
 
-- `/plan feature Add OAuth login` - Plan a feature with milestones
+- `/sdlc-plan feature Add OAuth login` - Plan a feature with milestones
 - `/build specs/feature-auth.md --git` - Implement a plan with auto-commits
-- `/validate --plan specs/feature-auth.md` - Validate implementation
+- `/sdlc-review --plan specs/feature-auth.md` - Review implementation
 - `/one-shot --git Fix login timeout` - Quick task without saved plan
 
 ## Skills
@@ -23,17 +23,17 @@ Skills are organized into logical categories. All paths are relative to `plugins
 
 ### Planning
 
-| Skill   | Description                                            |
-| ------- | ------------------------------------------------------ |
-| `/plan` | Create an implementation plan (feature, bug, or chore) |
+| Skill        | Description                                            |
+| ------------ | ------------------------------------------------------ |
+| `/sdlc-plan` | Create an implementation plan (feature, bug, or chore) |
 
 ### Development
 
-| Skill        | Description                                                           |
-| ------------ | --------------------------------------------------------------------- |
-| `/build`     | Implement a plan file with checkpoint support                         |
-| `/validate`  | Comprehensive validation (tests, code review, build, plan compliance) |
-| `/document`  | Generate or update documentation with mermaid diagrams                |
+| Skill          | Description                                                           |
+| -------------- | --------------------------------------------------------------------- |
+| `/build`       | Implement a plan file with checkpoint support                         |
+| `/sdlc-review` | Comprehensive validation (tests, code review, build, plan compliance) |
+| `/document`    | Generate or update documentation with mermaid diagrams                |
 
 ### Workflows
 
@@ -104,10 +104,10 @@ All commands support an optional `[context]` argument as the last parameter. Thi
 
 ```bash
 # With context - minimal prompts
-/plan bug --explore 3 "Login fails on Safari when using OAuth. Users click login button, get redirected to OAuth provider, but after successful auth they are redirected to a blank page instead of the dashboard."
+/sdlc-plan bug --explore 3 "Login fails on Safari when using OAuth. Users click login button, get redirected to OAuth provider, but after successful auth they are redirected to a blank page instead of the dashboard."
 
 # Without context - interactive prompts
-/plan bug --explore 3
+/sdlc-plan bug --explore 3
 ```
 
 ## Plan File Principles
@@ -158,7 +158,7 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /configure
 ```
 
-### /plan
+### /sdlc-plan
 
 **Arguments:**
 
@@ -171,19 +171,19 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 
 ```bash
 # Plan a feature with context
-/plan feature Add user authentication with OAuth for Google and GitHub
+/sdlc-plan feature Add user authentication with OAuth for Google and GitHub
 
 # Plan a bug fix
-/plan bug Login fails on Safari when using OAuth
+/sdlc-plan bug Login fails on Safari when using OAuth
 
 # Plan a chore
-/plan chore Update all npm dependencies to latest versions
+/sdlc-plan chore Update all npm dependencies to latest versions
 
 # Auto-detect type from context
-/plan Fix the login timeout issue
+/sdlc-plan Fix the login timeout issue
 
 # Plan with exploration and commit
-/plan feature --explore 5 --git Implement real-time notifications
+/sdlc-plan feature --explore 5 --git Implement real-time notifications
 ```
 
 ### /build
@@ -208,7 +208,7 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /build specs/feature-auth.md --checkpoint "Milestone 2" --git
 ```
 
-### /validate
+### /sdlc-review
 
 **Arguments:**
 
@@ -222,13 +222,13 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 
 ```bash
 # Full validation
-/validate --plan specs/feature-auth.md
+/sdlc-review --plan specs/feature-auth.md
 
 # Skip tests, auto-fix critical
-/validate --skip-tests --autofix critical
+/sdlc-review --skip-tests --autofix critical
 
 # Quick validation
-/validate --skip-tests --skip-build
+/sdlc-review --skip-tests --skip-build
 ```
 
 ### /document
