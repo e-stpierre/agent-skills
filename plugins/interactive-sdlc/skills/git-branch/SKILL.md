@@ -1,0 +1,68 @@
+---
+name: git-branch
+description: Create a branch with standardized naming convention
+argument-hint: "[category] [branch-name] [issue-id]"
+---
+
+# Git Branch
+
+## Overview
+
+Create and checkout a new branch with consistent naming that links to issue tracking when available. Uses the naming convention: `[category]/[issue-id]_[branch-name]` or `[category]/[branch-name]` when no issue ID is provided.
+
+## Arguments
+
+### Definitions
+
+- **`[category]`** (optional): Branch type. Common values: poc, feature, fix, chore, doc, refactor. Accepts any value. Defaults to `feature`.
+- **`[branch-name]`** (required): Short kebab-case description of the work.
+- **`[issue-id]`** (optional): GitHub issue number associated with this work.
+
+### Values
+
+$ARGUMENTS
+
+## Core Principles
+
+- Use kebab-case for branch names (lowercase, hyphens)
+- Keep branch names concise but descriptive
+- Include issue ID when context provides one
+- Never prompt interactively - extract from context or use defaults
+- Accept any category value provided
+
+## Instructions
+
+1. Parse the provided arguments to extract category, branch-name, and issue-id (if present)
+2. If arguments are incomplete, infer from conversation context:
+   - Look for GitHub issue references (#123, issue 123)
+   - Derive branch name from the task description
+   - Default category to `feature` if not provided
+3. Use the provided category or default to `feature`. Common categories: poc, feature, fix, chore, doc, refactor
+4. Construct the branch name:
+   - With issue: `<category>/<issue-id>_<branch-name>`
+   - Without issue: `<category>/<branch-name>`
+5. Execute: `git checkout -b <constructed-branch-name>`
+6. Report the created branch name
+
+## Output Guidance
+
+Return a JSON object with the following structure:
+
+```json
+{
+  "success": true,
+  "branch_name": "feature/123_add-authentication",
+  "inferred": false,
+  "message": "Branch created successfully"
+}
+```
+
+On error:
+
+```json
+{
+  "success": false,
+  "error": "Error message from git",
+  "message": "Failed to create branch"
+}
+```
