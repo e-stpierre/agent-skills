@@ -33,7 +33,12 @@ Sub-agent configurations for specialized, autonomous task execution. Agents shou
 
 #### `skills/`
 
-Reusable skill modules that provide composable functionality.
+Reusable skill modules that provide composable functionality. Each skill is a directory containing:
+
+- `SKILL.md` (required) - Main skill definition file (uppercase)
+- `references/` (optional) - Additional documentation files
+- `scripts/` (optional) - Executable code for the skill
+- `assets/` (optional) - Static resources (templates, schemas)
 
 #### `hooks/`
 
@@ -61,7 +66,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 
 - **Commands**: Use kebab-case (e.g., `review-pr.md`, `setup-tests.md`)
 - **Agents**: Use descriptive names with domain prefix (e.g., `devops-agent.md`, `test-agent.md`)
-- **Skills**: Use verb-noun format (e.g., `parse-logs`, `validate-config`)
+- **Skills**: Use kebab-case directory names (e.g., `git-branch/`, `plan-feature/`) with `SKILL.md` inside
 - **Hooks**: Include event name (e.g., `session-start-hook.sh`, `tool-call-hook.sh`)
 
 ### Documentation Guidelines
@@ -77,7 +82,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 
 - **Commands**: Markdown (`.md`) files in `plugins/<plugin-name>/commands/`
 - **Agents**: Markdown (`.md`) files in `plugins/<plugin-name>/agents/`
-- **Skills**: Markdown (`.md`) files with structured prompts in `plugins/<plugin-name>/skills/`
+- **Skills**: Directory per skill in `plugins/<plugin-name>/skills/<skill-name>/SKILL.md`
 - **Hooks**: Shell scripts (`.sh`) or executable programs in `plugins/<plugin-name>/hooks/`
 
 ### Prompt Template Convention
