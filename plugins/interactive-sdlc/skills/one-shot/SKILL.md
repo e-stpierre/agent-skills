@@ -97,27 +97,7 @@ For complex tasks, use the full planning workflow instead.
 
 ## Output Guidance
 
-Provide a concise summary of what was done.
-
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "changes": [
-    "List of changes made"
-  ],
-  "files_modified": 0,
-  "committed": true,
-  "pr_url": "https://github.com/user/repo/pull/123",
-  "validation": {
-    "status": "PASS"
-  },
-  "summary": "Task complete. Brief description of changes."
-}
-```
-
-**Example output:**
+Provide a concise summary of what was done:
 
 ```
 ## Task Complete

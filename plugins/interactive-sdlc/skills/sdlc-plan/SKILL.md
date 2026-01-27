@@ -101,27 +101,7 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 
 ## Output Guidance
 
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "planPath": "{{planPath}}",
-  "planType": "{{type}}",
-  "title": "{{title}}",
-  "summary": "{{summary}}"
-}
-```
-
-<!--
-Placeholders:
-- {{planPath}}: Path to the generated plan file (e.g., "specs/feature-user-auth.md")
-- {{type}}: Plan type (feature, bug, chore)
-- {{title}}: Title of the plan
-- {{summary}}: Brief summary of what the plan covers
--->
-
-Additionally, present a user-friendly summary:
+Present a user-friendly summary:
 
 ```
 Plan saved to {planDirectory}/{type}-{slugified-title}.md

@@ -65,7 +65,7 @@ Users can gitignore this file if they want personal settings.
    - Display success message
    - Show current configuration summary
    - Inform user they can edit `.claude/configs/interactive-sdlc.json` directly for changes
-   - Exit command
+   - Exit skill
 
 4. **If Configuration is Missing or Invalid**
    - Use AskUserQuestion to gather missing/invalid values
@@ -86,25 +86,7 @@ Users can gitignore this file if they want personal settings.
 
 ## Output Guidance
 
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "action": "validated|updated",
-  "configuration": {
-    "planDirectory": "specs",
-    "analysisDirectory": "analysis",
-    "defaultExploreAgents": {
-      "chore": 2,
-      "bug": 2,
-      "feature": 3
-    }
-  }
-}
-```
-
-Additionally, show a user-friendly message:
+Show a user-friendly message:
 
 **If configuration is valid:**
 

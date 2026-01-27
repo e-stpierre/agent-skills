@@ -104,36 +104,13 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
    - Group findings by severity
    - Use the template from the type-specific reference file
 
-9. **Return JSON Output**
-   - Return structured JSON matching the output schema
-   - Include summary counts by severity
+9. **Present Results**
+   - Display summary counts by severity
+   - Inform user of report file location
 
 ## Output Guidance
 
-Return a JSON object AND save a detailed markdown report.
-
-### JSON Output Schema
-
-```json
-{
-  "success": true,
-  "reportPath": "{{reportPath}}",
-  "summary": {
-    "critical": "{{critical_count}}",
-    "high": "{{high_count}}",
-    "medium": "{{medium_count}}",
-    "low": "{{low_count}}"
-  }
-}
-```
-
-<!--
-Placeholders:
-- {{reportPath}}: Path to the generated report (e.g., "analysis/bug.md")
-- {{critical_count}}, {{high_count}}, {{medium_count}}, {{low_count}}: Integer counts per severity
--->
-
-Also present a user-friendly summary:
+Save a detailed markdown report and present a user-friendly summary:
 
 ```
 {Type} analysis complete. Report saved to {analysisDirectory}/{type}.md

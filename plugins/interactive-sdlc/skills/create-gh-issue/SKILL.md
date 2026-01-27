@@ -51,30 +51,17 @@ $ARGUMENTS
 
 ## Output Guidance
 
-Return a JSON object with the following structure:
+Provide a brief confirmation message:
 
-On success:
-
-```json
-{
-  "success": true,
-  "issue_number": 123,
-  "issue_url": "https://github.com/owner/repo/issues/123",
-  "title": "Add authentication",
-  "labels": ["enhancement", "priority-high"],
-  "milestone": "v2.0",
-  "assignee": "username",
-  "message": "Issue created successfully"
-}
+**On success:**
+```
+Issue created: https://github.com/owner/repo/issues/123
+Title: Add authentication
+Labels: enhancement, priority-high
 ```
 
-On failure:
-
-```json
-{
-  "success": false,
-  "error": "Error message from gh CLI",
-  "suggestion": "Check that gh is authenticated with 'gh auth status'",
-  "message": "Failed to create issue"
-}
+**On failure:**
+```
+Failed to create issue: <error message from gh CLI>
+Suggestion: Check that gh is authenticated with 'gh auth status'
 ```

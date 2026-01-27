@@ -43,7 +43,7 @@ Determine Task Type -> Plan -> Create Branch -> Commit Plan -> Build -> Validate
 **Step details:**
 
 1. **Determine Task Type**: Analyze context or ask user (chore/bug/feature)
-2. **Plan**: Execute appropriate planning command, saves plan file
+2. **Plan**: Execute appropriate planning skill, saves plan file
 3. **Create Branch**: Create a new branch using `/git-branch` (if --git or --pr)
 4. **Commit Plan**: Commit the plan file using `/git-commit` (if --git or --pr)
 5. **Build**: Implement all tasks from the plan
@@ -60,9 +60,9 @@ Determine Task Type -> Plan -> Create Branch -> Commit Plan -> Build -> Validate
   - Is this a bug fix?
   - Is this a new feature?
 
-### 2. Execute Planning Command
+### 2. Execute Planning Skill
 
-Based on task type, invoke the planning command:
+Based on task type, invoke the planning skill:
 
 ```
 /sdlc-plan <type>
@@ -90,9 +90,9 @@ Use `/git-commit` to commit the plan file with a message like:
 
 - `docs: Add implementation plan for <feature>`
 
-### 5. Execute Build Command
+### 5. Execute Build Skill
 
-Invoke the build command with the generated plan:
+Invoke the build skill with the generated plan:
 
 ```
 /build <plan-file-path>
@@ -104,9 +104,9 @@ Pass through:
 
 Implement all tasks from the plan.
 
-### 6. Execute Validate Command
+### 6. Execute Review Skill
 
-Invoke the review command:
+Invoke the review skill:
 
 ```
 /sdlc-review --plan <plan-file-path>
@@ -135,22 +135,6 @@ If validation fails:
 ## Output Guidance
 
 Provide progress updates at each stage and a final summary.
-
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "plan_file": "/specs/feature-auth.md",
-  "branch": "feature/add-auth",
-  "tasks_completed": 8,
-  "validation": {
-    "status": "PASS"
-  },
-  "pr_url": "https://github.com/user/repo/pull/123",
-  "summary": "Workflow complete. Brief description of results."
-}
-```
 
 **During workflow:**
 

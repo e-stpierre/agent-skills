@@ -82,7 +82,7 @@ SECTION ORDER MUST BE RESPECTED - Follow the order defined above.
 VALIDATION RULES:
 - Arguments section and argument-hint frontmatter are REQUIRED only when the skill takes arguments
 - Arguments section and argument-hint should be OMITTED when the skill takes no arguments
-- Skills must always output a JSON object as final output when the session ends
+- Interactive skills output human-readable text (not JSON) for direct user consumption
 -->
 
 ---
@@ -206,10 +206,10 @@ Instructions:
 <!--
 Instructions:
 - Replace {{output}} with expected output format and content definition
-- Skills must always return a JSON object as final output when the session ends
+- Interactive skills output human-readable text for direct user consumption
 - Skills may also produce additional outputs (e.g., create files, write markdown) during execution
-- Define the JSON structure with required fields for this skill
-- Leave the specific JSON schema to each skill's needs
+- Define the expected text format and key information to include
+- Use clear headings and formatting for readability
 -->
 
 ## Templates (optional)

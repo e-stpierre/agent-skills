@@ -112,22 +112,6 @@ When `--git` flag is used, use `/git-commit` to commit at logical checkpoints:
 
 Provide clear progress updates and a final summary.
 
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "tasks_completed": 0,
-  "files_modified": 0,
-  "commits_created": 0,
-  "summary": "Implementation complete. Brief description of changes made.",
-  "next_steps": [
-    "Run validation: /sdlc-review --plan <plan-file>",
-    "Review changes and test functionality"
-  ]
-}
-```
-
 **During implementation:**
 
 ```

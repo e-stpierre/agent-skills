@@ -157,23 +157,7 @@ stateDiagram-v2
 
 ## Output Guidance
 
-Present the saved documentation path and a brief summary.
-
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "file_path": "docs/architecture.md",
-  "type": "Architecture documentation",
-  "diagrams": 3,
-  "sections": 5,
-  "examples": 2,
-  "summary": "Documentation saved successfully. Brief description of content."
-}
-```
-
-**Example output:**
+Present the saved documentation path and a brief summary:
 
 ```
 Documentation saved to docs/architecture.md
@@ -185,6 +169,11 @@ Documentation saved to docs/architecture.md
 - Examples: 2 code snippets
 
 The documentation has been formatted with markdownlint-cli2.
+```
+
+**On error:**
+```
+Failed to generate documentation: <error description>
 ```
 
 ## Templates

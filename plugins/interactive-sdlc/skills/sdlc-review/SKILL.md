@@ -143,32 +143,6 @@ Generate a comprehensive validation report using the structure defined in the Te
 - Actionable recommendations for fixing issues
 - Plan compliance status (if plan provided)
 
-Return a JSON object with the following structure:
-
-```json
-{
-  "success": true,
-  "tests": {
-    "status": "PASS",
-    "passed": 0,
-    "failed": 0
-  },
-  "build": {
-    "status": "PASS"
-  },
-  "review": {
-    "critical": 0,
-    "major": 0,
-    "medium": 0,
-    "low": 0
-  },
-  "plan_compliance": {
-    "percent": 100
-  },
-  "summary": "Validation complete. Brief description of results."
-}
-```
-
 ## Templates
 
 ### Validation Report Structure

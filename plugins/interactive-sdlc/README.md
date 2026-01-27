@@ -1,10 +1,10 @@
 # Interactive SDLC Plugin
 
-Human-in-the-loop plugin for guided development within Claude Code sessions. Provides interactive planning, implementation, validation, and analysis workflows with smart context inference. All commands support optional context arguments to reduce prompts while maintaining the ability to ask clarifying questions.
+Human-in-the-loop plugin for guided development within Claude Code sessions. Provides interactive planning, implementation, validation, and analysis workflows with smart context inference. All skills support optional context arguments to reduce prompts while maintaining the ability to ask clarifying questions.
 
 ## Overview
 
-The Interactive SDLC plugin provides guided workflows for planning, implementing, and validating development tasks. Commands ask clarifying questions when needed and support context arguments for automation.
+The Interactive SDLC plugin provides guided workflows for planning, implementing, and validating development tasks. Skills ask clarifying questions when needed and support context arguments for automation.
 
 - `/sdlc-plan feature Add OAuth login` - Plan a feature with milestones
 - `/build specs/feature-auth.md --git` - Implement a plan with auto-commits
@@ -91,7 +91,7 @@ Skills are organized into logical categories. All paths are relative to `plugins
 
 ## Context Argument
 
-All commands support an optional `[context]` argument as the last parameter. This allows you to provide upfront information that would otherwise require interactive questions.
+All skills support an optional `[context]` argument as the last parameter. This allows you to provide upfront information that would otherwise require interactive questions.
 
 **Benefits:**
 
@@ -117,7 +117,7 @@ Plans are static documentation of work to be done:
 - Plans are immutable during implementation (progress tracked via TodoWrite)
 - No time estimates, deadlines, or scheduling information
 - Content includes requirements, architecture, tasks, and validation criteria
-- Implementation commands read plans as reference, not as mutable state
+- Implementation skills read plans as reference, not as mutable state
 
 ## Configuration
 

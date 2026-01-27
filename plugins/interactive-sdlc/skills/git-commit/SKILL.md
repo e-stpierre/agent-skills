@@ -78,27 +78,14 @@ Only include this prefix if you are actively following a plan with numbered step
 
 ## Output Guidance
 
-Return a JSON object with the following structure:
+Provide a brief confirmation message:
 
-```json
-{
-  "success": true,
-  "commit_hash": "abc123f",
-  "title": "[Task 3] Add authentication module",
-  "bullets": [
-    "Implemented JWT token validation",
-    "Added user session management"
-  ],
-  "message": "Commit created successfully"
-}
+**On success:**
+```
+Committed: abc123f - [Task 3] Add authentication module
 ```
 
-On error:
-
-```json
-{
-  "success": false,
-  "error": "Error message from git",
-  "message": "Failed to create commit"
-}
+**On error:**
+```
+Failed to commit: <error message from git>
 ```

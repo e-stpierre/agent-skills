@@ -68,26 +68,15 @@ $ARGUMENTS
 
 ## Output Guidance
 
-Return a JSON object with the following structure:
+Provide a brief confirmation message:
 
-```json
-{
-  "success": true,
-  "pr_url": "https://github.com/owner/repo/pull/123",
-  "pr_number": 123,
-  "title": "Add user authentication",
-  "size": "medium",
-  "is_draft": false,
-  "message": "PR created successfully"
-}
+**On success:**
+```
+PR created: https://github.com/owner/repo/pull/123
+Title: Add user authentication
 ```
 
-On error:
-
-```json
-{
-  "success": false,
-  "error": "Error message from gh CLI",
-  "message": "Failed to create PR"
-}
+**On error:**
+```
+Failed to create PR: <error message from gh CLI>
 ```

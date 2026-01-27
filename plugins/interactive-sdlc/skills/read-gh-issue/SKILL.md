@@ -24,7 +24,7 @@ $ARGUMENTS
 ## Core Principles
 
 - Verify `gh` CLI is available and authenticated before attempting to read
-- Return structured information that can be used by other commands
+- Return structured information that can be used by other skills
 - Include all relevant metadata (labels, milestone, assignees, state)
 - Handle non-existent issues gracefully with clear error messages
 
@@ -48,41 +48,13 @@ $ARGUMENTS
 
 ## Output Guidance
 
-Return a JSON object with the following structure:
+Display the issue information in a readable format.
 
-On success:
+**On success:** Use the template in the Templates section below.
 
-```json
-{
-  "success": true,
-  "issue_number": 123,
-  "title": "Add authentication feature",
-  "state": "open",
-  "url": "https://github.com/owner/repo/issues/123",
-  "labels": ["enhancement", "priority-high"],
-  "milestone": "v2.0",
-  "assignees": ["username1", "username2"],
-  "body": "Full issue description text...",
-  "comments": [
-    {
-      "author": "username",
-      "created_at": "2024-01-15T10:30:00Z",
-      "body": "Comment text..."
-    }
-  ],
-  "message": "Issue retrieved successfully"
-}
+**On error:**
 ```
-
-On error:
-
-```json
-{
-  "success": false,
-  "issue_number": 999,
-  "error": "issue not found",
-  "message": "Failed to retrieve issue"
-}
+Failed to retrieve issue #999: issue not found
 ```
 
 ## Templates

@@ -46,23 +46,14 @@ $ARGUMENTS
 
 ## Output Guidance
 
-Return a JSON object with the following structure:
+Provide a brief confirmation message:
 
-```json
-{
-  "success": true,
-  "branch_name": "feature/123_add-authentication",
-  "inferred": false,
-  "message": "Branch created successfully"
-}
+**On success:**
+```
+Created and switched to branch: feature/123_add-authentication
 ```
 
-On error:
-
-```json
-{
-  "success": false,
-  "error": "Error message from git",
-  "message": "Failed to create branch"
-}
+**On error:**
+```
+Failed to create branch: <error message from git>
 ```
