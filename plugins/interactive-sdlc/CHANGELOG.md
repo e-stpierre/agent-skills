@@ -2,6 +2,20 @@
 
 All notable changes to the interactive-sdlc plugin will be documented in this file.
 
+## [0.2.0] - 2026-01-26
+
+### Changed
+
+- Migrated all commands to skills format
+- Commands now located in `skills/` directory with `SKILL.md` files
+- Updated all skills to return JSON output
+- Renamed `/configure-interactive-sdlc` to `/configure`
+
+### Breaking Changes
+
+- Commands directory structure replaced with skills directory structure
+- All skills must now be invoked using the skill invocation format
+
 ## [0.1.2] - 2026-01-24
 
 ### Added

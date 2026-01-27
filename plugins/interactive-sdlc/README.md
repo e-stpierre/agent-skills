@@ -11,42 +11,42 @@ The Interactive SDLC plugin provides guided workflows for planning, implementing
 - `/validate --plan specs/feature-auth.md` - Validate implementation
 - `/one-shot --git Fix login timeout` - Quick task without saved plan
 
-## Commands
+## Skills
 
-Commands are organized into logical categories. All paths are relative to the project root.
+Skills are organized into logical categories. All paths are relative to `plugins/interactive-sdlc/skills/`.
 
 ### Setup
 
-| Command                       | Description                               |
-| ----------------------------- | ----------------------------------------- |
-| `/configure-interactive-sdlc` | Set up plugin configuration interactively |
+| Skill         | Description                               |
+| ------------- | ----------------------------------------- |
+| `/configure`  | Set up plugin configuration interactively |
 
-### Planning (`commands/plan/`)
+### Planning
 
-| Command         | Description                             |
+| Skill           | Description                             |
 | --------------- | --------------------------------------- |
 | `/plan-chore`   | Plan a maintenance task                 |
 | `/plan-bug`     | Plan a bug fix with root cause analysis |
 | `/plan-feature` | Plan a feature with milestones          |
 
-### Development (`commands/dev/`)
+### Development
 
-| Command     | Description                                                           |
-| ----------- | --------------------------------------------------------------------- |
-| `/build`    | Implement a plan file with checkpoint support                         |
-| `/validate` | Comprehensive validation (tests, code review, build, plan compliance) |
-| `/document` | Generate or update documentation with mermaid diagrams                |
+| Skill        | Description                                                           |
+| ------------ | --------------------------------------------------------------------- |
+| `/build`     | Implement a plan file with checkpoint support                         |
+| `/validate`  | Comprehensive validation (tests, code review, build, plan compliance) |
+| `/document`  | Generate or update documentation with mermaid diagrams                |
 
-### Workflows (`commands/workflows/`)
+### Workflows
 
-| Command                | Description                               |
+| Skill                  | Description                               |
 | ---------------------- | ----------------------------------------- |
 | `/one-shot`            | Quick task without saved plan file        |
 | `/plan-build-validate` | Full workflow from planning to validation |
 
-### Analysis (`commands/analyze/`)
+### Analysis
 
-| Command             | Description                                           |
+| Skill               | Description                                           |
 | ------------------- | ----------------------------------------------------- |
 | `/analyze-bug`      | Analyze codebase for bugs and logic errors            |
 | `/analyze-doc`      | Analyze documentation quality and accuracy            |
@@ -54,17 +54,17 @@ Commands are organized into logical categories. All paths are relative to the pr
 | `/analyze-style`    | Check code style, consistency, and best practices     |
 | `/analyze-security` | Scan for security vulnerabilities and unsafe patterns |
 
-### Git (`commands/git/`)
+### Git
 
-| Command       | Description                                          |
+| Skill         | Description                                          |
 | ------------- | ---------------------------------------------------- |
 | `/git-branch` | Create branches with standardized naming conventions |
 | `/git-commit` | Commit changes with structured messages              |
 | `/git-pr`     | Create pull requests with contextual descriptions    |
 
-### GitHub (`commands/github/`)
+### GitHub
 
-| Command            | Description                                       |
+| Skill              | Description                                       |
 | ------------------ | ------------------------------------------------- |
 | `/create-gh-issue` | Create GitHub issues with title, body, and labels |
 | `/read-gh-issue`   | Read GitHub issue content by number               |
@@ -153,7 +153,7 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 
 ## Complete Examples
 
-### /configure-interactive-sdlc
+### /configure
 
 **Arguments:** None
 
@@ -161,7 +161,7 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 
 ```bash
 # Run interactive configuration
-/configure-interactive-sdlc
+/configure
 ```
 
 ### /plan-chore
