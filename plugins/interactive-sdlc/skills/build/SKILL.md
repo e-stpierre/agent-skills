@@ -71,20 +71,17 @@ When `--git` flag is used, use `/git-commit` to commit at logical checkpoints:
 ## Instructions
 
 1. **Read Plan File**
-
    - Read the plan file from the provided path
    - Parse the plan structure (milestones, tasks, validation criteria)
    - Validate the plan has required sections
 
 2. **Handle Checkpoint (if --checkpoint flag)**
-
    - Parse the checkpoint text to find the resume point
    - Match against milestone titles or task descriptions
    - Mark all previous tasks as already completed
    - Resume from the matched checkpoint
 
 3. **Create Todo List**
-
    - Extract all tasks from the plan
    - For feature plans: create todos per milestone with nested tasks
    - For bug/chore plans: create todos per task
@@ -92,7 +89,6 @@ When `--git` flag is used, use `/git-commit` to commit at logical checkpoints:
    - Mark checkpoint-completed tasks if resuming
 
 4. **Implement Tasks**
-
    - Work through each task sequentially
    - Mark current task as in_progress before starting
    - Analyze what changes are needed for the task
@@ -103,7 +99,6 @@ When `--git` flag is used, use `/git-commit` to commit at logical checkpoints:
    - Mark task as completed when done
 
 5. **Git Commits (if --git flag)**
-
    - Use `/git-commit` at logical checkpoints:
      - Features: after each milestone completion
      - Bugs: after fix implemented, after tests added

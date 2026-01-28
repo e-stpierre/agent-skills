@@ -56,7 +56,6 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 ## Instructions
 
 1. **Validate Type Argument**
-
    - Check that `<type>` argument is provided
    - Verify it is one of: `bug`, `debt`, `doc`, `security`, `style`
    - If missing or invalid, stop execution and return error:
@@ -70,7 +69,6 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 
 2. **Load Type-Specific Guidelines**
    Based on the `<type>` argument, load the corresponding reference file:
-
    - `bug` -> Read [references/bug.md](references/bug.md)
    - `debt` -> Read [references/debt.md](references/debt.md)
    - `doc` -> Read [references/doc.md](references/doc.md)
@@ -78,35 +76,29 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
    - `style` -> Read [references/style.md](references/style.md)
 
 3. **Read Configuration**
-
    - Read `.claude/configs/interactive-sdlc.json` for `analysisDirectory` (default: `analysis`)
 
 4. **Determine Scope**
-
    - If `[context]` specifies files/directories, focus on those
    - Otherwise, analyze the entire codebase
    - Exclude test files, node_modules, build outputs, and vendor directories
    - For `doc` type: find all documentation files (README, docs/, \*.md)
 
 5. **Understand Project Context**
-
    - Check for linter configs (ESLint, Prettier, Ruff)
    - Read CLAUDE.md for project-specific guidelines
    - Analyze existing code patterns to understand conventions
 
 6. **Analyze for Issues**
-
    - Apply type-specific analysis criteria from the loaded reference file
    - Verify each finding is a real issue, not a false positive
    - Check if apparent issues are handled elsewhere
 
 7. **Categorize Findings**
-
    - Apply severity ratings as defined in the type-specific reference file
    - Use consistent severity levels across all types
 
 8. **Generate Report**
-
    - Save to `{analysisDirectory}/{type}.md`
    - Include date in report header
    - Group findings by severity

@@ -114,7 +114,6 @@ stateDiagram-v2
 ## Instructions
 
 1. **Parse Request**
-
    - Analyze the `[context]` to understand documentation needs
    - Determine documentation type:
      - API documentation
@@ -125,21 +124,18 @@ stateDiagram-v2
      - Component documentation
 
 2. **Analyze Existing Documentation**
-
    - Check for existing docs directory structure
    - Identify related documentation files
    - Understand current documentation conventions
    - Check for documentation templates
 
 3. **Explore Codebase**
-
    - Launch explore agents to understand relevant code
    - For API docs: find API routes, handlers, types
    - For architecture: understand component relationships
    - For features: trace feature implementation
 
 4. **Generate Documentation**
-
    - Create markdown documentation
    - Include mermaid diagrams where appropriate:
      - Architecture diagrams (C4, component diagrams)
@@ -150,7 +146,6 @@ stateDiagram-v2
    - Follow existing documentation style if present
 
 5. **Format Output**
-
    - Run `npx markdownlint-cli2 --fix <file>` to format
    - Handle formatting errors gracefully
    - Report any issues that couldn't be auto-fixed

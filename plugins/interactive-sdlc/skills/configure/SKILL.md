@@ -52,32 +52,27 @@ Users can gitignore this file if they want personal settings.
 ## Instructions
 
 1. **Read Existing Configuration**
-
    - Check if `.claude/configs/interactive-sdlc.json` exists
    - Parse current settings if present
    - Identify which settings are missing or invalid
 
 2. **Validate Current Configuration**
-
    - Check each setting against expected schema (see Configuration section)
    - Verify planDirectory and analysisDirectory are valid paths
    - Verify defaultExploreAgents values are within valid ranges
 
 3. **If Configuration is Valid and Complete**
-
    - Display success message
    - Show current configuration summary
    - Inform user they can edit `.claude/configs/interactive-sdlc.json` directly for changes
    - Exit skill
 
 4. **If Configuration is Missing or Invalid**
-
    - Use AskUserQuestion to gather missing/invalid values
    - Show current values as defaults in questions
    - Validate user inputs before accepting
 
    **Questions to ask:**
-
    - Where should plan files be saved? (default: `/specs`)
    - Where should analysis reports be saved? (default: `/analysis`)
    - How many explore agents for chore planning? (0-5, default: 2)
