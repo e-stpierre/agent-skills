@@ -2,19 +2,7 @@
 
 All notable changes to the interactive-sdlc plugin will be documented in this file.
 
-## [0.2.1] - 2026-01-26
-
-### Changed
-
-- Renamed `/plan` skill to `/sdlc-plan` for clarity
-- Renamed `/validate` skill to `/sdlc-review` for clarity
-
-### Breaking Changes
-
-- Planning skill now uses `/sdlc-plan <type>` syntax (e.g., `/sdlc-plan feature`, `/sdlc-plan bug`)
-- Validation skill now uses `/sdlc-review` syntax (e.g., `/sdlc-review --plan specs/feature.md`)
-
-## [0.2.0] - 2026-01-26
+## [0.2.0] - 2026-01-27
 
 ### Changed
 
