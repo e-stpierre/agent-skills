@@ -53,11 +53,13 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 ## Instructions
 
 1. **Parse Arguments**
+
    - Extract type, --explore N, --git, and context from arguments
    - Default type to `auto` if not specified
    - Default explore agents based on type from configuration
 
 2. **Detect Plan Type** (if type=auto)
+
    - Analyze the context to determine type:
      - **feature**: New functionality, enhancements, additions
      - **bug**: Error fixes, unexpected behavior corrections, defects
@@ -66,32 +68,38 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 
 3. **Load Type-Specific Guidelines**
    Based on the detected or specified type, load the corresponding reference file:
+
    - `feature` -> Read [references/feature.md](references/feature.md)
    - `bug` -> Read [references/bug.md](references/bug.md)
    - `chore` -> Read [references/chore.md](references/chore.md)
 
 4. **Read Configuration**
+
    - Read `.claude/configs/interactive-sdlc.json` for `planDirectory` (default: `specs`)
    - Read `defaultExploreAgents.{type}` for explore agent count
 
 5. **Explore Codebase**
+
    - Launch N explore agents (from config or --explore flag)
    - Focus exploration on understanding the areas relevant to the task
    - Gather context about existing patterns, conventions, and dependencies
    - Identify files and components that may be affected
 
 6. **Gather Requirements**
+
    - Parse the `[context]` argument if provided
    - If requirements can be inferred from context, use them
    - Otherwise, ask the user for type-specific information (see reference file)
 
 7. **Generate Plan**
+
    - Apply type-specific planning approach from the loaded reference
    - Create a plan using the structure defined in the reference file's template
    - Fill in all required sections with gathered requirements
    - List tasks in execution order
 
 8. **Save Plan**
+
    - Save to `{planDirectory}/{type}-{slugified-title}.md`
    - Inform user of the saved file path
 

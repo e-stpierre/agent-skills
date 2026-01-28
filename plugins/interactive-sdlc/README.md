@@ -17,9 +17,9 @@ Skills are organized into logical categories. All paths are relative to `plugins
 
 ### Setup
 
-| Skill         | Description                               |
-| ------------- | ----------------------------------------- |
-| `/configure`  | Set up plugin configuration interactively |
+| Skill        | Description                               |
+| ------------ | ----------------------------------------- |
+| `/configure` | Set up plugin configuration interactively |
 
 ### Planning
 

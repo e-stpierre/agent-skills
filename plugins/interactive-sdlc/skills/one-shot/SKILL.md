@@ -57,16 +57,19 @@ For complex tasks, use the full planning workflow instead.
 ## Instructions
 
 1. **Parse Task**
+
    - Analyze the `[context]` to understand the task
    - Determine task type (chore/bug/feature)
    - Extract key requirements
 
 2. **Quick Exploration (if --explore N > 0)**
+
    - Launch N explore agents
    - Focus on immediately relevant code areas
    - Skip for simple tasks
 
 3. **Create In-Memory Plan**
+
    - Generate a lightweight plan internally
    - Do NOT save plan to file
    - Structure depends on task type:
@@ -75,20 +78,24 @@ For complex tasks, use the full planning workflow instead.
      - Feature: minimal milestones and tasks
 
 4. **Create Branch (if --git or --pr flag)**
+
    - Use `/git-branch` to create a new branch
    - Branch category based on task type (fix/feature/chore)
    - Branch name derived from task description
 
 5. **Implement**
+
    - Create todo list from in-memory plan
    - Implement each task sequentially
    - Mark todos as completed
    - Ask clarifying questions if needed
 
 6. **Git Commit (if --git or --pr flag)**
+
    - Use `/git-commit` to commit changes
 
 7. **Validate (if --validate flag)**
+
    - Run `/sdlc-review`
    - Report any issues found
 

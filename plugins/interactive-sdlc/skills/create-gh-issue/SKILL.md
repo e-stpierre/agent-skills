@@ -54,6 +54,7 @@ $ARGUMENTS
 Provide a brief confirmation message:
 
 **On success:**
+
 ```
 Issue created: https://github.com/owner/repo/issues/123
 Title: Add authentication
@@ -61,6 +62,7 @@ Labels: enhancement, priority-high
 ```
 
 **On failure:**
+
 ```
 Failed to create issue: <error message from gh CLI>
 Suggestion: Check that gh is authenticated with 'gh auth status'

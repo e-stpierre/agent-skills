@@ -71,12 +71,14 @@ $ARGUMENTS
 Provide a brief confirmation message:
 
 **On success:**
+
 ```
 PR created: https://github.com/owner/repo/pull/123
 Title: Add user authentication
 ```
 
 **On error:**
+
 ```
 Failed to create PR: <error message from gh CLI>
 ```

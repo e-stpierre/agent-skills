@@ -53,6 +53,7 @@ Display the issue information in a readable format.
 **On success:** Use the template in the Templates section below.
 
 **On error:**
+
 ```
 Failed to retrieve issue #999: issue not found
 ```

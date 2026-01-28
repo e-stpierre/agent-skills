@@ -81,11 +81,13 @@ Only include this prefix if you are actively following a plan with numbered step
 Provide a brief confirmation message:
 
 **On success:**
+
 ```
 Committed: abc123f - [Task 3] Add authentication module
 ```
 
 **On error:**
+
 ```
 Failed to commit: <error message from git>
 ```

@@ -49,11 +49,13 @@ $ARGUMENTS
 Provide a brief confirmation message:
 
 **On success:**
+
 ```
 Created and switched to branch: feature/123_add-authentication
 ```
 
 **On error:**
+
 ```
 Failed to create branch: <error message from git>
 ```

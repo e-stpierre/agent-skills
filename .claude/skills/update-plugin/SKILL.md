@@ -29,6 +29,7 @@ Analyze changes in the current branch compared to main and update plugin version
 2. **Analyze Changes for Each Plugin**
 
    For each changed plugin, examine the diff to determine the change type:
+
    - **MAJOR** (breaking changes): API changes, removed features, incompatible changes
    - **MINOR** (new features): New commands, new functions, new capabilities
    - **PATCH** (bug fixes): Bug fixes, documentation updates, minor improvements
@@ -38,6 +39,7 @@ Analyze changes in the current branch compared to main and update plugin version
 3. **Version Update Rules**
 
    Current version format: `MAJOR.MINOR.PATCH`
+
    - MAJOR: Increment first number, reset others to 0 (e.g., 1.2.3 -> 2.0.0)
    - MINOR: Increment second number, reset patch to 0 (e.g., 1.2.3 -> 1.3.0)
    - PATCH: Increment third number (e.g., 1.2.3 -> 1.2.4)
@@ -67,6 +69,7 @@ Analyze changes in the current branch compared to main and update plugin version
    ```
 
    Guidelines:
+
    - Use today's date in YYYY-MM-DD format
    - Only include relevant sections (Added, Changed, Fixed, Removed)
    - Keep entries concise using bullet points
@@ -75,6 +78,7 @@ Analyze changes in the current branch compared to main and update plugin version
 5. **Update Plugin Version in Marketplace**
 
    After updating the CHANGELOG, update the plugin's version in `.claude-plugin/marketplace.json`:
+
    - Find the plugin entry in the `plugins` array
    - Update its `version` field to the new version
    - If `plugins/<plugin-name>/pyproject.toml` exists, also update the `version` field in `[project]` section
@@ -84,6 +88,7 @@ Analyze changes in the current branch compared to main and update plugin version
 6. **Update Marketplace Root Version**
 
    After all plugin versions are updated, update the root `metadata.version` in `.claude-plugin/marketplace.json`:
+
    - Determine the highest change level across all modified plugins:
      - If ANY plugin has a MAJOR change: increment marketplace MAJOR version
      - If ANY plugin has a MINOR change (and no MAJOR): increment marketplace MINOR version
