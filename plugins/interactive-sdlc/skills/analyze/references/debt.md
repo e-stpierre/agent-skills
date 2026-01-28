@@ -42,6 +42,13 @@ Look for technical debt indicators:
 - Understand why patterns exist before flagging them - some "debt" is intentional
 - Base recommendations on concrete requirements, not hypothetical future needs
 
+## Severity Guidelines
+
+- **Critical**: Architectural issues blocking development or causing systemic failures
+- **High**: Significant debt affecting multiple modules or team productivity
+- **Medium**: Localized issues with moderate impact on maintainability
+- **Low**: Minor improvements, cleanup opportunities
+
 ## Effort Estimation
 
 **Low Effort:**
@@ -87,20 +94,18 @@ Instructions:
 
 ## Summary
 
-| Category     | Issues                 | Total Effort            |
-| ------------ | ---------------------- | ----------------------- |
-| Architecture | {{architecture_count}} | {{architecture_effort}} |
-| Code Quality | {{code_quality_count}} | {{code_quality_effort}} |
-| Performance  | {{performance_count}}  | {{performance_effort}}  |
+- Critical: {{critical_count}} issues
+- High: {{high_count}} issues
+- Medium: {{medium_count}} issues
+- Low: {{low_count}} issues
 
 <!--
 Instructions:
-- Replace {{architecture_count}}, {{code_quality_count}}, {{performance_count}} with issue counts
-- Replace {{architecture_effort}}, {{code_quality_effort}}, {{performance_effort}} with Low/Med/High
-- Total effort is aggregate of individual item efforts
+- Replace {{critical_count}}, {{high_count}}, {{medium_count}}, {{low_count}} with actual counts
+- If count is 0, you can say "0 issues" or omit the category
 -->
 
-## Architecture
+## Critical
 
 ### DEBT-{{debt_number}}: {{debt_title}}
 
@@ -108,7 +113,14 @@ Instructions:
 Instructions:
 - Replace {{debt_number}} with sequential number (001, 002, etc.)
 - Replace {{debt_title}} with concise debt title
-- Use this format for each architecture debt item found
+- Use this format for each debt item found
+-->
+
+**Category:** {{category}}
+
+<!--
+Instructions:
+- Replace {{category}} with: Architecture, Code Quality, or Performance
 -->
 
 **Location:** {{location}}
@@ -135,14 +147,6 @@ Instructions:
 - Be specific about what should change
 -->
 
-**Benefit:** {{benefit}}
-
-<!--
-Instructions:
-- Replace {{benefit}} with why this matters
-- Explain the value of making this change
--->
-
 **Effort:** {{effort}}
 
 <!--
@@ -153,19 +157,27 @@ Instructions:
 
 ---
 
-## Code Quality
+## High
 
 <!--
 Instructions:
-- Use same format as Architecture section
-- Include all code quality debt items
+- Use same format as Critical section
+- Include all high severity debt items
 -->
 
-## Performance
+## Medium
 
 <!--
 Instructions:
-- Use same format as Architecture section
-- Include all performance debt items
+- Use same format as Critical section
+- Include all medium severity debt items
+-->
+
+## Low
+
+<!--
+Instructions:
+- Use same format as Critical section
+- Include all low severity debt items
 -->
 ```

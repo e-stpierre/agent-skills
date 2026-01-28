@@ -1,7 +1,7 @@
 ---
 name: plan-build-validate
 description: Full guided workflow from planning through implementation to validation
-argument-hint: "[--git] [--pr] [--explore N] [context]"
+argument-hint: [explore-count] [--git] [--pr] [context]
 ---
 
 # Plan-Build-Validate
@@ -14,10 +14,10 @@ Execute the complete development workflow from planning through implementation t
 
 ### Definitions
 
-- **`[--git]`** (optional): Auto-commit throughout workflow (plan file, build checkpoints)
-- **`[--pr]`** (optional): Create draft PR when validation passes
-- **`[--explore N]`** (optional): Override explore agent count for planning phase
-- **`[context]`** (optional): Task description to reduce prompts
+- **`[explore-count]`** (optional): Override explore agent count for planning phase. Defaults to configuration value.
+- **`[--git]`** (optional): Auto-commit throughout workflow (plan file, build checkpoints).
+- **`[--pr]`** (optional): Create draft PR when validation passes.
+- **`[context]`** (optional): Task description to reduce prompts.
 
 ### Values
 

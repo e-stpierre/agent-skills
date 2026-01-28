@@ -1,7 +1,7 @@
 ---
 name: build
 description: Implement a plan file with checkpoint support for resuming work
-argument-hint: '[plan-file] [--git] [--checkpoint "<text>"] [context]'
+argument-hint: <plan-file> [checkpoint] [--git] [context]
 ---
 
 # Build
@@ -14,10 +14,10 @@ Implement all tasks from a plan file with checkpoint support for resuming work, 
 
 ### Definitions
 
-- **`[plan-file]`** (required): Path to plan file
-- **`[--git]`** (optional): Auto-commit changes at logical checkpoints
-- **`[--checkpoint "<text>"]`** (optional): Resume from specific task/milestone
-- **`[context]`** (optional): Optional freeform context for implementation guidance
+- **`<plan-file>`** (required): Path to plan file.
+- **`[checkpoint]`** (optional): Resume from specific task/milestone (e.g., "Milestone 2" or "Task 3.1").
+- **`[--git]`** (optional): Auto-commit changes at logical checkpoints.
+- **`[context]`** (optional): Freeform context for implementation guidance.
 
 ### Values
 

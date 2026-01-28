@@ -1,7 +1,7 @@
 ---
 name: sdlc-plan
 description: Create an implementation plan for a task (feature, bug fix, or chore)
-argument-hint: [type] [--explore N] [--git] [context]
+argument-hint: [type] [explore-count] [--git] [context]
 ---
 
 # Plan
@@ -15,7 +15,7 @@ Create a structured implementation plan for the given task. This skill explores 
 ### Definitions
 
 - **`[type]`** (optional): Plan type. Values: `feature`, `bug`, `chore`, `auto`. Defaults to `auto`.
-- **`[--explore N]`** (optional): Override default explore agent count. Defaults to configuration value based on type.
+- **`[explore-count]`** (optional): Override default explore agent count. Defaults to configuration value based on type.
 - **`[--git]`** (optional): Commit plan file after creation.
 - **`[context]`** (optional): Freeform context for argument inference (e.g., task description, requirements).
 

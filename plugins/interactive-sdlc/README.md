@@ -68,21 +68,21 @@ Skills are organized into logical categories. All paths are relative to `plugins
 ### Common Arguments
 
 - `--git` - Auto-commit changes at logical checkpoints
-- `--explore N` - Override default explore agent count for codebase analysis
+- `[explore-count]` - Override default explore agent count for codebase analysis
 - `[context]` - Optional freeform context as the last parameter
 
 ### Build-Specific Arguments
 
-- `[plan-file]` - Required path to plan file (relative to project root)
-- `--checkpoint "[text]"` - Resume from specific task/milestone
+- `<plan-file>` - Path to plan file (required, relative to project root)
+- `[checkpoint]` - Resume from specific task/milestone
 
-### Validate-Specific Arguments
+### Review-Specific Arguments
 
-- `--plan [plan-file]` - Plan file to verify compliance against
+- `[plan-file]` - Plan file to verify compliance against
+- `[autofix-levels]` - Auto-fix issues of specified severity levels (e.g., "critical,major")
 - `--skip-tests` - Skip test execution
 - `--skip-build` - Skip build verification
 - `--skip-review` - Skip code review
-- `--autofix critical,major` - Auto-fix issues of specified severity levels
 
 ### Workflow-Specific Arguments
 
@@ -163,7 +163,7 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 **Arguments:**
 
 - `[type]` - Plan type: `feature`, `bug`, `chore`, or `auto` (default: `auto`)
-- `--explore N` - Override default explore agent count
+- `[explore-count]` - Override default explore agent count
 - `--git` - Commit plan file after creation
 - `[context]` - Task description
 
@@ -183,16 +183,16 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /sdlc-plan Fix the login timeout issue
 
 # Plan with exploration and commit
-/sdlc-plan feature --explore 5 --git Implement real-time notifications
+/sdlc-plan feature 5 --git Implement real-time notifications
 ```
 
 ### /build
 
 **Arguments:**
 
-- `[plan-file]` - Required path to plan file
+- `<plan-file>` - Path to plan file (required)
+- `[checkpoint]` - Resume from specific task/milestone
 - `--git` - Auto-commit at milestones
-- `--checkpoint "[text]"` - Resume from specific task/milestone
 - `[context]` - Implementation guidance
 
 **Examples:**
@@ -205,27 +205,27 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /build specs/feature-auth.md --git
 
 # Resume from checkpoint
-/build specs/feature-auth.md --checkpoint "Milestone 2" --git
+/build specs/feature-auth.md "Milestone 2" --git
 ```
 
 ### /sdlc-review
 
 **Arguments:**
 
-- `--plan [plan-file]` - Plan file to verify compliance
+- `[plan-file]` - Plan file to verify compliance
+- `[autofix-levels]` - Auto-fix issues (e.g., "critical,major")
 - `--skip-tests` - Skip test execution
 - `--skip-build` - Skip build verification
 - `--skip-review` - Skip code review
-- `--autofix [levels]` - Auto-fix issues (e.g., "critical,major")
 
 **Examples:**
 
 ```bash
-# Full validation
-/sdlc-review --plan specs/feature-auth.md
+# Full validation with plan
+/sdlc-review specs/feature-auth.md
 
 # Skip tests, auto-fix critical
-/sdlc-review --skip-tests --autofix critical
+/sdlc-review --skip-tests critical
 
 # Quick validation
 /sdlc-review --skip-tests --skip-build
@@ -235,17 +235,17 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 
 **Arguments:**
 
-- `--output [path]` - Specify output file path
-- `[context]` - Description of what to document
+- `[output-path]` - Output file path
+- `<context>` - Description of what to document
 
 **Examples:**
 
 ```bash
-# Document API endpoints
-/document --output docs/api.md Document the REST API endpoints
+# Document API endpoints with output path
+/document docs/api.md Document the REST API endpoints
 
 # Document architecture
-/document --output docs/architecture.md Document the system architecture
+/document docs/architecture.md Document the system architecture
 
 # Auto-detect output location
 /document Document the authentication flow
@@ -255,9 +255,10 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 
 **Arguments:**
 
+- `[explore-count]` - Override explore agent count (default: 0)
 - `--git` - Auto-commit when done
+- `--pr` - Create draft PR (implies --git)
 - `--validate` - Run validation after implementation
-- `--explore N` - Override explore agent count (default: 0)
 - `[context]` - Task description
 
 **Examples:**
@@ -270,16 +271,16 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /one-shot --git --validate Fix login timeout on Safari
 
 # With exploration
-/one-shot --explore 2 --git Refactor auth middleware
+/one-shot 2 --git Refactor auth middleware
 ```
 
 ### /plan-build-validate
 
 **Arguments:**
 
+- `[explore-count]` - Override explore agent count for planning phase
 - `--git` - Auto-commit throughout workflow
 - `--pr` - Create draft PR when validation passes
-- `--explore N` - Override explore agent count for planning phase
 - `[context]` - Task description
 
 **Examples:**
@@ -292,7 +293,7 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /plan-build-validate --git Fix authentication timeout issue
 
 # With extra exploration
-/plan-build-validate --explore 5 --git --pr Implement user notifications
+/plan-build-validate 5 --git --pr Implement user notifications
 ```
 
 ### /analyze
@@ -390,11 +391,11 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `"[title]"` - Issue title (required, use quotes if it contains spaces)
-- `--body [body]` - Issue body/description
-- `--labels [labels]` - Comma-separated list of labels
-- `--milestone [milestone]` - Milestone to assign
-- `--assignee [assignee]` - GitHub username (use `@me` for self)
+- `<title>` - Issue title (required)
+- `[body]` - Issue body/description
+- `[labels]` - Comma-separated list of labels
+- `[milestone]` - Milestone to assign
+- `[assignee]` - GitHub username (use `@me` for self)
 
 **Examples:**
 
@@ -403,10 +404,10 @@ When only one argument is provided, it is treated as the branch-name with catego
 /create-gh-issue "Fix login bug"
 
 # With body and labels
-/create-gh-issue "Fix login bug" --body "Users cannot login with Safari" --labels bug,priority-high
+/create-gh-issue "Fix login bug" "Users cannot login with Safari" bug,priority-high
 
 # With milestone and assignee
-/create-gh-issue "Add dark mode" --labels enhancement,ui --milestone "v2.0" --assignee @me
+/create-gh-issue "Add dark mode" "" enhancement,ui v2.0 @me
 ```
 
 ### /read-gh-issue

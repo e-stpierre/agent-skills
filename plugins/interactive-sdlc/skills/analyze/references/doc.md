@@ -28,26 +28,10 @@ Check documentation for:
 
 ## Severity Guidelines
 
-**Critical (Wrong/Misleading):**
-
-- Documents non-existent features
-- Wrong API signatures
-- Incorrect behavior descriptions
-- Security-related misinformation
-
-**High (Outdated/Incomplete):**
-
-- Features added but not documented
-- Deprecated features still documented
-- Missing important sections
-- Outdated examples
-
-**Medium (Improvements):**
-
-- Typos and grammar issues
-- Unclear explanations
-- Missing examples
-- Better organization suggestions
+- **Critical**: Documents non-existent features, wrong API signatures, incorrect behavior descriptions, security-related misinformation
+- **High**: Features added but not documented, deprecated features still documented, missing important sections, outdated examples
+- **Medium**: Typos and grammar issues, unclear explanations, missing examples
+- **Low**: Minor formatting issues, style suggestions, optional improvements
 
 ## Report Template
 
@@ -71,17 +55,18 @@ Instructions:
 
 ## Summary
 
-- Critical (Wrong/Misleading): {{critical_count}} issues
-- High (Outdated/Incomplete): {{high_count}} issues
-- Medium (Improvements): {{medium_count}} issues
+- Critical: {{critical_count}} issues
+- High: {{high_count}} issues
+- Medium: {{medium_count}} issues
+- Low: {{low_count}} issues
 
 <!--
 Instructions:
-- Replace {{critical_count}}, {{high_count}}, {{medium_count}} with actual counts
+- Replace {{critical_count}}, {{high_count}}, {{medium_count}}, {{low_count}} with actual counts
 - If count is 0, you can say "0 issues" or omit the category
 -->
 
-## Critical Issues (Completely Wrong/Misleading)
+## Critical
 
 ### DOC-{{issue_number}}: {{issue_title}}
 
@@ -127,19 +112,27 @@ Instructions:
 
 ---
 
-## High Issues (Outdated/Incomplete)
+## High
 
 <!--
 Instructions:
-- Use same format as Critical Issues section
+- Use same format as Critical section
 - Include all high severity documentation issues
 -->
 
-## Medium Issues (Improvements)
+## Medium
 
 <!--
 Instructions:
-- Use same format as Critical Issues section
-- Include all medium documentation improvements
+- Use same format as Critical section
+- Include all medium severity documentation issues
+-->
+
+## Low
+
+<!--
+Instructions:
+- Use same format as Critical section
+- Include all low severity documentation issues
 -->
 ```

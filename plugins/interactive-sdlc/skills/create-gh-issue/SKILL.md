@@ -1,7 +1,7 @@
 ---
 name: create-gh-issue
 description: Create a GitHub issue with title, body, and labels
-argument-hint: '"[title]" [--body [body]] [--labels [labels]] [--milestone [milestone]]'
+argument-hint: <title> [body] [labels] [milestone] [assignee]
 ---
 
 # Create GitHub Issue
@@ -14,11 +14,11 @@ Create a well-formed GitHub issue using the `gh` CLI tool, returning the issue U
 
 ### Definitions
 
-- **`"[title]"`** (required): The issue title (in quotes if it contains spaces).
-- **`[--body]`** (optional): Flag to include the issue body/description.
-- **`[--labels]`** (optional): Flag to include comma-separated list of labels to apply.
-- **`[--milestone]`** (optional): Flag to include milestone to assign the issue to.
-- **`[--assignee]`** (optional): Flag to include GitHub username to assign (use `@me` for self).
+- **`<title>`** (required): The issue title.
+- **`[body]`** (optional): The issue body/description.
+- **`[labels]`** (optional): Comma-separated list of labels to apply.
+- **`[milestone]`** (optional): Milestone to assign the issue to.
+- **`[assignee]`** (optional): GitHub username to assign (use `@me` for self).
 
 ### Values
 

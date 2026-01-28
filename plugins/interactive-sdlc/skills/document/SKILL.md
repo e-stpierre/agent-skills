@@ -1,7 +1,7 @@
 ---
 name: document
 description: Generate or update project documentation with mermaid diagrams
-argument-hint: "[--output [path]] [context]"
+argument-hint: [output-path] <context>
 ---
 
 # Document
@@ -14,8 +14,8 @@ Generate or update project documentation with appropriate mermaid diagrams, foll
 
 ### Definitions
 
-- **`[--output [path]]`** (optional): Specify output file path
-- **`[context]`** (required): Description of what to document
+- **`[output-path]`** (optional): Output file path. If omitted, suggests appropriate location based on content.
+- **`<context>`** (required): Description of what to document.
 
 ### Values
 

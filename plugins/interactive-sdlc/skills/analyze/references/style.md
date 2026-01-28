@@ -62,8 +62,10 @@ Focus on NORMALIZATION - there should be ONE way of doing things:
 
 ## Severity Guidelines
 
-- **Major**: Widespread inconsistency affecting readability and maintainability
-- **Minor**: Isolated inconsistencies, minor deviations from patterns
+- **Critical**: Systemic inconsistency making codebase unmaintainable
+- **High**: Widespread inconsistency affecting readability and maintainability
+- **Medium**: Multiple instances of pattern deviation in related code
+- **Low**: Isolated inconsistencies, minor deviations from patterns
 
 ## Report Template
 
@@ -87,12 +89,14 @@ Instructions:
 
 ## Summary
 
-- Major Inconsistencies: {{major_count}} issues
-- Minor Issues: {{minor_count}} issues
+- Critical: {{critical_count}} issues
+- High: {{high_count}} issues
+- Medium: {{medium_count}} issues
+- Low: {{low_count}} issues
 
 <!--
 Instructions:
-- Replace {{major_count}}, {{minor_count}} with actual counts
+- Replace {{critical_count}}, {{high_count}}, {{medium_count}}, {{low_count}} with actual counts
 - If count is 0, you can say "0 issues" or omit the category
 -->
 
@@ -116,7 +120,7 @@ Instructions:
 - Add additional standards as needed
 -->
 
-## Major Inconsistencies
+## Critical
 
 ### STYLE-{{issue_number}}: {{issue_title}}
 
@@ -124,7 +128,7 @@ Instructions:
 Instructions:
 - Replace {{issue_number}} with sequential number (001, 002, etc.)
 - Replace {{issue_title}} with concise issue title
-- Use this format for each major inconsistency found
+- Use this format for each critical inconsistency found
 -->
 
 **Location:** {{location}}
@@ -161,11 +165,27 @@ Instructions:
 
 ---
 
-## Minor Issues
+## High
 
 <!--
 Instructions:
-- Use same format as Major Inconsistencies section
-- Include all minor style issues
+- Use same format as Critical section
+- Include all high severity style issues
+-->
+
+## Medium
+
+<!--
+Instructions:
+- Use same format as Critical section
+- Include all medium severity style issues
+-->
+
+## Low
+
+<!--
+Instructions:
+- Use same format as Critical section
+- Include all low severity style issues
 -->
 ```
