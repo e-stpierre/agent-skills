@@ -113,8 +113,8 @@ Instructions:
 
 ### Development (`skills/dev/`)
 
-| Command | Description |
-|---------|-------------|
+| Skill | Description |
+|-------|-------------|
 | `/plugin:build` | Implement a plan file |
 | `/plugin:validate` | Run validation checks |
 
