@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository is a collection of modular extensions for Claude Code. It serves as a centralized hub for reusable commands, agents, skills, hooks, configuration templates that enhance Claude Code's capabilities across diverse task and domains.
+This repository is a collection of modular extensions for Claude Code. It serves as a centralized hub for reusable agents, skills, hooks, configuration templates that enhance Claude Code's capabilities across diverse tasks and domains.
 
 ## Purpose
 
@@ -13,7 +13,7 @@ The `clauding` repository aims to offer ready-to-use components that solve commo
 ### `/docs/`
 
 Comprehensive documentation for plugin development and usage.
-This directory also contains template files for agent, command and skill. These templates must be respected when creating a new prompt.
+This directory also contains template files for agent and skill. These templates must be respected when creating a new prompt.
 
 ### `/plugins/`
 
@@ -23,17 +23,18 @@ Root directory containing all plugins. Each plugin is self-contained within its 
 
 Individual plugin directory structure that is organized with one directory per prompt type. Sub-directories can be used within a prompt type to organize it's content.
 
-#### `commands/`
-
-Slash command definitions (`.md` files) that users can invoke directly in Claude Code sessions.
-
 #### `agents/`
 
 Sub-agent configurations for specialized, autonomous task execution. Agents should be self-contained and focused on a specific domain or task.
 
 #### `skills/`
 
-Reusable skill modules that provide composable functionality.
+Reusable skill modules that provide composable functionality. Each skill is a directory containing:
+
+- `SKILL.md` (required) - Main skill definition file (uppercase)
+- `references/` (optional) - Additional documentation files
+- `scripts/` (optional) - Executable code for the skill
+- `assets/` (optional) - Static resources (templates, schemas)
 
 #### `hooks/`
 
@@ -49,7 +50,7 @@ Plugin-specific documentation. Should only contain information specific to this 
 
 The README must contain an initial section called `Overview` that allow a user to understand the plugin and how to use with a few examples it in 2 minute.
 
-The README must also have a complete example section at the end, that covers all the supported commands and arguments, with examples.
+The README must also have a complete example section at the end, that covers all the supported skills and arguments, with examples.
 
 ## Plugin Development Guidelines
 
@@ -59,9 +60,8 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 
 ### Naming Conventions
 
-- **Commands**: Use kebab-case (e.g., `review-pr.md`, `setup-tests.md`)
 - **Agents**: Use descriptive names with domain prefix (e.g., `devops-agent.md`, `test-agent.md`)
-- **Skills**: Use verb-noun format (e.g., `parse-logs`, `validate-config`)
+- **Skills**: Use kebab-case directory names (e.g., `git-branch/`, `sdlc-plan/`) with `SKILL.md` inside
 - **Hooks**: Include event name (e.g., `session-start-hook.sh`, `tool-call-hook.sh`)
 
 ### Documentation Guidelines
@@ -75,16 +75,14 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 
 ### File Formats
 
-- **Commands**: Markdown (`.md`) files in `plugins/<plugin-name>/commands/`
 - **Agents**: Markdown (`.md`) files in `plugins/<plugin-name>/agents/`
-- **Skills**: Markdown (`.md`) files with structured prompts in `plugins/<plugin-name>/skills/`
+- **Skills**: Directory per skill in `plugins/<plugin-name>/skills/<skill-name>/SKILL.md`
 - **Hooks**: Shell scripts (`.sh`) or executable programs in `plugins/<plugin-name>/hooks/`
 
 ### Prompt Template Convention
 
-All prompt files (commands, agents, skills) and plugin READMEs must follow the exact structure defined in the template files located in `docs/templates/`:
+All prompt files (agents, skills) and plugin READMEs must follow the exact structure defined in the template files located in `docs/templates/`:
 
-- `docs/templates/command-template.md` - Structure for command prompts
 - `docs/templates/agent-template.md` - Structure for agent prompts
 - `docs/templates/skill-template.md` - Structure for skill prompts
 - `docs/templates/readme-template.md` - Structure for plugin README files
@@ -118,33 +116,33 @@ Instructions:
 
 **Validation:**
 
-Use the `/normalize` command to validate prompt files against templates:
+Use the `/normalize` skill to validate prompt files against templates:
 
 ```bash
 # Validate all prompts in the repository
 /normalize
 
 # Validate specific files or directories
-/normalize plugins/my-plugin/commands/
+/normalize plugins/my-plugin/skills/
 
 # Auto-fix non-compliant files
 /normalize --autofix plugins/my-plugin/
 ```
 
-### Workflow Command Namespacing
+### Workflow Skill Namespacing
 
-Commands referenced in workflow YAML files must use the full plugin namespace to avoid ambiguity when multiple plugins provide commands with the same name.
+Skills referenced in workflow YAML files must use the full plugin namespace to avoid ambiguity when multiple plugins provide skills with the same name.
 
 **Required format in workflows:**
 
 ```yaml
 # Correct - explicit namespace
-- type: command
-  command: clauding:validate
+- type: skill
+  skill: clauding:sdlc-review
 
 # Incorrect - ambiguous, could match multiple plugins
-- type: command
-  command: validate
+- type: skill
+  skill: sdlc-review
 ```
 
 ### Code Style and Formatting
