@@ -1,32 +1,31 @@
 <p align="center">
-  <img src="clauding-banner.png" alt="Clauding" width="600">
+  <img src="agent-skills-banner.png" alt="Agent Skills" width="600">
 </p>
 
-<h1 align="center">Clauding</h1>
+<h1 align="center">Agent Skills</h1>
 
 <p align="center">
-  <a href="https://github.com/e-stpierre/clauding/releases"><img src="https://img.shields.io/github/v/release/e-stpierre/clauding?include_prereleases" alt="GitHub release"></a>
-  <a href="https://claude.ai/code"><img src="https://img.shields.io/badge/Built%20for-Claude%20Code-orange" alt="Built for Claude Code"></a>
-  <a href="https://github.com/e-stpierre/clauding/blob/main/LICENSE"><img src="https://img.shields.io/github/license/e-stpierre/clauding" alt="License"></a>
+  <a href="https://github.com/e-stpierre/agent-skills/releases"><img src="https://img.shields.io/github/v/release/e-stpierre/agent-skills?include_prereleases" alt="GitHub release"></a>
+  <a href="https://github.com/e-stpierre/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/github/license/e-stpierre/agent-skills" alt="License"></a>
 </p>
 
 <p align="center">
-  <strong>A collection of human-in-the-loop interactive prompts for Claude Code, enabling structured, repeatable workflows across diverse tasks and domains</strong>
+  <strong>A collection of human-in-the-loop interactive prompts for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains</strong>
 </p>
 
 ## Getting Started
 
 ### Prerequisites
 
-- Claude Code CLI installed and configured
-- Basic familiarity with Claude Code
+- An AI coding agent that supports plugins (e.g., Claude Code)
+- Basic familiarity with your agent's CLI
 
 ### Installation
 
-1. Add this repository as a plugin marketplace in Claude Code:
+1. Add this repository as a plugin marketplace:
 
    ```bash
-   /plugin marketplace add e-stpierre/clauding
+   /plugin marketplace add e-stpierre/agent-skills
    ```
 
 2. Install the plugin(s) you need and refer to their README for usage.
@@ -35,16 +34,16 @@
 
 ### Interactive-SDLC
 
-Interactive SDLC commands for guided development within Claude Code sessions through user questions and feedback.
+Interactive SDLC commands for guided development through user questions and feedback.
 
 **Best for**: Interactive development where you want to be involved in decisions.
 
 #### Installation
 
-1. Install the plugin in Claude Code:
+1. Install the plugin:
 
    ```bash
-   /plugin install interactive-sdlc@clauding
+   /plugin install interactive-sdlc@agent-skills
    ```
 
 #### Examples
@@ -64,7 +63,7 @@ See [Interactive-SDLC README](plugins/interactive-sdlc/README.md) for all comman
 
 ## Contributing
 
-Found a bug or have a suggestion? Please [open an issue](https://github.com/e-stpierre/clauding/issues) on GitHub.
+Found a bug or have a suggestion? Please [open an issue](https://github.com/e-stpierre/agent-skills/issues) on GitHub.
 
 ## License
 

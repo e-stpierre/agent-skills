@@ -2,11 +2,11 @@
 
 ## Project Overview
 
-This repository is a collection of modular extensions for Claude Code. It serves as a centralized hub for reusable agents, skills, hooks, configuration templates that enhance Claude Code's capabilities across diverse tasks and domains.
+This repository is a collection of modular extensions for AI coding agents. It serves as a centralized hub for reusable agents, skills, hooks, configuration templates that enhance agent capabilities across diverse tasks and domains.
 
 ## Purpose
 
-The `clauding` repository aims to offer ready-to-use components that solve common problems.
+The `agent-skills` repository aims to offer ready-to-use components that solve common problems.
 
 ## Repository Structure
 
@@ -138,7 +138,7 @@ Skills referenced in workflow YAML files must use the full plugin namespace to a
 ```yaml
 # Correct - explicit namespace
 - type: skill
-  skill: clauding:sdlc-review
+  skill: agent-skills:sdlc-review
 
 # Incorrect - ambiguous, could match multiple plugins
 - type: skill
