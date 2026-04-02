@@ -12,6 +12,7 @@ All notable changes to the interactive-sdlc plugin will be documented in this fi
 - Removed `/one-shot` skill
 - Removed `/plan-build-validate` skill
 - Removed `/git-branch`, `/git-commit`, `/git-pr` skills (moved to git plugin)
+- Removed `/create-gh-issue`, `/read-gh-issue` skills (redundant with native `gh` CLI)
 
 ## [0.2.0] - 2026-01-27
 

@@ -30,13 +30,6 @@ Skills are organized into logical categories. All paths are relative to `plugins
 | ---------- | --------------------------------------------------------- |
 | `/analyze` | Analyze codebase for bugs, debt, docs, security, or style |
 
-### GitHub
-
-| Skill              | Description                                       |
-| ------------------ | ------------------------------------------------- |
-| `/create-gh-issue` | Create GitHub issues with title, body, and labels |
-| `/read-gh-issue`   | Read GitHub issue content by number               |
-
 ## Arguments Reference
 
 ### Common Arguments
@@ -193,42 +186,3 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /analyze security Focus on authentication and session management
 ```
 
-### /create-gh-issue
-
-**Arguments:**
-
-- `<title>` - Issue title (required)
-- `[body]` - Issue body/description
-- `[labels]` - Comma-separated list of labels
-- `[milestone]` - Milestone to assign
-- `[assignee]` - GitHub username (use `@me` for self)
-
-**Examples:**
-
-```bash
-# Simple issue
-/create-gh-issue "Fix login bug"
-
-# With body and labels
-/create-gh-issue "Fix login bug" "Users cannot login with Safari" bug,priority-high
-
-# With milestone and assignee
-/create-gh-issue "Add dark mode" "" enhancement,ui v2.0 @me
-```
-
-### /read-gh-issue
-
-**Arguments:**
-
-- `[issue-number]` - The issue number to read (required)
-- `--comments` - Include issue comments in the output
-
-**Examples:**
-
-```bash
-# Read issue
-/read-gh-issue 123
-
-# Read issue with comments
-/read-gh-issue 456 --comments
-```
