@@ -1,7 +1,7 @@
 ---
 name: git-branch
 description: Create a branch with standardized naming convention
-argument-hint: "[category] [branch-name] [issue-id]"
+argument-hint: "<branch-name> [category] [issue-id]"
 ---
 
 # Git Branch
@@ -14,13 +14,13 @@ Create and checkout a new branch with consistent naming that links to issue trac
 
 ### Definitions
 
+- **`<branch-name>`** (required): Short kebab-case description of the work.
 - **`[category]`** (optional): Branch type. Common values: poc, feature, fix, chore, doc, refactor. Accepts any value. Defaults to `feature`.
-- **`[branch-name]`** (required): Short kebab-case description of the work.
 - **`[issue-id]`** (optional): GitHub issue number associated with this work.
 
 ### Values
 
-$ARGUMENTS
+Arguments: $ARGUMENTS
 
 ## Core Principles
 

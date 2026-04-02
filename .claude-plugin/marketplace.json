@@ -34,6 +34,18 @@
       "strict": false
     },
     {
+      "name": "skill-builder",
+      "source": "./plugins/skill-builder",
+      "description": "[Beta] Tooling and templates for creating Claude Code skills with proper conventions",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/skill-builder",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["beta", "skill", "template", "scaffolding"],
+      "category": "development",
+      "strict": false
+    },
+    {
       "name": "tasks",
       "source": "./plugins/tasks",
       "description": "Task tracking with structured IDs, progress tracking, and codebase analysis",

@@ -1,7 +1,7 @@
 ---
 name: sdlc-review
 description: Comprehensive validation including tests, code review, build verification, and plan compliance
-argument-hint: [plan-file] [autofix-levels] [--skip-tests] [--skip-build] [--skip-review] [context]
+argument-hint: [--skip-tests] [--skip-build] [--skip-review] [plan-file] [autofix-levels] [context]
 ---
 
 # Review
@@ -14,16 +14,16 @@ Perform comprehensive validation of code changes including tests, build verifica
 
 ### Definitions
 
-- **`[plan-file]`** (optional): Plan file to verify compliance against.
-- **`[autofix-levels]`** (optional): Comma-separated list of severity levels to auto-fix (e.g., "critical,major").
 - **`[--skip-tests]`** (optional): Skip test execution.
 - **`[--skip-build]`** (optional): Skip build verification.
 - **`[--skip-review]`** (optional): Skip code review.
+- **`[plan-file]`** (optional): Plan file to verify compliance against.
+- **`[autofix-levels]`** (optional): Comma-separated list of severity levels to auto-fix (e.g., "critical,major").
 - **`[context]`** (optional): Freeform context for validation focus.
 
 ### Values
 
-$ARGUMENTS
+Arguments: $ARGUMENTS
 
 ## Core Principles
 

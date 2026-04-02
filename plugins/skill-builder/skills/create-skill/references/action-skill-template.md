@@ -47,15 +47,16 @@ ARGUMENT-HINT CONVENTIONS:
 - Use `[arg]` for optional positional arguments (square brackets)
 - Use `[--flag]` for boolean flags (always optional - flags toggle behavior)
 - Use `[arg...]` for variadic arguments (accepts multiple values)
-- Required arguments MUST come before optional arguments
+- Argument order: flags first, then required args, then optional args
 - The `[context]` argument must ALWAYS come last when present
 - Examples:
   - `<context>` - required context only
   - `<type> [context]` - required type, optional context
-  - `<file> [format] [context]` - required file, optional format and context
-  - `[--verbose] <context>` - boolean flag, required context
+  - `[--verbose] <type> [context]` - flag, required type, optional context
+  - `[--draft] [--dry-run] <file> [format]` - flags first, then positional
 
 ARGUMENT-HINT VALIDATION RULES:
+- Flags (`[--flag]`) must come first, before all positional arguments
 - Required arguments (`<arg>`) must precede optional arguments (`[arg]`)
 - Flags MUST be boolean-only (presence/absence toggles)
 - NEVER use `--flag <value>` pattern - flags do not take values
@@ -152,10 +153,13 @@ Instructions:
 
 ### Values
 
-$ARGUMENTS
+Arguments: $ARGUMENTS
 
 <!--
 Instructions:
+- MUST use the `Arguments: $ARGUMENTS` format (with the "Arguments:" prefix)
+- Using `$ARGUMENTS` alone on a line breaks markdown syntax because the dollar sign
+  is interpreted as a LaTeX/math delimiter by some renderers
 - The $ARGUMENTS placeholder is automatically replaced with all arguments passed when invoking the skill
 - If $ARGUMENTS is not present in the content, arguments are appended as `ARGUMENTS: <value>`
 - Use $ARGUMENTS[N] or $N shorthand in the skill body to reference specific positional arguments

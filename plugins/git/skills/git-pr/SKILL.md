@@ -14,12 +14,12 @@ Create a pull request with a title and description sized appropriately to the sc
 
 ### Definitions
 
-- **`[base-branch]`** (optional): Target branch for the PR. Defaults to main/master.
 - **`[--draft]`** (optional): Create the PR as a draft.
+- **`[base-branch]`** (optional): Target branch for the PR. Defaults to main/master.
 
 ### Values
 
-$ARGUMENTS
+Arguments: $ARGUMENTS
 
 ## Core Principles
 

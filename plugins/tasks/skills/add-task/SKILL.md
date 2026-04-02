@@ -19,7 +19,7 @@ Add a new task entry to the tasks tracking document. This skill creates a struct
 
 ### Values
 
-\$ARGUMENTS
+\Arguments: $ARGUMENTS
 
 ## Configuration
 

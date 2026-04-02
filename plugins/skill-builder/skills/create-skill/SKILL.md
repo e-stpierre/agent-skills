@@ -20,7 +20,7 @@ Create a new Claude Code skill following the established guidelines and best pra
 
 ### Values
 
-$ARGUMENTS
+Arguments: $ARGUMENTS
 
 ## Additional Resources
 
@@ -62,7 +62,7 @@ The `SKILL.md` file is required. Supporting files are optional and should be ref
 - Use `[arg]` for optional positional arguments (square brackets)
 - Use `[--flag]` for boolean flags (always optional - flags toggle behavior)
 - Use `[arg...]` for variadic arguments
-- Required arguments MUST come before optional arguments
+- Argument order: flags first, then required args, then optional args
 - The `[context]` argument must ALWAYS come last when present
 - Flags MUST be boolean-only - NEVER use `--flag <value>` pattern
 
@@ -70,8 +70,8 @@ Examples:
 
 - `<context>` - required context only
 - `<type> [context]` - required type, optional context
-- `<file> [format] [context]` - required file, optional format and context
-- `[--verbose] <context>` - boolean flag, required context
+- `[--verbose] <type> [context]` - flag, required type, optional context
+- `[--draft] [--dry-run] <file> [format]` - flags first, then positional
 
 ### Positional Argument Access
 
