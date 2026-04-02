@@ -1,25 +1,16 @@
 # Interactive SDLC Plugin
 
-Human-in-the-loop plugin for guided development within Claude Code sessions. Provides interactive planning, implementation, validation, and analysis workflows with smart context inference. All skills support optional context arguments to reduce prompts while maintaining the ability to ask clarifying questions.
-
 ## Overview
 
-The Interactive SDLC plugin provides guided workflows for planning, implementing, and validating development tasks. Skills ask clarifying questions when needed and support context arguments for automation.
+Human-in-the-loop plugin for guided development within Claude Code sessions. Provides interactive planning, validation, and analysis workflows with smart context inference. All skills support optional context arguments to reduce prompts while maintaining the ability to ask clarifying questions.
 
 - `/sdlc-plan feature Add OAuth login` - Plan a feature with milestones
-- `/build specs/feature-auth.md --git` - Implement a plan with auto-commits
 - `/sdlc-review --plan specs/feature-auth.md` - Review implementation
-- `/one-shot --git Fix login timeout` - Quick task without saved plan
+- `/analyze security` - Analyze codebase for issues
 
 ## Skills
 
 Skills are organized into logical categories. All paths are relative to `plugins/interactive-sdlc/skills/`.
-
-### Setup
-
-| Skill        | Description                               |
-| ------------ | ----------------------------------------- |
-| `/configure` | Set up plugin configuration interactively |
 
 ### Planning
 
@@ -31,30 +22,13 @@ Skills are organized into logical categories. All paths are relative to `plugins
 
 | Skill          | Description                                                           |
 | -------------- | --------------------------------------------------------------------- |
-| `/build`       | Implement a plan file with checkpoint support                         |
 | `/sdlc-review` | Comprehensive validation (tests, code review, build, plan compliance) |
-| `/document`    | Generate or update documentation with mermaid diagrams                |
-
-### Workflows
-
-| Skill                  | Description                               |
-| ---------------------- | ----------------------------------------- |
-| `/one-shot`            | Quick task without saved plan file        |
-| `/plan-build-validate` | Full workflow from planning to validation |
 
 ### Analysis
 
 | Skill      | Description                                               |
 | ---------- | --------------------------------------------------------- |
 | `/analyze` | Analyze codebase for bugs, debt, docs, security, or style |
-
-### Git
-
-| Skill         | Description                                          |
-| ------------- | ---------------------------------------------------- |
-| `/git-branch` | Create branches with standardized naming conventions |
-| `/git-commit` | Commit changes with structured messages              |
-| `/git-pr`     | Create pull requests with contextual descriptions    |
 
 ### GitHub
 
@@ -67,14 +41,8 @@ Skills are organized into logical categories. All paths are relative to `plugins
 
 ### Common Arguments
 
-- `--git` - Auto-commit changes at logical checkpoints
 - `[explore-count]` - Override default explore agent count for codebase analysis
 - `[context]` - Optional freeform context as the last parameter
-
-### Build-Specific Arguments
-
-- `<plan-file>` - Path to plan file (required, relative to project root)
-- `[checkpoint]` - Resume from specific task/milestone
 
 ### Review-Specific Arguments
 
@@ -83,11 +51,6 @@ Skills are organized into logical categories. All paths are relative to `plugins
 - `--skip-tests` - Skip test execution
 - `--skip-build` - Skip build verification
 - `--skip-review` - Skip code review
-
-### Workflow-Specific Arguments
-
-- `--pr` - Create draft PR when validation passes (plan-build-validate only)
-- `--validate` - Run validation after implementation (one-shot only)
 
 ## Context Argument
 
@@ -147,17 +110,6 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 
 ## Complete Examples
 
-### /configure
-
-**Arguments:** None
-
-**Examples:**
-
-```bash
-# Run interactive configuration
-/configure
-```
-
 ### /sdlc-plan
 
 **Arguments:**
@@ -186,28 +138,6 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /sdlc-plan feature 5 --git Implement real-time notifications
 ```
 
-### /build
-
-**Arguments:**
-
-- `<plan-file>` - Path to plan file (required)
-- `[checkpoint]` - Resume from specific task/milestone
-- `--git` - Auto-commit at milestones
-- `[context]` - Implementation guidance
-
-**Examples:**
-
-```bash
-# Basic build
-/build specs/feature-auth.md
-
-# Build with auto-commit
-/build specs/feature-auth.md --git
-
-# Resume from checkpoint
-/build specs/feature-auth.md "Milestone 2" --git
-```
-
 ### /sdlc-review
 
 **Arguments:**
@@ -231,71 +161,6 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /sdlc-review --skip-tests --skip-build
 ```
 
-### /document
-
-**Arguments:**
-
-- `[output-path]` - Output file path
-- `<context>` - Description of what to document
-
-**Examples:**
-
-```bash
-# Document API endpoints with output path
-/document docs/api.md Document the REST API endpoints
-
-# Document architecture
-/document docs/architecture.md Document the system architecture
-
-# Auto-detect output location
-/document Document the authentication flow
-```
-
-### /one-shot
-
-**Arguments:**
-
-- `[explore-count]` - Override explore agent count (default: 0)
-- `--git` - Auto-commit when done
-- `--pr` - Create draft PR (implies --git)
-- `--validate` - Run validation after implementation
-- `[context]` - Task description
-
-**Examples:**
-
-```bash
-# Quick fix
-/one-shot Fix typo in README
-
-# Fix with commit and validation
-/one-shot --git --validate Fix login timeout on Safari
-
-# With exploration
-/one-shot 2 --git Refactor auth middleware
-```
-
-### /plan-build-validate
-
-**Arguments:**
-
-- `[explore-count]` - Override explore agent count for planning phase
-- `--git` - Auto-commit throughout workflow
-- `--pr` - Create draft PR when validation passes
-- `[context]` - Task description
-
-**Examples:**
-
-```bash
-# Full workflow with PR
-/plan-build-validate --git --pr Add dark mode toggle
-
-# Without PR creation
-/plan-build-validate --git Fix authentication timeout issue
-
-# With extra exploration
-/plan-build-validate 5 --git --pr Implement user notifications
-```
-
 ### /analyze
 
 **Arguments:**
@@ -314,77 +179,18 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 # Documentation analysis
 /analyze doc
 /analyze doc Check API documentation accuracy
-/analyze doc docs/api.md README.md
 
 # Technical debt analysis
 /analyze debt
 /analyze debt Focus on database access patterns
-/analyze debt src/legacy/
 
 # Style analysis
 /analyze style
 /analyze style Check naming conventions in React components
-/analyze style src/components/
 
 # Security analysis
 /analyze security
 /analyze security Focus on authentication and session management
-/analyze security src/api/ src/auth/
-```
-
-### /git-branch
-
-**Arguments:**
-
-- `[category]` - Branch type: feature (default), fix, chore, doc, poc, refactor
-- `[branch-name]` - Short kebab-case description (required)
-- `[issue-id]` - GitHub issue number
-
-When only one argument is provided, it is treated as the branch-name with category defaulting to `feature`.
-
-**Examples:**
-
-```bash
-# Simple branch (defaults to feature/add-dark-mode)
-/git-branch add-dark-mode
-
-# With category
-/git-branch hotfix login-timeout
-
-# With issue reference
-/git-branch feature add-oauth 123
-```
-
-### /git-commit
-
-**Arguments:**
-
-- `[message]` - Override commit title (auto-generated if not provided)
-
-**Examples:**
-
-```bash
-# Auto-generate commit message from changes
-/git-commit
-
-# With custom message
-/git-commit Fix login timeout on Safari
-```
-
-### /git-pr
-
-**Arguments:**
-
-- `[base-branch]` - Target branch for the PR (defaults to main/master)
-
-**Examples:**
-
-```bash
-# Create PR to default branch
-/git-pr
-
-# Create PR to specific branch
-/git-pr develop
 ```
 
 ### /create-gh-issue
