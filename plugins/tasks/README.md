@@ -13,22 +13,6 @@ Task tracking plugin for managing improvement opportunities, bugs, debt, and oth
 | ----------- | ---------------------------------------------- |
 | `/add-task` | Add a new task to the tasks tracking document  |
 
-## Configuration
-
-Configure in `.claude/configs/tasks.json`:
-
-```json
-{
-  "tasksPath": "agentic/tasks.md"
-}
-```
-
-### Configuration Options
-
-| Setting     | Type   | Default              | Description                    |
-| ----------- | ------ | -------------------- | ------------------------------ |
-| `tasksPath` | string | `"agentic/tasks.md"` | Path to the tasks document     |
-
 ## Complete Examples
 
 ### /add-task
@@ -36,6 +20,7 @@ Configure in `.claude/configs/tasks.json`:
 **Arguments:**
 
 - `[--explore]` - Analyze codebase for additional technical context
+- `[path]` - Where to store the task. Accepts a directory or full `.md` path. Defaults to `tasks.md` at repository root
 - `<context>` - Description of the task (required)
 
 **Examples:**
@@ -46,6 +31,12 @@ Configure in `.claude/configs/tasks.json`:
 
 # Add a task with codebase exploration
 /add-task --explore Improve database query performance
+
+# Add a task to a specific file
+/add-task docs/backlog.md Add API rate limiting documentation
+
+# Add a task to a specific directory (creates tasks.md in that directory)
+/add-task --explore src/api/ Refactor authentication middleware
 
 # Add a security task (auto-prefixed SEC-XXX)
 /add-task Review input validation for API endpoints

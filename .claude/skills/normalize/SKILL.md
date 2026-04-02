@@ -27,7 +27,7 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 
 ### Values
 
-\$ARGUMENTS
+Arguments: $ARGUMENTS
 
 ## Core Principles
 

@@ -23,35 +23,17 @@ Skills are organized into logical categories. All paths are relative to `plugins
 | ---------- | --------------------------------------------------------- |
 | `/analyze` | Analyze codebase for bugs, debt, docs, security, or style |
 
-## Arguments Reference
+## Architecture
 
-### Common Arguments
-
-- `[explore-count]` - Override default explore agent count for codebase analysis
-- `[context]` - Optional freeform context as the last parameter
-
-## Context Argument
-
-All skills support an optional `[context]` argument as the last parameter. This allows you to provide upfront information that would otherwise require interactive questions.
-
-**Benefits:**
-
-- Faster workflow by providing all information upfront
-- Better for automation and scripting
-- Reduced friction with fewer interactive prompts
-- Flexibility to choose between interactive or context mode
-
-**Example:**
+All skills support an optional `[context]` argument as the last parameter. This allows you to provide upfront information that would otherwise require interactive questions, enabling faster workflows with fewer prompts.
 
 ```bash
 # With context - minimal prompts
-/sdlc-plan bug --explore 3 "Login fails on Safari when using OAuth. Users click login button, get redirected to OAuth provider, but after successful auth they are redirected to a blank page instead of the dashboard."
+/sdlc-plan bug --explore 3 "Login fails on Safari when using OAuth."
 
 # Without context - interactive prompts
 /sdlc-plan bug --explore 3
 ```
-
-## Plan File Principles
 
 Plans are static documentation of work to be done:
 
