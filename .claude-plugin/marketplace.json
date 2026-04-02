@@ -14,10 +14,6 @@
       "source": "./plugins/interactive-sdlc",
       "description": "[Beta] Interactive SDLC commands for guided development within agent sessions",
       "version": "0.3.0",
-      "author": {
-        "name": "Étienne St-Pierre",
-        "email": "me@estpierre.dev"
-      },
       "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/interactive-sdlc",
       "repository": "https://github.com/e-stpierre/agent-skills",
       "license": "MIT",
@@ -30,10 +26,6 @@
       "source": "./plugins/git",
       "description": "Standardized git workflow skills for branch creation, commits, and pull requests",
       "version": "0.1.0",
-      "author": {
-        "name": "Étienne St-Pierre",
-        "email": "me@estpierre.dev"
-      },
       "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/git",
       "repository": "https://github.com/e-stpierre/agent-skills",
       "license": "MIT",
@@ -46,10 +38,6 @@
       "source": "./plugins/tasks",
       "description": "Task tracking with structured IDs, progress tracking, and codebase analysis",
       "version": "0.1.0",
-      "author": {
-        "name": "Étienne St-Pierre",
-        "email": "me@estpierre.dev"
-      },
       "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/tasks",
       "repository": "https://github.com/e-stpierre/agent-skills",
       "license": "MIT",
