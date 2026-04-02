@@ -138,11 +138,11 @@ Skills referenced in workflow YAML files must use the full plugin namespace to a
 ```yaml
 # Correct - explicit namespace
 - type: skill
-  skill: agent-skills:sdlc-review
+  skill: agent-skills:sdlc-plan
 
 # Incorrect - ambiguous, could match multiple plugins
 - type: skill
-  skill: sdlc-review
+  skill: sdlc-plan
 ```
 
 ### Code Style and Formatting

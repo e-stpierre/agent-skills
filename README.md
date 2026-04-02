@@ -55,8 +55,6 @@ See [Interactive-SDLC README](plugins/interactive-sdlc/README.md) for all comman
 # Run analysis on your codebase (bugs, docs, debt, style, security)
 /analyze security
 
-# Review implementation quality
-/sdlc-review specs/feature-auth.md
 ```
 
 ### Git

@@ -5,7 +5,6 @@
 Human-in-the-loop plugin for guided development within Claude Code sessions. Provides interactive planning, validation, and analysis workflows with smart context inference. All skills support optional context arguments to reduce prompts while maintaining the ability to ask clarifying questions.
 
 - `/sdlc-plan feature Add OAuth login` - Plan a feature with milestones
-- `/sdlc-review --plan specs/feature-auth.md` - Review implementation
 - `/analyze security` - Analyze codebase for issues
 
 ## Skills
@@ -17,12 +16,6 @@ Skills are organized into logical categories. All paths are relative to `plugins
 | Skill        | Description                                            |
 | ------------ | ------------------------------------------------------ |
 | `/sdlc-plan` | Create an implementation plan (feature, bug, or chore) |
-
-### Development
-
-| Skill          | Description                                                           |
-| -------------- | --------------------------------------------------------------------- |
-| `/sdlc-review` | Comprehensive validation (tests, code review, build, plan compliance) |
 
 ### Analysis
 
@@ -36,14 +29,6 @@ Skills are organized into logical categories. All paths are relative to `plugins
 
 - `[explore-count]` - Override default explore agent count for codebase analysis
 - `[context]` - Optional freeform context as the last parameter
-
-### Review-Specific Arguments
-
-- `[plan-file]` - Plan file to verify compliance against
-- `[autofix-levels]` - Auto-fix issues of specified severity levels (e.g., "critical,major")
-- `--skip-tests` - Skip test execution
-- `--skip-build` - Skip build verification
-- `--skip-review` - Skip code review
 
 ## Context Argument
 
@@ -129,29 +114,6 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 
 # Plan with exploration and commit
 /sdlc-plan feature 5 --git Implement real-time notifications
-```
-
-### /sdlc-review
-
-**Arguments:**
-
-- `[plan-file]` - Plan file to verify compliance
-- `[autofix-levels]` - Auto-fix issues (e.g., "critical,major")
-- `--skip-tests` - Skip test execution
-- `--skip-build` - Skip build verification
-- `--skip-review` - Skip code review
-
-**Examples:**
-
-```bash
-# Full validation with plan
-/sdlc-review specs/feature-auth.md
-
-# Skip tests, auto-fix critical
-/sdlc-review --skip-tests critical
-
-# Quick validation
-/sdlc-review --skip-tests --skip-build
 ```
 
 ### /analyze
