@@ -31,15 +31,6 @@ Load ONE of these based on the `[type]` argument (or detected type if auto):
 - For bug fix plans, see [references/bug.md](references/bug.md)
 - For chore plans, see [references/chore.md](references/chore.md)
 
-## Configuration
-
-This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
-
-- `planDirectory` (default: `"specs"`): Directory where plan files are saved
-- `defaultExploreAgents.feature` (default: `3`): Number of explore agents for feature plans
-- `defaultExploreAgents.bug` (default: `2`): Number of explore agents for bug fix plans
-- `defaultExploreAgents.chore` (default: `2`): Number of explore agents for chore plans
-
 ## Core Principles
 
 - Explore the codebase thoroughly before planning to understand existing patterns and conventions
@@ -55,7 +46,7 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 1. **Parse Arguments**
    - Extract type, --explore N, --git, and context from arguments
    - Default type to `auto` if not specified
-   - Default explore agents based on type from configuration
+   - Default explore agents based on type (3 for feature, 2 for bug/chore)
 
 2. **Detect Plan Type** (if type=auto)
    - Analyze the context to determine type:
@@ -70,32 +61,28 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
    - `bug` -> Read [references/bug.md](references/bug.md)
    - `chore` -> Read [references/chore.md](references/chore.md)
 
-4. **Read Configuration**
-   - Read `.claude/configs/interactive-sdlc.json` for `planDirectory` (default: `specs`)
-   - Read `defaultExploreAgents.{type}` for explore agent count
-
-5. **Explore Codebase**
-   - Launch N explore agents (from config or --explore flag)
+4. **Explore Codebase**
+   - Launch explore agents (default: 3 for feature, 2 for bug/chore)
    - Focus exploration on understanding the areas relevant to the task
    - Gather context about existing patterns, conventions, and dependencies
    - Identify files and components that may be affected
 
-6. **Gather Requirements**
+5. **Gather Requirements**
    - Parse the `[context]` argument if provided
    - If requirements can be inferred from context, use them
    - Otherwise, ask the user for type-specific information (see reference file)
 
-7. **Generate Plan**
+6. **Generate Plan**
    - Apply type-specific planning approach from the loaded reference
    - Create a plan using the structure defined in the reference file's template
    - Fill in all required sections with gathered requirements
    - List tasks in execution order
 
-8. **Save Plan**
-   - Save to `{planDirectory}/{type}-{slugified-title}.md`
+7. **Save Plan**
+   - Save to `specs/{type}-{slugified-title}.md`
    - Inform user of the saved file path
 
-9. **Git Commit (if --git flag)**
+8. **Git Commit (if --git flag)**
    - Stage the plan file
    - Commit with message: `docs(plan): Add {type} plan - {title}`
 
@@ -104,7 +91,7 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 Present a user-friendly summary:
 
 ```
-Plan saved to {planDirectory}/{type}-{slugified-title}.md
+Plan saved to specs/{type}-{slugified-title}.md
 
 ## Summary
 - Type: {type}

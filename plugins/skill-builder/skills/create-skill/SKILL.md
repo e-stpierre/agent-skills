@@ -140,26 +140,27 @@ Add `context: fork` when a skill should run in isolation without conversation hi
 
 ## Output Guidance
 
-After creating the skill, output a JSON object:
+Provide a brief confirmation message:
 
-```json
-{
-  "status": "created",
-  "skill": {
-    "name": "<skill-name>",
-    "location": "plugins/<plugin>/skills/<skill-name>/SKILL.md",
-    "description": "<description>",
-    "invocation": "/<skill-name>"
-  },
-  "files_created": [
-    "SKILL.md",
-    "reference.md (if applicable)",
-    "examples.md (if applicable)"
-  ],
-  "next_steps": [
-    "Test the skill with /<skill-name>",
-    "Verify Claude loads it appropriately",
-    "Add to plugin README if user-facing"
-  ]
-}
+**On success:**
+
+```
+Created skill: review-code
+Location: plugins/my-plugin/skills/review-code/SKILL.md
+Invocation: /review-code
+
+Files created:
+- SKILL.md
+- references/api-docs.md (if applicable)
+
+Next steps:
+- Test the skill with /review-code
+- Verify Claude loads it appropriately
+- Add to plugin README if user-facing
+```
+
+**On error:**
+
+```
+Failed to create skill: <error description>
 ```

@@ -1,7 +1,7 @@
 ---
 name: add-task
 description: Add a new task to the tasks tracking document
-argument-hint: [--explore] <context>
+argument-hint: [--explore] [path] <context>
 ---
 
 # Add Task
@@ -15,23 +15,16 @@ Add a new task entry to the tasks tracking document. This skill creates a struct
 ### Definitions
 
 - **`[--explore]`** (optional): When set, analyze the codebase to add additional technical information to the task request. Defaults to `false`.
+- **`[path]`** (optional): Where to store the task. Accepts a directory path (appends `tasks.md`) or a full path to a markdown file. Defaults to `tasks.md` at the repository root.
 - **`<context>`** (required): Description of the task. Can include problem description, affected areas, or desired outcome.
 
 ### Values
 
-\Arguments: $ARGUMENTS
+Arguments: $ARGUMENTS
 
-## Configuration
+## Additional Resources
 
-The tasks document path is configured via `tasksPath` in settings or defaults to `agentic/tasks.md`.
-
-To override in `.claude/configs/tasks.json`:
-
-```json
-{
-  "tasksPath": "custom/path/tasks.md"
-}
-```
+- For the task file structure, see [task-file-template.md](references/task-file-template.md)
 
 ## Core Principles
 
@@ -46,11 +39,12 @@ To override in `.claude/configs/tasks.json`:
 ## Instructions
 
 1. **Determine File Path**
-   - Check for `tasks.tasksPath` in settings
-   - Default to `agentic/tasks.md` if not configured
+   - If `[path]` is a full path to a markdown file (ends with `.md`), use it directly
+   - If `[path]` is a directory, use `<path>/tasks.md`
+   - If `[path]` is not provided, default to `tasks.md` at the repository root
 
 2. **Check Document Existence**
-   - If the document does not exist, create it with the template structure (see Templates section)
+   - If the document does not exist, create it using the structure from [task-file-template.md](references/task-file-template.md)
    - If it exists, read the current content
 
 3. **Generate Task ID**
@@ -90,84 +84,25 @@ To override in `.claude/configs/tasks.json`:
 
 ## Output Guidance
 
-Return a JSON object summarizing the action taken:
+Provide a brief confirmation message:
 
-```json
-{
-  "success": true,
-  "task_id": "{{task_id}}",
-  "title": "{{title}}",
-  "document_path": "{{document_path}}",
-  "explored_codebase": "{{explored}}",
-  "files_identified": ["{{files_array}}"]
-}
+**On success:**
+
+```
+Added task IMP-007: Add retry logic to payment webhook handler
+File: tasks.md
 ```
 
-<!--
-Placeholders:
-- {{task_id}}: Generated ID (e.g., IMP-007, SEC-003)
-- {{title}}: Short descriptive title of the task
-- {{document_path}}: Path to the tasks document
-- {{explored}}: Boolean indicating if codebase exploration was performed
-- {{files_array}}: Array of file paths identified during exploration (empty if not explored)
--->
+**On success with --explore:**
 
-## Templates
-
-### New Document Template
-
-When creating a new tasks document, use this structure:
-
-```markdown
-# Tasks
-
-This file tracks task opportunities identified during code analysis. Each task has a checklist entry for progress tracking and a detailed section explaining the issue.
-
-## How to Use This File
-
-1. **Adding Tasks**: Add a checkbox to the Progress Tracking section (`- [ ] IMP-XXX: Short title`) and a corresponding details section with problem description, files to investigate, and acceptance criteria.
-2. **Working on Tasks**: Mark the item as in-progress by keeping `[ ]` and update the Status in the details section to "In Progress".
-3. **Completing Tasks**: Change `[ ]` to `[x]` and update the Status to "Completed".
-4. **Implementation**: Use `/sdlc-plan` to create an implementation plan, then implement the changes.
-
-## Progress Tracking
-
-<!-- Add new items here -->
-
-## Tasks List
-
-List the details of every task request, 100 lines maximum per item.
+```
+Added task IMP-007: Add retry logic to payment webhook handler
+File: tasks.md
+Files identified: src/webhooks/handler.ts, src/services/payment.ts
 ```
 
-### Task Entry Template
+**On error:**
 
-```markdown
----
-
-### ID: Short descriptive title
-
-**Status**: Pending
-
-**Problem**: Clear description of the issue or opportunity.
-
-**Files to Investigate**:
-
-- `path/to/file.ts` - Brief note about relevance
-
-**Expected Behavior / Goal**: What the task should achieve.
-
-**Acceptance Criteria**:
-
-- [ ] First measurable criterion
-- [ ] Second measurable criterion
 ```
-
-<!--
-Template placeholders:
-- ID: The generated task ID (e.g., IMP-007)
-- Short descriptive title: Brief title describing the task
-- Problem description: What issue needs to be addressed
-- Files to Investigate: Relevant files (discovered via exploration or provided in context)
-- Expected Behavior / Goal: Desired outcome
-- Acceptance Criteria: Measurable completion criteria
--->
+Failed to add task: <error description>
+```

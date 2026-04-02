@@ -94,11 +94,10 @@ REQUIRED SECTIONS (in order):
 2. Arguments - Only if skill takes arguments (must include Definitions and Values subsections)
 3. Core Principles - Key guidelines, constraints, and important notes
 4. Instructions - Step-by-step execution guide
-5. Output Guidance - Expected output format (must be JSON)
+5. Output Guidance - Expected output format (human-readable text)
 
 OPTIONAL SECTIONS (insert in order shown):
 - Additional Resources - After Arguments, for links to supporting files
-- Configuration - After Additional Resources, for skills with configurable settings
 - Skill-Specific Guidelines - After Core Principles, for domain-specific guidance
 - Templates - After Output Guidance, for structured output templates
 
@@ -176,19 +175,6 @@ Instructions:
 - Format: - For <purpose>, see [filename.md](filename.md)
 - Use for reference docs, examples, or scripts in the skill directory
 - Omit this section if skill has no supporting files
--->
-
-## Configuration (optional)
-
-{{configuration}}
-
-<!--
-Instructions:
-- Replace {{configuration}} with settings, defaults, and tunables
-- List configurable parameters with their default values
-- Explain when to adjust settings
-- Group related settings together
-- Omit this section if not needed
 -->
 
 ## Core Principles
