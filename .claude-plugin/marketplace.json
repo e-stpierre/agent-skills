@@ -1,25 +1,25 @@
 {
-  "name": "clauding",
+  "name": "estpierre-agent-skills",
   "owner": {
     "name": "Étienne St-Pierre",
     "email": "me@estpierre.dev"
   },
   "metadata": {
-    "description": "A collection of human-in-the-loop interactive prompts for Claude Code, enabling structured, repeatable workflows across diverse tasks and domains.",
+    "description": "A collection of human-in-the-loop interactive prompts for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains.",
     "version": "0.2.0"
   },
   "plugins": [
     {
       "name": "interactive-sdlc",
       "source": "./plugins/interactive-sdlc",
-      "description": "[Beta] Interactive SDLC commands for guided development within Claude Code sessions",
+      "description": "[Beta] Interactive SDLC commands for guided development within agent sessions",
       "version": "0.2.0",
       "author": {
         "name": "Étienne St-Pierre",
         "email": "me@estpierre.dev"
       },
-      "homepage": "https://github.com/e-stpierre/clauding",
-      "repository": "https://github.com/e-stpierre/clauding",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/interactive-sdlc",
+      "repository": "https://github.com/e-stpierre/agent-skills",
       "license": "MIT",
       "keywords": ["beta", "sdlc", "interactive"],
       "category": "sdlc",

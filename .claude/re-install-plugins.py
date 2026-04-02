@@ -282,7 +282,7 @@ def main():
 
     success_count = 0
     error_count = 0
-    marketplace_name = "clauding"
+    marketplace_name = "agent-skills"
 
     # Step 1 & 2: Create staged copy, register as marketplace, and reinstall plugins
     print_step(1, 2, "Create Staged Marketplace")
