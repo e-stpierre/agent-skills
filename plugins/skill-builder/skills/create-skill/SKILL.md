@@ -1,5 +1,5 @@
 ---
-name: af-create-skill
+name: create-skill
 description: Create a new Claude Code skill following best practices and guidelines
 argument-hint: <skill-name> [context]
 disable-model-invocation: true
@@ -20,22 +20,22 @@ Create a new Claude Code skill following the established guidelines and best pra
 
 ### Values
 
-\$ARGUMENTS
+$ARGUMENTS
 
 ## Additional Resources
 
-- For the skill template structure, see [template.md](template.md)
+- For the skill template structure, see [action-skill-template.md](references/action-skill-template.md)
 
 ## Core Principles
 
 - Every skill must be a `SKILL.md` file wrapped in a directory
-- Directory name should match the skill name
-- Use the template at `src/agentic_forge/claude/.claude/skills/create-skill/template.md` as the base
+- Directory name must match the skill name
+- Use the template at [action-skill-template.md](references/action-skill-template.md) as the base structure
 - Follow the exact section order defined in the template
 - Use US English spelling in all content
-- Keep descriptions concise (max 200 characters)
+- Keep descriptions concise and front-load the key use case (truncated at 250 chars in skill listing)
 - Keep SKILL.md under 500 lines; move detailed reference material to separate files
-- See template.md for complete YAML frontmatter field reference
+- See action-skill-template.md for complete YAML frontmatter field reference and string substitution variables
 - Code files must use ASCII only; markdown files may use minimal functional emojis
 
 ## Skill-Specific Guidelines
@@ -62,15 +62,28 @@ The `SKILL.md` file is required. Supporting files are optional and should be ref
 - Use `[arg]` for optional positional arguments (square brackets)
 - Use `[--flag]` for boolean flags (always optional - flags toggle behavior)
 - Use `[arg...]` for variadic arguments
+- Required arguments MUST come before optional arguments
 - The `[context]` argument must ALWAYS come last when present
 - Flags MUST be boolean-only - NEVER use `--flag <value>` pattern
 
 Examples:
 
 - `<context>` - required context only
-- `[type] <context>` - optional type, required context
-- `[paths...] [context]` - optional paths, optional context
+- `<type> [context]` - required type, optional context
+- `<file> [format] [context]` - required file, optional format and context
 - `[--verbose] <context>` - boolean flag, required context
+
+### Positional Argument Access
+
+Claude Code provides string substitution variables to access arguments in skill content:
+
+- **`$ARGUMENTS`** - All arguments as a single string
+- **`$ARGUMENTS[N]`** - Access by 0-based index (e.g., `$ARGUMENTS[0]` for first argument)
+- **`$N`** - Shorthand for `$ARGUMENTS[N]` (e.g., `$0`, `$1`, `$2`)
+
+Example: `/migrate-component SearchBar React Vue` makes `$0`=SearchBar, `$1`=React, `$2`=Vue available in the skill body. Use these when a skill needs to place specific arguments at different locations in the prompt.
+
+If `$ARGUMENTS` is not present in the skill content, Claude Code appends `ARGUMENTS: <value>` automatically.
 
 ### When to Use Invocation Controls
 
@@ -94,15 +107,15 @@ Add `context: fork` when a skill should run in isolation without conversation hi
 
 1. **Validate the skill name**
    - Ensure it uses kebab-case (lowercase with hyphens)
-   - Verify it doesn't conflict with existing skills
+   - Verify it does not conflict with existing skills
    - Name should be descriptive of the action
 
 2. **Create the skill directory**
    - Create `plugins/<plugin-name>/skills/<skill-name>/` directory
-   - The directory name should match the skill name
+   - The directory name must match the skill name
 
 3. **Read the template**
-   - Load `src/agentic_forge/claude/.claude/skills/create-skill/template.md`
+   - Load [action-skill-template.md](references/action-skill-template.md)
    - Use it as the base structure for the new skill
 
 4. **Create SKILL.md**
@@ -111,12 +124,14 @@ Add `context: fork` when a skill should run in isolation without conversation hi
    - Remove optional sections that don't apply
    - Replace all `{{placeholders}}` with actual content
    - Remove all HTML comment instructions
+   - Ensure required arguments precede optional arguments in argument-hint
 
 5. **Validate the skill**
    - Ensure all required sections are present
    - Verify frontmatter fields are correct
    - Check that argument-hint matches Arguments section
-   - Confirm description is under 200 characters
+   - Confirm required args come before optional args in argument-hint
+   - Verify `$ARGUMENTS[N]`/`$N` usage matches argument definitions if used
 
 6. **Add supporting files (if needed)**
    - Create reference.md for detailed documentation
