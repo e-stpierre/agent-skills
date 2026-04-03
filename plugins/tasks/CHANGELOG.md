@@ -7,6 +7,5 @@ All notable changes to the tasks plugin will be documented in this file.
 ### Added
 
 - Initial release of tasks plugin
-- Add-task skill (renamed from add-improvement in agentic-sdlc)
 - Structured task tracking with unique IDs (IMP, SEC, DEBT, TEST, DOC prefixes)
 - Optional codebase analysis with `--explore` flag
