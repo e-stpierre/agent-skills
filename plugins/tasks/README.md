@@ -9,9 +9,9 @@ Task tracking plugin for managing improvement opportunities, bugs, debt, and oth
 
 ## Skills
 
-| Skill       | Description                                    |
-| ----------- | ---------------------------------------------- |
-| `/add-task` | Add a new task to the tasks tracking document  |
+| Skill       | Description                                   |
+| ----------- | --------------------------------------------- |
+| `/add-task` | Add a new task to the tasks tracking document |
 
 ## Complete Examples
 

@@ -8,9 +8,9 @@ Formatting and style enforcement skills for documentation and code. This plugin 
 
 ## Skills
 
-| Skill              | Description                                                              |
-| ------------------ | ------------------------------------------------------------------------ |
-| `style:markdown`   | Enforce markdown formatting conventions and non-auto-fixable lint rules  |
+| Skill            | Description                                                             |
+| ---------------- | ----------------------------------------------------------------------- |
+| `style:markdown` | Enforce markdown formatting conventions and non-auto-fixable lint rules |
 
 ## Complete Examples
 

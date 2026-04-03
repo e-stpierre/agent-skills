@@ -8,9 +8,9 @@ Create well-structured Claude Code skills following established conventions and 
 
 ## Skills
 
-| Skill | Description |
-|-------|-------------|
-| `/skill-builder:create-skill <skill-name> [context]` | Create a new Claude Code skill following best practices |
+| Skill                         | Description                                             |
+| ----------------------------- | ------------------------------------------------------- |
+| `/skill-builder:create-skill` | Create a new Claude Code skill following best practices |
 
 ## Complete Examples
 

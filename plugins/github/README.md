@@ -8,9 +8,9 @@ GitHub workflow automation skills for managing pull requests. This plugin provid
 
 ## Skills
 
-| Skill              | Description                                                          |
-| ------------------ | -------------------------------------------------------------------- |
-| `github:fix-pr`    | Fix review comments and failing CI checks on a PR, then push fixes   |
+| Skill           | Description                                                        |
+| --------------- | ------------------------------------------------------------------ |
+| `github:fix-pr` | Fix review comments and failing CI checks on a PR, then push fixes |
 
 ## Complete Examples
 

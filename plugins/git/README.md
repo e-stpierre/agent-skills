@@ -22,8 +22,8 @@ Standardized git workflow skills for branch creation, structured commits, and pu
 
 **Arguments:**
 
+- `<branch-name>` - Short kebab-case description (required)
 - `[category]` - Branch type: feature (default), fix, chore, doc, poc, refactor
-- `[branch-name]` - Short kebab-case description (required)
 - `[issue-id]` - GitHub issue number
 - `[base]` - Base branch to create from (defaults to current location)
 

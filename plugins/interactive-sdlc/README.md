@@ -42,41 +42,16 @@ Plans are static documentation of work to be done:
 - Content includes requirements, architecture, tasks, and validation criteria
 - Implementation skills read plans as reference, not as mutable state
 
-## Configuration
-
-Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, committed to git if not included in .gitignore):
-
-```json
-{
-  "planDirectory": "specs",
-  "analysisDirectory": "analysis",
-  "defaultExploreAgents": {
-    "chore": 2,
-    "bug": 2,
-    "feature": 3
-  }
-}
-```
-
-### Configuration Options
-
-| Setting                        | Type          | Default      | Description                          |
-| ------------------------------ | ------------- | ------------ | ------------------------------------ |
-| `planDirectory`                | string        | `"specs"`    | Directory for plan files (.md)       |
-| `analysisDirectory`            | string        | `"analysis"` | Directory for analysis reports (.md) |
-| `defaultExploreAgents.chore`   | number (0-5)  | `2`          | Explore agents for chore planning    |
-| `defaultExploreAgents.bug`     | number (0-5)  | `2`          | Explore agents for bug planning      |
-| `defaultExploreAgents.feature` | number (0-10) | `3`          | Explore agents for feature planning  |
-
 ## Complete Examples
 
 ### /sdlc-plan
 
 **Arguments:**
 
+- `[--git]` - Commit plan file after creation
 - `[type]` - Plan type: `feature`, `bug`, `chore`, or `auto` (default: `auto`)
 - `[explore-count]` - Override default explore agent count
-- `--git` - Commit plan file after creation
+- `[path]` - Directory where the plan file is saved (default: `specs`)
 - `[context]` - Task description
 
 **Examples:**
@@ -129,4 +104,3 @@ Configure the plugin in `.claude/configs/interactive-sdlc.json` (project scope, 
 /analyze security
 /analyze security Focus on authentication and session management
 ```
-

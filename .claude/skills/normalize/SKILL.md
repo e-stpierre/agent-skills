@@ -65,12 +65,12 @@ Arguments: $ARGUMENTS
 
    Determine the file type by checking if the file path contains these directory patterns:
 
-   | Path Contains           | Type   | Template to Read                    |
-   | ----------------------- | ------ | ----------------------------------- |
-   | `/agents/` or `agents`  | Agent  | `docs/templates/agent-template.md`  |
+   | Path Contains           | Type   | Template to Read                                                                |
+   | ----------------------- | ------ | ------------------------------------------------------------------------------- |
+   | `/agents/` or `agents`  | Agent  | `docs/templates/agent-template.md`                                              |
    | `/skills/` or `skills`  | Skill  | `plugins/skill-builder/skills/create-skill/references/action-skill-template.md` |
-   | `/hooks/` or `hooks`    | Hook   | (no template - skip validation)     |
-   | Filename is `README.md` | README | `docs/templates/readme-template.md` |
+   | `/hooks/` or `hooks`    | Hook   | (no template - skip validation)                                                 |
+   | Filename is `README.md` | README | `docs/templates/readme-template.md`                                             |
 
    **Classification rules:**
    - Check path segments, not substrings (e.g., `/agents/` not just `agent`)
