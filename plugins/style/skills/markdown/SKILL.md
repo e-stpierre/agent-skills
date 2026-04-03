@@ -269,15 +269,7 @@ Follow this general structure for markdown documents:
 2. **When creating a markdown file**: Follow the document structure guidelines and all rules listed above. Use the example below as a style reference. Run `pnpm format` after writing the file.
 3. **When editing a markdown file**: Read the file first, then apply changes while preserving the existing style and respecting all rules. Run `pnpm format` after editing.
 
-## Output Guidance
-
-When the skill is invoked directly, output a human-readable summary:
-
-- Status (reviewed, created, or edited)
-- File path
-- List of non-auto-fixable issues found, if any
-
-## Example
+### Example
 
 The following example shows the preferred markdown format style.
 
@@ -330,3 +322,11 @@ rm -rf ./data
 - [Getting Started](https://example.com/docs/getting-started)
 - [API Reference](https://example.com/docs/api-reference)
 ````
+
+## Output Guidance
+
+When the skill is invoked directly, output a human-readable summary:
+
+- Status (reviewed, created, or edited)
+- File path
+- List of non-auto-fixable issues found, if any
