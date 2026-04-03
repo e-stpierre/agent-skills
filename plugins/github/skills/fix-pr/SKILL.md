@@ -162,14 +162,13 @@ gh api repos/{owner}/{repo}/commits/{sha}/check-runs \
 
 #### 2.3 Diagnose and categorize failures
 
-Parse the failure logs and classify each failure:
+Parse the failure logs and classify each failure into categories such as:
 
-| Check              | Common Failures                                   | How to Reproduce Locally              |
-| ------------------ | ------------------------------------------------- | ------------------------------------- |
-| **Lint & Format**  | ESLint errors, Prettier violations                | `pnpm check`                          |
-| **Build**          | TypeScript compile errors, missing imports        | `npx tsc --noEmit -p {tsconfig_path}` |
-| **Test**           | Assertion failures, runtime errors, missing mocks | `pnpm --filter {package} test`        |
-| **Migrate & Seed** | Migration SQL errors, seed data conflicts         | Check migration files and schema      |
+- **Lint & format**: Style violations, formatting errors
+- **Build / compile**: Compilation errors, missing imports, type errors
+- **Test**: Assertion failures, runtime errors, missing mocks
+- **Migration / schema**: Database migration errors, seed data conflicts
+- **Other**: Deployment, security scanning, or project-specific checks
 
 For each failure, determine:
 
@@ -179,21 +178,17 @@ For each failure, determine:
 
 #### 2.4 Apply CI fixes
 
-Read the affected files and apply fixes. Common patterns:
+Read the affected files and apply fixes:
 
-- **Lint/format**: Run the auto-fixer (`pnpm format` / `pnpm lint --fix`) if available, or manually fix the violations
-- **Build errors**: Fix type errors, missing imports, incorrect signatures
+- **Lint/format**: Check the project for an auto-fix command (e.g., format, lint fix) and run it if available, or manually fix the violations
+- **Build/compile errors**: Fix the errors identified in the logs (missing imports, type mismatches, incorrect signatures, etc.)
 - **Test failures**: Update assertions, fix broken mocks, adjust test setup to match code changes. Only modify tests when the production code change is intentional and correct - do NOT change production code just to make a stale test pass without understanding why
 
 **Important**: If a test failure suggests a real bug in the production code (not just a stale test), treat it as a **Critical** issue. Fix the production code, not the test.
 
 #### 2.5 Verify fixes locally
 
-After applying fixes, verify locally before committing:
-
-- **Lint/format**: Run `pnpm check`
-- **Build**: Run `npx tsc --noEmit` on the affected project
-- **Tests**: Run the specific failing tests
+After applying fixes, reproduce the failing check locally before committing. Look at the project's configuration (scripts, Makefile, CI config) to find the equivalent local command for each failed check. Run the specific failing checks to confirm the fix works.
 
 If verification fails, iterate on the fix. Do not push code that still fails locally.
 
