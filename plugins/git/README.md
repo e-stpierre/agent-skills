@@ -25,6 +25,7 @@ Standardized git workflow skills for branch creation, structured commits, and pu
 - `[category]` - Branch type: feature (default), fix, chore, doc, poc, refactor
 - `[branch-name]` - Short kebab-case description (required)
 - `[issue-id]` - GitHub issue number
+- `[base]` - Base branch to create from (defaults to current location)
 
 When only one argument is provided, it is treated as the branch-name with category defaulting to `feature`.
 
@@ -39,6 +40,9 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 # With issue reference
 /git-branch feature add-oauth 123
+
+# Branch from a specific base branch
+/git-branch feature add-oauth 123 develop
 ```
 
 ### /git-commit

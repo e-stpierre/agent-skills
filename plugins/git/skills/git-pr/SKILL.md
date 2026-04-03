@@ -32,14 +32,16 @@ Arguments: $ARGUMENTS
 ## Instructions
 
 1. Verify current branch is not the base branch
-2. Run `git log <base>..HEAD --oneline` to get commits in this PR
-3. Run `git diff <base>...HEAD --stat` to assess change scope
-4. Determine PR size category:
+2. Push current branch to remote if needed
+3. Fetch the latest remote base branch: `git fetch origin <base>`
+4. Run `git log origin/<base>..HEAD --oneline` to get commits in this PR
+5. Run `git diff origin/<base>...HEAD --stat` to assess change scope
+6. Determine PR size category:
    - **Trivial**: <10 lines, single file, style/typo fix
    - **Small**: <50 lines, focused change
    - **Medium**: 50-200 lines, feature or significant fix
    - **Large**: >200 lines, major feature or refactor
-5. Construct PR content based on size:
+7. Construct PR content based on size:
 
    **Trivial/Small**: Brief description with attribution
 
@@ -62,9 +64,9 @@ Arguments: $ARGUMENTS
    🤖 Generated with [Claude Code](https://claude.com/product/claude-code)"
    ```
 
-6. If `--draft` flag is specified, add `--draft` to the gh command
-7. Execute `gh pr create` with constructed content
-8. Report the PR URL
+8. If `--draft` flag is specified, add `--draft` to the gh command
+9. Execute `gh pr create` with constructed content
+10. Report the PR URL
 
 ## Output Guidance
 
