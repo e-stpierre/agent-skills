@@ -13,7 +13,7 @@ Validate that prompt files and plugin READMEs conform to the exact structure def
 Templates used for validation:
 
 - `docs/templates/agent-template.md` for agents
-- `docs/templates/skill-template.md` for skills
+- `plugins/skill-builder/skills/create-skill/references/action-skill-template.md` for skills
 - `docs/templates/readme-template.md` for plugin READMEs
 
 All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`) with HTML comment instructions. See `CLAUDE.md` section "Prompt Template Convention" for complete details.
@@ -27,7 +27,7 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 
 ### Values
 
-\$ARGUMENTS
+Arguments: $ARGUMENTS
 
 ## Core Principles
 
@@ -65,12 +65,12 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 
    Determine the file type by checking if the file path contains these directory patterns:
 
-   | Path Contains           | Type   | Template to Read                    |
-   | ----------------------- | ------ | ----------------------------------- |
-   | `/agents/` or `agents`  | Agent  | `docs/templates/agent-template.md`  |
-   | `/skills/` or `skills`  | Skill  | `docs/templates/skill-template.md`  |
-   | `/hooks/` or `hooks`    | Hook   | (no template - skip validation)     |
-   | Filename is `README.md` | README | `docs/templates/readme-template.md` |
+   | Path Contains           | Type   | Template to Read                                                                |
+   | ----------------------- | ------ | ------------------------------------------------------------------------------- |
+   | `/agents/` or `agents`  | Agent  | `docs/templates/agent-template.md`                                              |
+   | `/skills/` or `skills`  | Skill  | `plugins/skill-builder/skills/create-skill/references/action-skill-template.md` |
+   | `/hooks/` or `hooks`    | Hook   | (no template - skip validation)                                                 |
+   | Filename is `README.md` | README | `docs/templates/readme-template.md`                                             |
 
    **Classification rules:**
    - Check path segments, not substrings (e.g., `/agents/` not just `agent`)
@@ -186,7 +186,7 @@ All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`
 
 ### path/to/skill/SKILL.md (Skill)
 
-Template: docs/templates/skill-template.md
+Template: plugins/skill-builder/skills/create-skill/references/action-skill-template.md
 
 **Frontmatter:**
 
@@ -233,7 +233,7 @@ Template: docs/templates/readme-template.md
 
 ### path/to/skill/SKILL.md (Skill)
 
-Template: docs/templates/skill-template.md
+Template: plugins/skill-builder/skills/create-skill/references/action-skill-template.md
 
 - [FIXED] Added missing section: "Output Guidance"
 - [FIXED] Renamed section: "## arguments" -> "## Arguments"

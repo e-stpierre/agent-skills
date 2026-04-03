@@ -24,7 +24,7 @@ Analyze codebase for issues across multiple domains: bugs, technical debt, docum
 
 ### Values
 
-$ARGUMENTS
+Arguments: $ARGUMENTS
 
 ## Additional Resources
 
@@ -35,12 +35,6 @@ Load ONE of these based on the `<type>` argument:
 - For doc analysis, see [references/doc.md](references/doc.md)
 - For security analysis, see [references/security.md](references/security.md)
 - For style analysis, see [references/style.md](references/style.md)
-
-## Configuration
-
-This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
-
-- **`analysisDirectory`**: Directory where analysis reports are saved. Defaults to `analysis`.
 
 ## Core Principles
 
@@ -58,13 +52,10 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 1. **Validate Type Argument**
    - Check that `<type>` argument is provided
    - Verify it is one of: `bug`, `debt`, `doc`, `security`, `style`
-   - If missing or invalid, stop execution and return error:
+   - If missing or invalid, stop execution and report the error:
 
-     ```json
-     {
-       "success": false,
-       "error": "Invalid or missing type argument. Must be one of: bug, debt, doc, security, style"
-     }
+     ```text
+     Error: Invalid or missing type argument. Must be one of: bug, debt, doc, security, style
      ```
 
 2. **Load Type-Specific Guidelines**
@@ -75,36 +66,33 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
    - `security` -> Read [references/security.md](references/security.md)
    - `style` -> Read [references/style.md](references/style.md)
 
-3. **Read Configuration**
-   - Read `.claude/configs/interactive-sdlc.json` for `analysisDirectory` (default: `analysis`)
-
-4. **Determine Scope**
+3. **Determine Scope**
    - If `[context]` specifies files/directories, focus on those
    - Otherwise, analyze the entire codebase
    - Exclude test files, node_modules, build outputs, and vendor directories
    - For `doc` type: find all documentation files (README, docs/, \*.md)
 
-5. **Understand Project Context**
+4. **Understand Project Context**
    - Check for linter configs (ESLint, Prettier, Ruff)
    - Read CLAUDE.md for project-specific guidelines
    - Analyze existing code patterns to understand conventions
 
-6. **Analyze for Issues**
+5. **Analyze for Issues**
    - Apply type-specific analysis criteria from the loaded reference file
    - Verify each finding is a real issue, not a false positive
    - Check if apparent issues are handled elsewhere
 
-7. **Categorize Findings**
+6. **Categorize Findings**
    - Apply severity ratings as defined in the type-specific reference file
    - Use consistent severity levels across all types
 
-8. **Generate Report**
-   - Save to `{analysisDirectory}/{type}.md`
+7. **Generate Report**
+   - Save to `analysis/{type}.md`
    - Include date in report header
    - Group findings by severity
    - Use the template from the type-specific reference file
 
-9. **Present Results**
+8. **Present Results**
    - Display summary counts by severity
    - Inform user of report file location
 
@@ -112,8 +100,8 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 
 Save a detailed markdown report and present a user-friendly summary:
 
-```
-{Type} analysis complete. Report saved to {analysisDirectory}/{type}.md
+```text
+{Type} analysis complete. Report saved to analysis/{type}.md
 
 ## Summary
 - Critical: X issues

@@ -97,13 +97,13 @@ Analyze changes in the current branch compared to main and update plugin version
 
    Single plugin:
 
-   ```
+   ```text
    Bump <plugin-name> version to X.Y.Z (<change-type>)
    ```
 
    Multiple plugins:
 
-   ```
+   ```text
    Bump plugin versions
 
    - <plugin1>: X.Y.Z (minor)
@@ -114,7 +114,7 @@ Analyze changes in the current branch compared to main and update plugin version
 
 Report the analysis and version changes:
 
-```
+```text
 ## Plugin Version Updates
 
 ### Changed Plugins Detected

@@ -81,10 +81,10 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 
 ### Prompt Template Convention
 
-All prompt files (agents, skills) and plugin READMEs must follow the exact structure defined in the template files located in `docs/templates/`:
+All prompt files (agents, skills) and plugin READMEs must follow the exact structure defined in the template files:
 
 - `docs/templates/agent-template.md` - Structure for agent prompts
-- `docs/templates/skill-template.md` - Structure for skill prompts
+- `plugins/skill-builder/skills/create-skill/references/action-skill-template.md` - Structure for skill prompts
 - `docs/templates/readme-template.md` - Structure for plugin README files
 
 **Placeholder Convention:**
@@ -138,11 +138,11 @@ Skills referenced in workflow YAML files must use the full plugin namespace to a
 ```yaml
 # Correct - explicit namespace
 - type: skill
-  skill: agent-skills:sdlc-review
+  skill: agent-skills:sdlc-plan
 
 # Incorrect - ambiguous, could match multiple plugins
 - type: skill
-  skill: sdlc-review
+  skill: sdlc-plan
 ```
 
 ### Code Style and Formatting

@@ -31,27 +31,33 @@ Agent Skills Standard Fields:
 Claude Code Specific Fields:
 | Field                    | Required | Description                                                                                 |
 | ------------------------ | -------- | ------------------------------------------------------------------------------------------- |
-| argument-hint            | No       | Hint for expected arguments (e.g., `[issue-number]`, `[filename] [format]`)                 |
+| argument-hint            | No       | Hint shown during autocomplete for expected arguments.                                      |
 | disable-model-invocation | No       | Set `true` to prevent Claude from auto-loading. Use for side-effect skills. Default: false. |
 | user-invocable           | No       | Set `false` to hide from / menu. Use for background knowledge. Default: true.               |
 | model                    | No       | Model to use when this skill is active.                                                     |
+| effort                   | No       | Effort level when active. Overrides session level. Options: low, medium, high, max.         |
 | context                  | No       | Set to `fork` to run in a forked subagent context (no conversation history).                |
 | agent                    | No       | Which subagent type to use when `context: fork` is set.                                     |
 | hooks                    | No       | Hooks scoped to this skill's lifecycle.                                                     |
+| paths                    | No       | Glob patterns limiting when skill activates. Comma-separated or YAML list.                  |
+| shell                    | No       | Shell for !`command` blocks. Options: bash (default), powershell.                           |
 
 ARGUMENT-HINT CONVENTIONS:
 - Use `<arg>` for required positional arguments (angle brackets)
 - Use `[arg]` for optional positional arguments (square brackets)
 - Use `[--flag]` for boolean flags (always optional - flags toggle behavior)
 - Use `[arg...]` for variadic arguments (accepts multiple values)
+- Argument order: flags first, then required args, then optional args
 - The `[context]` argument must ALWAYS come last when present
 - Examples:
   - `<context>` - required context only
-  - `[type] <context>` - optional type, required context
-  - `[paths...] [context]` - optional paths, optional context
-  - `[--verbose] <context>` - boolean flag, required context
+  - `<type> [context]` - required type, optional context
+  - `[--verbose] <type> [context]` - flag, required type, optional context
+  - `[--draft] [--dry-run] <file> [format]` - flags first, then positional
 
 ARGUMENT-HINT VALIDATION RULES:
+- Flags (`[--flag]`) must come first, before all positional arguments
+- Required arguments (`<arg>`) must precede optional arguments (`[arg]`)
 - Flags MUST be boolean-only (presence/absence toggles)
 - NEVER use `--flag <value>` pattern - flags do not take values
 - For named values, use positional arguments with descriptive names
@@ -60,20 +66,38 @@ ARGUMENT-HINT VALIDATION RULES:
 - Wrong: `--type critical` (flag taking a value)
 - Correct: `<type>` with valid values documented in Definitions
 
+STRING SUBSTITUTIONS:
+Claude Code replaces these variables in skill content before sending to the model:
+
+| Variable               | Description                                                                    |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| $ARGUMENTS             | All arguments as a single string. Appended as `ARGUMENTS: <value>` if absent.  |
+| $ARGUMENTS[N]          | Access a specific argument by 0-based index (e.g., $ARGUMENTS[0] for first).   |
+| $N                     | Shorthand for $ARGUMENTS[N] (e.g., $0 for first, $1 for second).              |
+| ${CLAUDE_SESSION_ID}   | Current session ID. Useful for logging or session-specific files.              |
+| ${CLAUDE_SKILL_DIR}    | Directory containing this SKILL.md. Use in !`command` to reference bundled     |
+|                        | scripts/files regardless of working directory.                                 |
+
+POSITIONAL ARGUMENT ACCESS:
+When a skill needs to reference individual arguments, use $ARGUMENTS[N] or the $N shorthand:
+- `/my-skill SearchBar React Vue` -> $0=SearchBar, $1=React, $2=Vue
+- $ARGUMENTS still contains the full string "SearchBar React Vue"
+- If $ARGUMENTS is not present in content, arguments are appended as `ARGUMENTS: <value>`
+
 DYNAMIC CONTEXT INJECTION:
 - Use `!`command`` syntax to run shell commands before skill content is sent to Claude.
 - The command output replaces the placeholder. Example: `!`git status`` inserts current git status.
+- Use ${CLAUDE_SKILL_DIR} to reference scripts bundled with the skill.
 
 REQUIRED SECTIONS (in order):
 1. Overview - Skill purpose and objective (combines definition + goal)
 2. Arguments - Only if skill takes arguments (must include Definitions and Values subsections)
 3. Core Principles - Key guidelines, constraints, and important notes
 4. Instructions - Step-by-step execution guide
-5. Output Guidance - Expected output format (must be JSON)
+5. Output Guidance - Expected output format (human-readable text)
 
 OPTIONAL SECTIONS (insert in order shown):
 - Additional Resources - After Arguments, for links to supporting files
-- Configuration - After Additional Resources, for skills with configurable settings
 - Skill-Specific Guidelines - After Core Principles, for domain-specific guidance
 - Templates - After Output Guidance, for structured output templates
 
@@ -84,6 +108,7 @@ VALIDATION RULES:
 - Arguments section and argument-hint should be OMITTED when the skill takes no arguments
 - Interactive skills output human-readable text (not JSON) for direct user consumption
 -->
+<!-- markdownlint-disable MD041 -->
 
 ---
 
@@ -119,19 +144,25 @@ Instructions:
 - Replace {{argument_definitions}} with a bullet-point list defining each argument
 - Format: **`<argument-name>`** (required): Description
 - Format: **`[argument-name]`** (optional): Description. Defaults to `value`.
+- List required arguments before optional arguments (matching argument-hint order)
 - Include default values where applicable
 - The [context] argument should always come last
+- Reference positional index when the skill uses $ARGUMENTS[N] or $N shorthand
 - Omit this section entirely if the skill takes no arguments
 -->
 
 ### Values
 
-\$ARGUMENTS
+Arguments: $ARGUMENTS
 
 <!--
 Instructions:
+- MUST use the `Arguments: $ARGUMENTS` format (with the "Arguments:" prefix)
+- Using `$ARGUMENTS` alone on a line breaks markdown syntax because the dollar sign
+  is interpreted as a LaTeX/math delimiter by some renderers
 - The $ARGUMENTS placeholder is automatically replaced with all arguments passed when invoking the skill
 - If $ARGUMENTS is not present in the content, arguments are appended as `ARGUMENTS: <value>`
+- Use $ARGUMENTS[N] or $N shorthand in the skill body to reference specific positional arguments
 - Do not modify this subsection
 -->
 
@@ -145,19 +176,6 @@ Instructions:
 - Format: - For <purpose>, see [filename.md](filename.md)
 - Use for reference docs, examples, or scripts in the skill directory
 - Omit this section if skill has no supporting files
--->
-
-## Configuration (optional)
-
-{{configuration}}
-
-<!--
-Instructions:
-- Replace {{configuration}} with settings, defaults, and tunables
-- List configurable parameters with their default values
-- Explain when to adjust settings
-- Group related settings together
-- Omit this section if not needed
 -->
 
 ## Core Principles

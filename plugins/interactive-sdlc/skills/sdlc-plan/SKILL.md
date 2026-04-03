@@ -1,7 +1,7 @@
 ---
 name: sdlc-plan
 description: Create an implementation plan for a task (feature, bug fix, or chore)
-argument-hint: [type] [explore-count] [--git] [context]
+argument-hint: [--git] [type] [explore-count] [path] [context]
 ---
 
 # Plan
@@ -14,14 +14,15 @@ Create a structured implementation plan for the given task. This skill explores 
 
 ### Definitions
 
-- **`[type]`** (optional): Plan type. Values: `feature`, `bug`, `chore`, `auto`. Defaults to `auto`.
-- **`[explore-count]`** (optional): Override default explore agent count. Defaults to configuration value based on type.
 - **`[--git]`** (optional): Commit plan file after creation.
+- **`[type]`** (optional): Plan type. Values: `feature`, `bug`, `chore`, `auto`. Defaults to `auto`.
+- **`[explore-count]`** (optional): Override default explore agent count. Defaults to 3 for feature, 2 for bug/chore.
+- **`[path]`** (optional): Directory where the plan file is saved. Defaults to `specs`.
 - **`[context]`** (optional): Freeform context for argument inference (e.g., task description, requirements).
 
 ### Values
 
-$ARGUMENTS
+Arguments: $ARGUMENTS
 
 ## Additional Resources
 
@@ -30,15 +31,6 @@ Load ONE of these based on the `[type]` argument (or detected type if auto):
 - For feature plans, see [references/feature.md](references/feature.md)
 - For bug fix plans, see [references/bug.md](references/bug.md)
 - For chore plans, see [references/chore.md](references/chore.md)
-
-## Configuration
-
-This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
-
-- `planDirectory` (default: `"specs"`): Directory where plan files are saved
-- `defaultExploreAgents.feature` (default: `3`): Number of explore agents for feature plans
-- `defaultExploreAgents.bug` (default: `2`): Number of explore agents for bug fix plans
-- `defaultExploreAgents.chore` (default: `2`): Number of explore agents for chore plans
 
 ## Core Principles
 
@@ -53,9 +45,9 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 ## Instructions
 
 1. **Parse Arguments**
-   - Extract type, --explore N, --git, and context from arguments
+   - Extract type, --explore N, --git, path, and context from arguments
    - Default type to `auto` if not specified
-   - Default explore agents based on type from configuration
+   - Default explore agents based on type (3 for feature, 2 for bug/chore)
 
 2. **Detect Plan Type** (if type=auto)
    - Analyze the context to determine type:
@@ -70,32 +62,28 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
    - `bug` -> Read [references/bug.md](references/bug.md)
    - `chore` -> Read [references/chore.md](references/chore.md)
 
-4. **Read Configuration**
-   - Read `.claude/configs/interactive-sdlc.json` for `planDirectory` (default: `specs`)
-   - Read `defaultExploreAgents.{type}` for explore agent count
-
-5. **Explore Codebase**
-   - Launch N explore agents (from config or --explore flag)
+4. **Explore Codebase**
+   - Launch explore agents (default: 3 for feature, 2 for bug/chore)
    - Focus exploration on understanding the areas relevant to the task
    - Gather context about existing patterns, conventions, and dependencies
    - Identify files and components that may be affected
 
-6. **Gather Requirements**
+5. **Gather Requirements**
    - Parse the `[context]` argument if provided
    - If requirements can be inferred from context, use them
    - Otherwise, ask the user for type-specific information (see reference file)
 
-7. **Generate Plan**
+6. **Generate Plan**
    - Apply type-specific planning approach from the loaded reference
    - Create a plan using the structure defined in the reference file's template
    - Fill in all required sections with gathered requirements
    - List tasks in execution order
 
-8. **Save Plan**
-   - Save to `{planDirectory}/{type}-{slugified-title}.md`
+7. **Save Plan**
+   - Save to `{path}/{type}-{slugified-title}.md` (path defaults to `specs`)
    - Inform user of the saved file path
 
-9. **Git Commit (if --git flag)**
+8. **Git Commit (if --git flag)**
    - Stage the plan file
    - Commit with message: `docs(plan): Add {type} plan - {title}`
 
@@ -103,8 +91,8 @@ This skill reads configuration from `.claude/configs/interactive-sdlc.json`:
 
 Present a user-friendly summary:
 
-```
-Plan saved to {planDirectory}/{type}-{slugified-title}.md
+```text
+Plan saved to {path}/{type}-{slugified-title}.md
 
 ## Summary
 - Type: {type}
@@ -112,6 +100,5 @@ Plan saved to {planDirectory}/{type}-{slugified-title}.md
 - [Type-specific summary details]
 
 Next steps:
-- Implement with: /build {planPath}
-- Or run full workflow: /plan-build-validate
+- Review the plan and start implementation
 ```

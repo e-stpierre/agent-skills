@@ -6,23 +6,79 @@
   },
   "metadata": {
     "description": "A collection of human-in-the-loop interactive prompts for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "interactive-sdlc",
       "source": "./plugins/interactive-sdlc",
       "description": "[Beta] Interactive SDLC commands for guided development within agent sessions",
-      "version": "0.2.0",
-      "author": {
-        "name": "Étienne St-Pierre",
-        "email": "me@estpierre.dev"
-      },
+      "version": "0.3.0",
       "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/interactive-sdlc",
       "repository": "https://github.com/e-stpierre/agent-skills",
       "license": "MIT",
       "keywords": ["beta", "sdlc", "interactive"],
       "category": "sdlc",
+      "strict": false
+    },
+    {
+      "name": "git",
+      "source": "./plugins/git",
+      "description": "Standardized git workflow skills for branch creation, commits, and pull requests",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/git",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["git", "branch", "commit", "pull-request"],
+      "category": "git",
+      "strict": false
+    },
+    {
+      "name": "skill-builder",
+      "source": "./plugins/skill-builder",
+      "description": "[Beta] Tooling and templates for creating Claude Code skills with proper conventions",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/skill-builder",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["beta", "skill", "template", "scaffolding"],
+      "category": "development",
+      "strict": false
+    },
+    {
+      "name": "tasks",
+      "source": "./plugins/tasks",
+      "description": "Task tracking with structured IDs, progress tracking, and codebase analysis",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/tasks",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["tasks", "tracking", "improvements"],
+      "category": "productivity",
+      "strict": false
+    },
+    {
+      "name": "github",
+      "source": "./plugins/github",
+      "description": "[Beta] GitHub workflow automation for fixing PR review comments and CI failures",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/github",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["beta", "github", "pull-request", "ci"],
+      "category": "git",
+      "strict": false
+    },
+    {
+      "name": "style",
+      "source": "./plugins/style",
+      "description": "[Beta] Formatting and style enforcement for markdown documentation",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/style",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["beta", "markdown", "formatting", "style"],
+      "category": "documentation",
       "strict": false
     }
   ]
