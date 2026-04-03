@@ -56,6 +56,30 @@
       "keywords": ["tasks", "tracking", "improvements"],
       "category": "productivity",
       "strict": false
+    },
+    {
+      "name": "github",
+      "source": "./plugins/github",
+      "description": "[Beta] GitHub workflow automation for fixing PR review comments and CI failures",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/github",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["beta", "github", "pull-request", "ci"],
+      "category": "git",
+      "strict": false
+    },
+    {
+      "name": "style",
+      "source": "./plugins/style",
+      "description": "[Beta] Formatting and style enforcement for markdown documentation",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/style",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["beta", "markdown", "formatting", "style"],
+      "category": "documentation",
+      "strict": false
     }
   ]
 }
