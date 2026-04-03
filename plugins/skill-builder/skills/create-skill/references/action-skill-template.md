@@ -108,6 +108,7 @@ VALIDATION RULES:
 - Arguments section and argument-hint should be OMITTED when the skill takes no arguments
 - Interactive skills output human-readable text (not JSON) for direct user consumption
 -->
+<!-- markdownlint-disable MD041 -->
 
 ---
 

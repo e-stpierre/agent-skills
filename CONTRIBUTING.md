@@ -51,7 +51,7 @@ Each plugin lives in its own directory:
 
 - `/plugins/` - Official, stable plugins
 
-```
+```text
 plugins/<plugin-name>/
 ├── commands/       # Slash commands (.md)
 ├── agents/         # Sub-agent definitions (.md)

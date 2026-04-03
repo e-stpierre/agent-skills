@@ -44,7 +44,7 @@ Arguments: $ARGUMENTS
 
 Skills must follow this directory structure:
 
-```
+```text
 skills/
   my-skill/
     SKILL.md           # Required - main skill definition
@@ -144,7 +144,7 @@ Provide a brief confirmation message:
 
 **On success:**
 
-```
+```text
 Created skill: review-code
 Location: plugins/my-plugin/skills/review-code/SKILL.md
 Invocation: /review-code
@@ -161,6 +161,6 @@ Next steps:
 
 **On error:**
 
-```
+```text
 Failed to create skill: <error description>
 ```

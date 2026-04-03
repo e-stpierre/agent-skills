@@ -91,7 +91,7 @@ Load ONE of these based on the `[type]` argument (or detected type if auto):
 
 Present a user-friendly summary:
 
-```
+```text
 Plan saved to {path}/{type}-{slugified-title}.md
 
 ## Summary

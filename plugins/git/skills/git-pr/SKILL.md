@@ -45,7 +45,7 @@ Arguments: $ARGUMENTS
 
    **Trivial/Small**: Brief description with attribution
 
-   ```
+   ```bash
    gh pr create --title "Fix typo in README" --body "Corrects spelling error
 
    🤖 Generated with [Claude Code](https://claude.com/product/claude-code)"
@@ -53,7 +53,7 @@ Arguments: $ARGUMENTS
 
    **Medium/Large**: Structured description with attribution
 
-   ```
+   ```bash
    gh pr create --title "<title>" --body "## Summary
    <1-2 sentence overview>
 
@@ -74,13 +74,13 @@ Provide a brief confirmation message:
 
 **On success:**
 
-```
+```text
 PR created: https://github.com/owner/repo/pull/123
 Title: Add user authentication
 ```
 
 **On error:**
 
-```
+```text
 Failed to create PR: <error message from gh CLI>
 ```

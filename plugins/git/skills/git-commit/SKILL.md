@@ -82,12 +82,12 @@ Provide a brief confirmation message:
 
 **On success:**
 
-```
+```text
 Committed: abc123f - [Task 3] Add authentication module
 ```
 
 **On error:**
 
-```
+```text
 Failed to commit: <error message from git>
 ```

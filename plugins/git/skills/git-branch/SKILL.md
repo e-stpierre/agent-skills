@@ -54,12 +54,12 @@ Provide a brief confirmation message:
 
 **On success:**
 
-```
+```text
 Created and switched to branch: feature/123_add-authentication
 ```
 
 **On error:**
 
-```
+```text
 Failed to create branch: <error message from git>
 ```

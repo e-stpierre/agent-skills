@@ -54,7 +54,7 @@ Load ONE of these based on the `<type>` argument:
    - Verify it is one of: `bug`, `debt`, `doc`, `security`, `style`
    - If missing or invalid, stop execution and report the error:
 
-     ```
+     ```text
      Error: Invalid or missing type argument. Must be one of: bug, debt, doc, security, style
      ```
 
@@ -100,7 +100,7 @@ Load ONE of these based on the `<type>` argument:
 
 Save a detailed markdown report and present a user-friendly summary:
 
-```
+```text
 {Type} analysis complete. Report saved to analysis/{type}.md
 
 ## Summary

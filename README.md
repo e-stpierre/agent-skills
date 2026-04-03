@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
   <img src="agent-skills-banner.png" alt="Agent Skills" width="600">
 </p>

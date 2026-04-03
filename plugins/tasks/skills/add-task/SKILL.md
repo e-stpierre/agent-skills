@@ -88,14 +88,14 @@ Provide a brief confirmation message:
 
 **On success:**
 
-```
+```text
 Added task IMP-007: Add retry logic to payment webhook handler
 File: tasks.md
 ```
 
 **On success with --explore:**
 
-```
+```text
 Added task IMP-007: Add retry logic to payment webhook handler
 File: tasks.md
 Files identified: src/webhooks/handler.ts, src/services/payment.ts
@@ -103,6 +103,6 @@ Files identified: src/webhooks/handler.ts, src/services/payment.ts
 
 **On error:**
 
-```
+```text
 Failed to add task: <error description>
 ```
