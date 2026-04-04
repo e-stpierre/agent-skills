@@ -39,8 +39,6 @@ Arguments: $ARGUMENTS
   - MINOR: increment second number, reset patch to 0 (e.g., 1.2.3 -> 1.3.0)
   - PATCH: increment third number (e.g., 1.2.3 -> 1.2.4)
 - Always update the CHANGELOG before bumping version numbers
-- Use today's date in YYYY-MM-DD format for CHANGELOG entries
-- Only include relevant CHANGELOG sections (Added, Changed, Fixed, Removed)
 - Keep CHANGELOG entries concise using bullet points
 - Place new version entries at the top, below the header
 - When `version-component` is provided, use it directly instead of auto-detecting
@@ -70,27 +68,42 @@ When `version-component` is not provided, analyze the diff to determine the appr
 
 ### CHANGELOG Format
 
-Use Keep a Changelog format for all CHANGELOG entries:
+Use a flat bullet-point format for CHANGELOG entries. No brackets around the version, no date, no sub-headers:
 
 ```markdown
-## [X.Y.Z] - YYYY-MM-DD
+## X.Y.Z
 
-### Added
-
-- New feature or capability
-
-### Changed
-
-- Modified behavior or updated functionality
-
-### Fixed
-
-- Bug fix description
-
-### Removed
-
-- Removed feature or capability
+- Added new feature or capability
+- Updated existing behavior or functionality
+- Fixed bug description
+- Removed deprecated feature
+- **Breaking:** Description of breaking change
 ```
+
+**Rules:**
+
+- Version header: `## X.Y.Z` (no brackets, no date)
+- No `###` sub-headers (no `### Added`, `### Fixed`, etc.)
+- Each bullet starts with an action word (Added, Updated, Fixed, Removed, etc.) to describe the type of change
+- Prefix breaking changes with `**Breaking:**`
+- Every entry must describe a specific change. Avoid generic or vague entries like "Fixed 5 bugs" or "Various improvements". Either list each noteworthy change individually, or omit it entirely
+- If the CHANGELOG file does not exist, create it with this structure:
+
+```markdown
+# Changelog
+
+## X.Y.Z
+
+- First change entry
+```
+
+### Incremental Updates Within a Branch
+
+If a version was already bumped in the current branch (i.e., the CHANGELOG already has an entry that was added in this branch), do not create a new version entry. Instead, append new change bullets to the existing entry for that version.
+
+If the newly requested version component differs from the one used previously in the branch (e.g., user now requests `major` but the branch previously bumped `minor`), use the new requested component, update the version number accordingly, and highlight this change in the completion message.
+
+This same rule applies to global version files (`package.json`, `marketplace.json`): if they were already bumped in the current branch, do not bump them again unless the version component changes.
 
 ## Instructions
 
@@ -108,6 +121,7 @@ Use Keep a Changelog format for all CHANGELOG entries:
 
 3. **Get the diff since the latest release**
 
+   Compare the current branch against the main branch (`git diff main...HEAD`) to identify all changes. For project-specific details:
    - **npm package**: Follow instructions in [node-package.md](references/node-package.md)
    - **agent-skills**: Follow instructions in [agent-skills.md](references/agent-skills.md)
 
@@ -117,7 +131,7 @@ Use Keep a Changelog format for all CHANGELOG entries:
 
 5. **Update CHANGELOG(s)**
 
-   Add a new version entry at the top of the relevant CHANGELOG file(s) with today's date and categorized changes.
+   Check if a version entry was already added in the current branch. If so, append new changes to that entry (and adjust the version number if the requested component differs). Otherwise, add a new version entry at the top of the relevant CHANGELOG file(s) with categorized changes.
 
 6. **Bump version number(s)**
 
