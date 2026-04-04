@@ -145,6 +145,10 @@ Skills referenced in workflow YAML files must use the full plugin namespace to a
   skill: sdlc-plan
 ```
 
+### Marketplace Ordering
+
+Plugins in `.claude-plugin/marketplace.json` must be listed in alphabetical order by `name`.
+
 ### Code Style and Formatting
 
 CI validates format, lint, and tests on all pull requests. Run locally before opening a pull request:
