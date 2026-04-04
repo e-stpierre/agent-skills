@@ -1,6 +1,13 @@
 {
   "name": "agent-skills",
+  "version": "0.4.0",
+  "description": "A collection of modular extensions for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/e-stpierre/agent-skills.git"
+  },
+  "license": "MIT",
   "scripts": {
     "lint": "markdownlint-cli2 \"**/*.md\"",
     "format": "prettier --check .",
