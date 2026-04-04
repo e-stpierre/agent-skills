@@ -4,7 +4,7 @@ description: >-
   Update library versions by analyzing changes since the last release. Supports npm packages (package.json + root CHANGELOG)
   and agent-skills repositories (per-plugin CHANGELOGs + marketplace.json). Automatically detects version component or accepts
   an explicit major/minor/patch argument.
-argument-hint: "[version-component]"
+argument-hint: "[version-component] [context]"
 ---
 
 # Bump Version
@@ -18,6 +18,9 @@ Analyze the diff between the current code and the latest released version, then 
 ### Definitions
 
 - **`[version-component]`** (optional): The semantic version component to increment. Valid values: `major`, `minor`, `patch`. If not provided, automatically detect based on the nature of changes.
+- **`[context]`** (optional): Additional context for the version bump. Common use cases:
+  - A short mention or list of changes to include in the CHANGELOG (will be converted to proper CHANGELOG entries)
+  - Full CHANGELOG entries to use as-is (must follow the bullet-point format defined in CHANGELOG Format)
 
 ### Values
 
@@ -132,6 +135,10 @@ This same rule applies to global version files (`package.json`, `marketplace.jso
 5. **Update CHANGELOG(s)**
 
    Check if a version entry was already added in the current branch. If so, append new changes to that entry (and adjust the version number if the requested component differs). Otherwise, add a new version entry at the top of the relevant CHANGELOG file(s) with categorized changes.
+
+   If `context` was provided, use it to populate the CHANGELOG entries:
+   - If the context contains properly formatted CHANGELOG bullets (lines starting with `- `), use them as-is
+   - If the context is a short description or list, convert it into proper CHANGELOG entries following the format rules
 
 6. **Bump version number(s)**
 
