@@ -118,7 +118,6 @@ This same rule applies to global version files (`package.json`, `marketplace.jso
    - Follow the appropriate reference file based on the detected type
 
 2. **Determine the latest released version**
-
    - **npm package**: Read the `version` field from `package.json`
    - **agent-skills**: Read the latest version from each plugin's `CHANGELOG.md`
 
@@ -137,7 +136,7 @@ This same rule applies to global version files (`package.json`, `marketplace.jso
    Check if a version entry was already added in the current branch. If so, append new changes to that entry (and adjust the version number if the requested component differs). Otherwise, add a new version entry at the top of the relevant CHANGELOG file(s) with categorized changes.
 
    If `context` was provided, use it to populate the CHANGELOG entries:
-   - If the context contains properly formatted CHANGELOG bullets (lines starting with `- `), use them as-is
+   - If the context contains properly formatted CHANGELOG bullets (lines starting with '- '), use them as-is
    - If the context is a short description or list, convert it into proper CHANGELOG entries following the format rules
 
 6. **Bump version number(s)**

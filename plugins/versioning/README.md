@@ -9,9 +9,9 @@ Automated version management for libraries and plugin repositories. Analyzes cha
 
 ## Skills
 
-| Skill           | Description                                              |
-| --------------- | -------------------------------------------------------- |
-| `/bump-version` | Update version numbers and CHANGELOGs based on changes   |
+| Skill           | Description                                            |
+| --------------- | ------------------------------------------------------ |
+| `/bump-version` | Update version numbers and CHANGELOGs based on changes |
 
 ## Complete Examples
 
