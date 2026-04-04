@@ -40,7 +40,7 @@ pnpm check  # Format and lint
 ## Internal Tools
 
 - **`/normalize`** - Validate prompt files and READMEs against templates. Use `--autofix` to auto-fix issues.
-- **`/update-plugin`** - Analyze branch changes and update plugin versions following semantic versioning.
+- **`/bump-version`** - Analyze changes since the last release and update version numbers and CHANGELOGs following semantic versioning.
 - **`uv run .claude/re-install-plugins.py`** - Reinstall all plugins from the local marketplace (or specify plugin names to reinstall specific ones).
 
 ## Plugin Development
