@@ -6,21 +6,9 @@
   },
   "metadata": {
     "description": "A collection of human-in-the-loop interactive prompts for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains.",
-    "version": "0.3.0"
+    "version": "0.4.0"
   },
   "plugins": [
-    {
-      "name": "interactive-sdlc",
-      "source": "./plugins/interactive-sdlc",
-      "description": "[Beta] Interactive SDLC commands for guided development within agent sessions",
-      "version": "0.3.0",
-      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/interactive-sdlc",
-      "repository": "https://github.com/e-stpierre/agent-skills",
-      "license": "MIT",
-      "keywords": ["beta", "sdlc", "interactive"],
-      "category": "sdlc",
-      "strict": false
-    },
     {
       "name": "git",
       "source": "./plugins/git",
@@ -31,30 +19,6 @@
       "license": "MIT",
       "keywords": ["git", "branch", "commit", "pull-request"],
       "category": "git",
-      "strict": false
-    },
-    {
-      "name": "skill-builder",
-      "source": "./plugins/skill-builder",
-      "description": "[Beta] Tooling and templates for creating Claude Code skills with proper conventions",
-      "version": "0.1.0",
-      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/skill-builder",
-      "repository": "https://github.com/e-stpierre/agent-skills",
-      "license": "MIT",
-      "keywords": ["beta", "skill", "template", "scaffolding"],
-      "category": "development",
-      "strict": false
-    },
-    {
-      "name": "tasks",
-      "source": "./plugins/tasks",
-      "description": "Task tracking with structured IDs, progress tracking, and codebase analysis",
-      "version": "0.1.0",
-      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/tasks",
-      "repository": "https://github.com/e-stpierre/agent-skills",
-      "license": "MIT",
-      "keywords": ["tasks", "tracking", "improvements"],
-      "category": "productivity",
       "strict": false
     },
     {
@@ -70,6 +34,30 @@
       "strict": false
     },
     {
+      "name": "interactive-sdlc",
+      "source": "./plugins/interactive-sdlc",
+      "description": "[Beta] Interactive SDLC commands for guided development within agent sessions",
+      "version": "0.3.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/interactive-sdlc",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["beta", "sdlc", "interactive"],
+      "category": "sdlc",
+      "strict": false
+    },
+    {
+      "name": "skill-builder",
+      "source": "./plugins/skill-builder",
+      "description": "[Beta] Tooling and templates for creating Claude Code skills with proper conventions",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/skill-builder",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["beta", "skill", "template", "scaffolding"],
+      "category": "development",
+      "strict": false
+    },
+    {
       "name": "style",
       "source": "./plugins/style",
       "description": "[Beta] Formatting and style enforcement for markdown documentation",
@@ -79,6 +67,30 @@
       "license": "MIT",
       "keywords": ["beta", "markdown", "formatting", "style"],
       "category": "documentation",
+      "strict": false
+    },
+    {
+      "name": "tasks",
+      "source": "./plugins/tasks",
+      "description": "Task tracking with structured IDs, progress tracking, and codebase analysis",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/tasks",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["tasks", "tracking", "improvements"],
+      "category": "productivity",
+      "strict": false
+    },
+    {
+      "name": "versioning",
+      "source": "./plugins/versioning",
+      "description": "Automated version management with semantic versioning and CHANGELOG generation",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/versioning",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["versioning", "semver", "changelog"],
+      "category": "development",
       "strict": false
     }
   ]
