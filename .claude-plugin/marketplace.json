@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "A collection of human-in-the-loop interactive prompts for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains.",
-    "version": "0.4.0"
+    "version": "0.5.0"
   },
   "plugins": [
     {
