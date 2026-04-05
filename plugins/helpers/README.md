@@ -39,7 +39,7 @@ A collection of simple, highly reusable utility skills for everyday tasks. These
 
 **Arguments:**
 
-- `[context]` - The idea, plan, code snippet, or issue to discuss
+- `<context>` - The idea, plan, code snippet, or issue to discuss
 
 **Examples:**
 
