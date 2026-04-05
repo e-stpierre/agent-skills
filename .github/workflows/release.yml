@@ -17,13 +17,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Check for version change
         id: version
         run: |
           CURRENT_VERSION=$(jq -r '.metadata.version' .claude-plugin/marketplace.json)
-          LATEST_TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName' 2>/dev/null || echo "")
+          LATEST_TAG=$(gh release view --json tagName -q '.tagName' 2>/dev/null || echo "")
 
           if [ -z "$LATEST_TAG" ]; then
             echo "No previous release found"

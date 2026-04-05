@@ -1,6 +1,6 @@
 {
   "name": "agent-skills",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "A collection of modular extensions for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains",
   "private": true,
   "repository": {
