@@ -1,10 +1,6 @@
 # Changelog
 
-All notable changes to the helpers plugin will be documented in this file.
-
-## [0.1.0] - 2026-04-04
-
-### Added
+## 0.1.0
 
 - Initial release of helpers plugin
 - Added qna skill for answering questions without codebase modifications

@@ -2,7 +2,12 @@
 
 ## Overview
 
-This reference covers version bumping for agent-skills repositories that contain multiple plugins, each with its own `CHANGELOG.md`. An optional `.claude-plugin/marketplace.json` tracks the marketplace version independently.
+This reference covers version bumping for agent-skills repositories that contain multiple plugins. There are two levels of changelogs:
+
+1. **Root `CHANGELOG.md`**: A high-level changelog at the repository root that summarizes major changes across the entire project (e.g., "Added helpers plugin with `qna` and `rubberduck` skills"). Only include plugin-level summaries here, not detailed per-skill changes.
+2. **Plugin `plugins/<plugin-name>/CHANGELOG.md`**: A detailed changelog per plugin that tracks all changes specific to that plugin.
+
+An optional `.claude-plugin/marketplace.json` tracks the marketplace version independently.
 
 ## Identifying Changed Plugins
 
@@ -22,7 +27,7 @@ Read the latest version from each changed plugin's `CHANGELOG.md`:
 head -20 plugins/<plugin-name>/CHANGELOG.md
 ```
 
-The latest version is the first `## [X.Y.Z]` entry in the file.
+The latest version is the first `## X.Y.Z` entry in the file.
 
 ## Getting the Diff Per Plugin
 
@@ -35,6 +40,10 @@ git diff main...HEAD -- plugins/<plugin-name>/
 Analyze each plugin's diff independently to determine the appropriate version component.
 
 ## Files to Update
+
+### Root CHANGELOG.md
+
+Update the root `CHANGELOG.md` with a high-level summary entry for the new marketplace version. Each entry should describe changes at the plugin level (e.g., "Added helpers plugin with `qna` and `rubberduck` skills"), not individual skill-level details. Detailed changes belong in the plugin-level changelogs.
 
 ### Plugin CHANGELOG.md
 
