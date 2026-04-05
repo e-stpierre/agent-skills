@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "A collection of human-in-the-loop interactive prompts for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains.",
-    "version": "0.5.0"
+    "version": "0.4.1"
   },
   "plugins": [
     {
@@ -97,7 +97,7 @@
       "name": "versioning",
       "source": "./plugins/versioning",
       "description": "Automated version management with semantic versioning and CHANGELOG generation",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/versioning",
       "repository": "https://github.com/e-stpierre/agent-skills",
       "license": "MIT",

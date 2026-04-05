@@ -1,8 +1,11 @@
 # Changelog
 
-## 0.5.0
+## 0.4.1
 
-- Add helpers plugin with `qna` and `rubberduck` skills
+- Added helpers plugin with `qna` and `rubberduck` skills
+- Standardized CHANGELOG format across all plugins to flat bullet-point style
+- Updated versioning plugin with two-level changelog documentation
+- Updated release workflow to use actions/checkout@v5
 
 ## 0.4.0
 

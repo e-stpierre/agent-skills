@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Updated agent-skills reference with two-level changelog documentation
+- Updated CHANGELOG format to flat bullet-point style
+
 ## 0.1.0
 
 - Added bump-version skill with support for npm packages and agent-skills repositories
