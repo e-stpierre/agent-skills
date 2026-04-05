@@ -34,6 +34,18 @@
       "strict": false
     },
     {
+      "name": "helpers",
+      "source": "./plugins/helpers",
+      "description": "Simple, highly reusable utility skills for everyday tasks",
+      "version": "1.0.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/helpers",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["helpers", "qna", "rubberduck", "utility"],
+      "category": "utility",
+      "strict": false
+    },
+    {
       "name": "interactive-sdlc",
       "source": "./plugins/interactive-sdlc",
       "description": "[Beta] Interactive SDLC commands for guided development within agent sessions",
