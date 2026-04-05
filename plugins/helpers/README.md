@@ -9,10 +9,10 @@ A collection of simple, highly reusable utility skills for everyday tasks. These
 
 ## Skills
 
-| Skill | Description |
-| --- | --- |
-| `/helpers:qna` | Answer user questions with clear, concise responses |
-| `/helpers:rubberduck` | Rubber duck debugging and idea clarification |
+| Skill                 | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| `/helpers:qna`        | Answer user questions with clear, concise responses |
+| `/helpers:rubberduck` | Rubber duck debugging and idea clarification        |
 
 ## Complete Examples
 

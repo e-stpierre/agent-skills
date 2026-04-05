@@ -1,15 +1,14 @@
 ---
 name: qna
-description: Answer user questions with clear, concise responses
-argument-hint: <question>
-disable-model-invocation: false
+description: Answer questions clearly and concisely without modifying the codebase
+argument-hint: "<question>"
 ---
 
 # Q&A
 
 ## Overview
 
-Answer any question with a clear and concise response. This skill provides straightforward answers without making any changes to your codebase or performing any side effects.
+Answer any question with a clear and concise response. This is a read-only skill -- it gathers context when needed but never modifies the codebase, creates files, or runs commands with side effects.
 
 ## Arguments
 
@@ -23,15 +22,17 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- Provide direct, clear answers
-- Keep responses concise and focused
-- Do not modify code or perform any side effects
-- Do not ask follow-up questions
-- Use examples when helpful
+- Provide direct, clear answers without unnecessary preamble
+- Do not modify the codebase, create files, or run commands with side effects
+- Read-only operations (Read, Grep, Glob) are acceptable to gather context for answering
+- Use examples when they help clarify the answer
 
 ## Instructions
 
-1. Read the user's question
-2. Provide a clear, direct answer
-3. Use examples or additional context if it helps clarify the answer
-4. End with a brief summary if the answer is complex
+1. Parse the question from the arguments
+2. If code context is needed, gather it using read-only operations (Read, Grep, Glob)
+3. Provide a clear, concise answer based on the question and any gathered context
+
+## Output Guidance
+
+Direct text answer. No JSON, no structured output. Keep it brief and to the point.
