@@ -24,6 +24,7 @@ jobs:
         run: |
           CURRENT_VERSION=$(jq -r '.metadata.version' .claude-plugin/marketplace.json)
           LATEST_TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName' 2>/dev/null || echo "")
+          if [ "$LATEST_TAG" = "null" ]; then LATEST_TAG=""; fi
 
           if [ -z "$LATEST_TAG" ]; then
             echo "No previous release found"
