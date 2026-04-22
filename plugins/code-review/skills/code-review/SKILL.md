@@ -121,7 +121,6 @@ When issues are found, emit:
   ```
 
 - 🟡 `path/to/other/file:line-range` -- ...
-
 ````
 
 Use the emojis 🔴 🟠 🟡 🟢 on each finding to signal severity, ✅ to mark a clean result, and ❌ on the header line when issues exist.

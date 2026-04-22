@@ -10,8 +10,8 @@ High-signal code review that works the same way locally and in CI. The skill fla
 
 ## Skills
 
-| Skill                      | Description                                                               |
-| -------------------------- | ------------------------------------------------------------------------- |
+| Skill                      | Description                                                                |
+| -------------------------- | -------------------------------------------------------------------------- |
 | `/code-review:code-review` | Review a diff (local changes, a ref range, or a PR) for high-signal issues |
 
 ## Complete Examples
