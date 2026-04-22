@@ -6,9 +6,21 @@
   },
   "metadata": {
     "description": "A collection of human-in-the-loop interactive prompts for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains.",
-    "version": "0.4.1"
+    "version": "0.5.0"
   },
   "plugins": [
+    {
+      "name": "code-review",
+      "source": "./plugins/code-review",
+      "description": "High-signal code review for local changes or pull requests, usable locally and in CI",
+      "version": "0.1.0",
+      "homepage": "https://github.com/e-stpierre/agent-skills/tree/main/plugins/code-review",
+      "repository": "https://github.com/e-stpierre/agent-skills",
+      "license": "MIT",
+      "keywords": ["code-review", "review", "ci", "pull-request"],
+      "category": "development",
+      "strict": false
+    },
     {
       "name": "git",
       "source": "./plugins/git",
