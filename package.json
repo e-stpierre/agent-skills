@@ -1,11 +1,11 @@
 {
-  "name": "agent-skills",
+  "name": "skills",
   "version": "0.5.0",
   "description": "A collection of modular extensions for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains",
   "private": true,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/e-stpierre/agent-skills.git"
+    "url": "git+https://github.com/e-stpierre/skills.git"
   },
   "license": "MIT",
   "scripts": {

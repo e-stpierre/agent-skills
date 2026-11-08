@@ -1,13 +1,13 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <img src="agent-skills-banner.png" alt="Agent Skills" width="600">
+  <img src="banner.png" alt="ESP Skills" width="600">
 </p>
 
-<h1 align="center">Agent Skills</h1>
+<h1 align="center">ESP Skills</h1>
 
 <p align="center">
-  <a href="https://github.com/e-stpierre/agent-skills/releases"><img src="https://img.shields.io/github/v/release/e-stpierre/agent-skills?include_prereleases" alt="GitHub release"></a>
-  <a href="https://github.com/e-stpierre/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/github/license/e-stpierre/agent-skills" alt="License"></a>
+  <a href="https://github.com/e-stpierre/skills/releases"><img src="https://img.shields.io/github/v/release/e-stpierre/skills?include_prereleases" alt="GitHub release"></a>
+  <a href="https://github.com/e-stpierre/skills/blob/main/LICENSE"><img src="https://img.shields.io/github/license/e-stpierre/skills" alt="License"></a>
 </p>
 
 <p align="center">
@@ -54,7 +54,7 @@ All skills ship in a single plugin and are invoked as `/esp-skills:<skill>`. See
 
 ## Contributing
 
-Found a bug or have a suggestion? Please [open an issue](https://github.com/e-stpierre/agent-skills/issues) on GitHub.
+Found a bug or have a suggestion? Please [open an issue](https://github.com/e-stpierre/skills/issues) on GitHub.
 
 ## License
 

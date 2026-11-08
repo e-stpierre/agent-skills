@@ -10,3 +10,6 @@ node_modules/
 
 # Agentic
 agentic/*
+
+# Local notes
+local/

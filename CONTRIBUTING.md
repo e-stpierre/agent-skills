@@ -1,11 +1,11 @@
-# Contributing to Agent Skills
+# Contributing to ESP Skills
 
 Thank you for your interest in contributing! This guide will help you get started.
 
 ## Ways to Contribute
 
-- **Report bugs** - Found something broken? [Open an issue](https://github.com/e-stpierre/agent-skills/issues)
-- **Suggest features** - Have an idea for a new plugin or enhancement? [Let us know](https://github.com/e-stpierre/agent-skills/issues)
+- **Report bugs** - Found something broken? [Open an issue](https://github.com/e-stpierre/skills/issues)
+- **Suggest features** - Have an idea for a new plugin or enhancement? [Let us know](https://github.com/e-stpierre/skills/issues)
 - **Improve docs** - Fix typos, clarify explanations, add examples
 - **Write code** - Bug fixes, new plugins, improvements to existing ones
 
@@ -49,7 +49,7 @@ pnpm check  # Format and lint
 
 Each plugin lives in its own directory:
 
-- `/plugins/` - Official, stable plugins
+- `/plugins/` - Official, stable plugins (currently a single plugin, `esp-skills`, holding every skill)
 
 ```text
 plugins/<plugin-name>/
@@ -129,8 +129,8 @@ Be respectful and constructive. We're all here to build useful tools together.
 
 ## Questions?
 
-[Open an issue](https://github.com/e-stpierre/agent-skills/issues) with the `question` label.
+[Open an issue](https://github.com/e-stpierre/skills/issues) with the `question` label.
 
 ---
 
-Thank you for contributing to Agent Skills!
+Thank you for contributing to ESP Skills!
