@@ -186,7 +186,7 @@ Instructions:
 - Example:
   This plugin requires the `core` plugin to be installed first:
   ```bash
-  /plugin install core@agent-skills
+  /plugin install esp-skills@esp
   ```
 -->
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- **Breaking**: consolidated all 9 plugins into a single `esp-skills` plugin; skills are now invoked as `/esp-skills:<skill>`
+- **Breaking**: renamed the marketplace from `estpierre-agent-skills` to `esp`; reinstall with `/plugin install esp-skills@esp`
+- Renamed the repository from `agent-skills` to `skills` (`e-stpierre/skills`)
+- Replaced `CLAUDE.md` with an agent-neutral `AGENTS.md`
+
 ## 0.4.1
 
 - Added helpers plugin with `qna` and `rubberduck` skills
