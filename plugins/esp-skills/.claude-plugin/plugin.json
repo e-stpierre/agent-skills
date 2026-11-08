@@ -1,0 +1,25 @@
+{
+  "name": "esp-skills",
+  "version": "0.6.0",
+  "description": "Git workflows, PR maintenance, code review, SDLC planning and analysis, helpers, markdown style, and skill authoring skills",
+  "author": {
+    "name": "Étienne St-Pierre",
+    "email": "me@estpierre.dev"
+  },
+  "homepage": "https://github.com/e-stpierre/skills/tree/main/plugins/esp-skills",
+  "repository": "https://github.com/e-stpierre/skills",
+  "license": "MIT",
+  "skills": [
+    "./skills/git/esp-branch",
+    "./skills/git/esp-commit",
+    "./skills/git/esp-pr",
+    "./skills/github/esp-fix-pr",
+    "./skills/review/esp-code-review",
+    "./skills/sdlc/esp-sdlc-plan",
+    "./skills/sdlc/esp-analyze",
+    "./skills/helpers/esp-qna",
+    "./skills/helpers/esp-rubberduck",
+    "./skills/style/esp-markdown",
+    "./skills/authoring/esp-create-skill"
+  ]
+}

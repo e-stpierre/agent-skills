@@ -31,7 +31,7 @@ Sub-agent configurations for specialized, autonomous task execution. Agents shou
 
 #### `skills/`
 
-Reusable skill modules that provide composable functionality. Each skill is a directory containing:
+Reusable skill modules that provide composable functionality. Skills are grouped in category subfolders (`skills/<category>/<skill-name>/`, e.g., `skills/git/esp-branch/`). Each skill must be listed in the `skills` array of the plugin's `.claude-plugin/plugin.json` to ship with the plugin; skills that are not listed (e.g., work in progress kept under `skills/in-progress/`) stay in the repository but are not installed. Each skill is a directory containing:
 
 - `SKILL.md` (required) - Main skill definition file (uppercase)
 - `references/` (optional) - Additional documentation files
@@ -78,7 +78,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 ### File Formats
 
 - **Agents**: Markdown (`.md`) files in `plugins/<plugin-name>/agents/`
-- **Skills**: Directory per skill in `plugins/<plugin-name>/skills/<skill-name>/SKILL.md`
+- **Skills**: Directory per skill in `plugins/<plugin-name>/skills/<category>/<skill-name>/SKILL.md`, listed in the `skills` array of `plugins/<plugin-name>/.claude-plugin/plugin.json`
 - **Hooks**: Shell scripts (`.sh`) or executable programs in `plugins/<plugin-name>/hooks/`
 
 ### Prompt Template Convention
@@ -86,7 +86,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 All prompt files (agents, skills) and plugin READMEs must follow the exact structure defined in the template files:
 
 - `docs/templates/agent-template.md` - Structure for agent prompts
-- `plugins/esp-skills/skills/esp-create-skill/references/action-skill-template.md` - Structure for skill prompts
+- `plugins/esp-skills/skills/authoring/esp-create-skill/references/action-skill-template.md` - Structure for skill prompts
 - `docs/templates/readme-template.md` - Structure for plugin README files
 
 **Placeholder Convention:**

@@ -6,4 +6,5 @@
 - **Breaking**: skill namespaces changed from `<plugin>:<skill>` to `esp-skills:esp-<skill>` (e.g., `/git:git-commit` -> `/esp-skills:esp-commit`); uninstall the old plugins and install `esp-skills@esp`
 - **Breaking**: every skill is now prefixed with `esp-`; the git skills drop their `git-` prefix (`git-branch` -> `esp-branch`, `git-commit` -> `esp-commit`, `git-pr` -> `esp-pr`)
 - **Removed**: `add-task` and `bump-version` skills (tasks and versioning plugins)
+- Skills are grouped in category subfolders (`git`, `github`, `review`, `sdlc`, `helpers`, `style`, `authoring`) and registered explicitly in `.claude-plugin/plugin.json`
 - Included skills: esp-analyze, esp-branch, esp-code-review, esp-commit, esp-create-skill, esp-fix-pr, esp-markdown, esp-pr, esp-qna, esp-rubberduck, esp-sdlc-plan

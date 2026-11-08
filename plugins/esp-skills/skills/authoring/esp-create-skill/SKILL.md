@@ -111,8 +111,9 @@ Add `context: fork` when a skill should run in isolation without conversation hi
    - Name should be descriptive of the action
 
 2. **Create the skill directory**
-   - Create `plugins/<plugin-name>/skills/<skill-name>/` directory
+   - Create `plugins/<plugin-name>/skills/<category>/<skill-name>/` directory, reusing an existing category when one fits
    - The directory name must match the skill name
+   - If the plugin has a `.claude-plugin/plugin.json` with a `skills` array, add `./skills/<category>/<skill-name>` to it so the skill ships with the plugin
 
 3. **Read the template**
    - Load [action-skill-template.md](references/action-skill-template.md)
