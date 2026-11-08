@@ -1,7 +1,7 @@
 ---
 name: normalize
 description: Validate files against prompt reference guidelines
-argument-hint: [--autofix] [paths...]
+argument-hint: "[--autofix] [paths...]"
 ---
 
 # Normalize
@@ -13,10 +13,10 @@ Validate that prompt files and plugin READMEs conform to the exact structure def
 Templates used for validation:
 
 - `docs/templates/agent-template.md` for agents
-- `plugins/skill-builder/skills/create-skill/references/action-skill-template.md` for skills
+- `plugins/esp-skills/skills/authoring/esp-create-skill/references/action-skill-template.md` for skills
 - `docs/templates/readme-template.md` for plugin READMEs
 
-All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`) with HTML comment instructions. See `CLAUDE.md` section "Prompt Template Convention" for complete details.
+All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`) with HTML comment instructions. See `AGENTS.md` section "Prompt Template Convention" for complete details.
 
 ## Arguments
 
@@ -57,6 +57,7 @@ Arguments: $ARGUMENTS
 
    **Pass 2: Filter and classify discovered files**
    - Exclude non-prompt files: `CHANGELOG.md`, `CLAUDE.example.md`, and similar
+   - Exclude skill support files: anything under a skill's `references/`, `scripts/`, or `assets/` directory (e.g., `skills/sdlc/esp-analyze/references/bug.md`)
    - Classify remaining files based on path patterns (see step 2)
 
    **Verification**: After discovery, report the total count of files found. If zero files are found when no arguments provided, warn that something may be wrong with the search.
@@ -65,15 +66,16 @@ Arguments: $ARGUMENTS
 
    Determine the file type by checking if the file path contains these directory patterns:
 
-   | Path Contains           | Type   | Template to Read                                                                |
-   | ----------------------- | ------ | ------------------------------------------------------------------------------- |
-   | `/agents/` or `agents`  | Agent  | `docs/templates/agent-template.md`                                              |
-   | `/skills/` or `skills`  | Skill  | `plugins/skill-builder/skills/create-skill/references/action-skill-template.md` |
-   | `/hooks/` or `hooks`    | Hook   | (no template - skip validation)                                                 |
-   | Filename is `README.md` | README | `docs/templates/readme-template.md`                                             |
+   | Path Matches                              | Type   | Template to Read                                                                           |
+   | ----------------------------------------- | ------ | ------------------------------------------------------------------------------------------ |
+   | `.md` file under an `agents/` segment     | Agent  | `docs/templates/agent-template.md`                                                         |
+   | `SKILL.md` file under a `skills/` segment | Skill  | `plugins/esp-skills/skills/authoring/esp-create-skill/references/action-skill-template.md` |
+   | File under a `hooks/` segment             | Hook   | (no template - skip validation)                                                            |
+   | Filename is `README.md`                   | README | `docs/templates/readme-template.md`                                                        |
 
    **Classification rules:**
-   - Check path segments, not substrings (e.g., `/agents/` not just `agent`)
+   - Check path segments, not substrings (e.g., `/agents/` not just `agent`; the plugin directory `esp-skills/` is not a `skills/` segment)
+   - Only files named `SKILL.md` are skills; other `.md` files inside a skill directory are support files and are skipped
    - README.md files in plugin roots are validated; README.md in subdirectories are skipped
    - Files like CHANGELOG.md, CLAUDE.example.md are skipped (not prompts)
    - If a file cannot be classified, skip it and note in the report
@@ -95,13 +97,24 @@ Arguments: $ARGUMENTS
    - Validate:
      - All required fields are present
      - `name` field uses kebab-case
+     - For skills, `name` equals the name of the directory containing `SKILL.md` (e.g., `skills/git/esp-branch/SKILL.md` must have `name: esp-branch`)
      - `description` is a one-line description (under 100 characters recommended)
      - Field values match expected formats from template
 
    For README files:
    - READMEs do not have frontmatter - skip this step
 
-5. **Validate Section Structure**
+5. **Validate Plugin Skill Registration**
+
+   For each plugin that has a `.claude-plugin/plugin.json` with a `skills` array (skip this step when validating only specific files that are not skills):
+   - Every skill directory (a directory containing `SKILL.md`) under the plugin's `skills/` folder is listed in the array as `./skills/<category>/<skill-name>`
+   - Skills under `skills/in-progress/` are not required to be listed; report them as `[INFO]` (not shipped)
+   - Every path listed in the array exists and contains a `SKILL.md`
+   - No path is listed twice
+
+   Report missing or stale entries as `[FAIL]`. Never edit `plugin.json`, even with `--autofix`: whether a skill ships is the author's decision.
+
+6. **Validate Section Structure**
 
    Compare the file's sections against the template:
    - Extract all `##` level headings from the file
@@ -116,21 +129,21 @@ Arguments: $ARGUMENTS
    - Prompt sections (Agents, Skills, Hooks) are only present if plugin has those prompts
    - Optional sections are only present when applicable (per template instructions)
 
-6. **Validate Section Content**
+7. **Validate Section Content**
 
    Based on template HTML comments, validate content patterns:
    - Check character encoding (code files: ASCII only; markdown files: ASCII plus minimal functional emojis allowed)
    - Verify `{{placeholders}}` are replaced with actual values
    - Verify HTML comments from template are removed
 
-7. **Apply Autofix (if `--autofix` flag is present)**
+8. **Apply Autofix (if `--autofix` flag is present)**
 
    When `--autofix` is specified:
 
    **Frontmatter fixes:**
    - Add missing frontmatter block if absent
    - Add missing required fields with sensible defaults derived from:
-     - `name`: Derive from filename (convert to kebab-case)
+     - `name`: For skills, use the directory name; otherwise derive from filename (convert to kebab-case)
      - `description`: Use first paragraph or heading as basis
      - Other fields: Use defaults from template examples
 
@@ -142,6 +155,7 @@ Arguments: $ARGUMENTS
 
    **Content fixes:**
    - Convert non-kebab-case names to kebab-case in frontmatter
+   - Set a skill's frontmatter `name` to its directory name when they differ (never rename the directory)
    - Replace non-ASCII characters with ASCII equivalents
    - Preserve all existing content
 
@@ -150,7 +164,7 @@ Arguments: $ARGUMENTS
    - Preserve all existing content
    - Report each modification made
 
-8. **Generate Report**
+9. **Generate Report**
 
    For each file, report:
    - File path and detected type
@@ -162,6 +176,8 @@ Arguments: $ARGUMENTS
      - Sections in wrong order
      - Content format issues
    - Suggested fixes (validate-only mode) or modifications applied (autofix mode)
+
+   For each plugin with a `plugin.json`, report a **Skill registration** block listing unlisted skills, stale entries, duplicates, and `in-progress` skills.
 
    Summary at end:
    - Total files checked
@@ -186,7 +202,7 @@ Arguments: $ARGUMENTS
 
 ### path/to/skill/SKILL.md (Skill)
 
-Template: plugins/skill-builder/skills/create-skill/references/action-skill-template.md
+Template: plugins/esp-skills/skills/authoring/esp-create-skill/references/action-skill-template.md
 
 **Frontmatter:**
 
@@ -213,6 +229,12 @@ Template: docs/templates/readme-template.md
 - [PASS] All required sections present
 - [WARN] "Agents" section present but plugin has no agents/ directory
 
+### plugins/my-plugin/.claude-plugin/plugin.json (Skill registration)
+
+- [PASS] 11 skills listed, all paths exist
+- [FAIL] Skill not listed: `./skills/sdlc/esp-build`
+- [INFO] Not shipped (in progress): `skills/in-progress/esp-recap`
+
 ## Summary
 
 - Files checked: 32
@@ -233,7 +255,7 @@ Template: docs/templates/readme-template.md
 
 ### path/to/skill/SKILL.md (Skill)
 
-Template: plugins/skill-builder/skills/create-skill/references/action-skill-template.md
+Template: plugins/esp-skills/skills/authoring/esp-create-skill/references/action-skill-template.md
 
 - [FIXED] Added missing section: "Output Guidance"
 - [FIXED] Renamed section: "## arguments" -> "## Arguments"

@@ -1,13 +1,13 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
-  <img src="agent-skills-banner.png" alt="Agent Skills" width="600">
+  <img src="banner.png" alt="ESP Skills" width="600">
 </p>
 
-<h1 align="center">Agent Skills</h1>
+<h1 align="center">ESP Skills</h1>
 
 <p align="center">
-  <a href="https://github.com/e-stpierre/agent-skills/releases"><img src="https://img.shields.io/github/v/release/e-stpierre/agent-skills?include_prereleases" alt="GitHub release"></a>
-  <a href="https://github.com/e-stpierre/agent-skills/blob/main/LICENSE"><img src="https://img.shields.io/github/license/e-stpierre/agent-skills" alt="License"></a>
+  <a href="https://github.com/e-stpierre/skills/releases"><img src="https://img.shields.io/github/v/release/e-stpierre/skills?include_prereleases" alt="GitHub release"></a>
+  <a href="https://github.com/e-stpierre/skills/blob/main/LICENSE"><img src="https://img.shields.io/github/license/e-stpierre/skills" alt="License"></a>
 </p>
 
 <p align="center">
@@ -26,92 +26,35 @@
 1. Add this repository as a plugin marketplace:
 
    ```bash
-   /plugin marketplace add e-stpierre/agent-skills
+   /plugin marketplace add e-stpierre/skills
    ```
 
-2. Install the plugin(s) you need and refer to their README for usage.
+2. Install the `esp-skills` plugin:
 
-## Plugins
+   ```bash
+   /plugin install esp-skills@esp
+   ```
 
-### Interactive-SDLC
+## Usage
 
-Interactive SDLC commands for guided development through user questions and feedback.
-
-**Best for**: Interactive development where you want to be involved in decisions.
-
-#### Installation
+All skills ship in a single plugin and are invoked as `/esp-skills:<skill>`. See the [ESP Skills README](plugins/esp-skills/README.md) for every skill and its arguments.
 
 ```bash
-/plugin install interactive-sdlc@agent-skills
-```
+# Create a branch, commit, and open a pull request
+/esp-skills:esp-branch feature add-oauth 123
+/esp-skills:esp-commit
+/esp-skills:esp-pr
 
-#### Examples
-
-See [Interactive-SDLC README](plugins/interactive-sdlc/README.md) for all commands and options.
-
-```bash
 # Plan a feature with milestones and implementation steps
-/sdlc-plan feature Add OAuth login
+/esp-skills:esp-sdlc-plan feature Add OAuth login
 
-# Run analysis on your codebase (bugs, docs, debt, style, security)
-/analyze security
-
-```
-
-### Git
-
-Standardized git workflow skills for branch creation, structured commits, and pull request management.
-
-**Best for**: Consistent git workflows with naming conventions and AI attribution.
-
-#### Installation
-
-```bash
-/plugin install git@agent-skills
-```
-
-#### Examples
-
-See [Git README](plugins/git/README.md) for all commands and options.
-
-```bash
-# Create a branch with standardized naming
-/git-branch feature add-oauth 123
-
-# Commit with structured message and AI attribution
-/git-commit
-
-# Create a pull request
-/git-pr
-```
-
-### Tasks
-
-Task tracking with structured IDs, progress tracking, and optional codebase analysis.
-
-**Best for**: Tracking improvement opportunities, bugs, and technical debt in a structured document.
-
-#### Installation
-
-```bash
-/plugin install tasks@agent-skills
-```
-
-#### Examples
-
-See [Tasks README](plugins/tasks/README.md) for all commands and options.
-
-```bash
-# Add a task with context
-/add-task Fix error handling in auth module
-
-# Add a task with codebase exploration
-/add-task --explore Improve database query performance
+# Review a pull request for high-signal issues
+/esp-skills:esp-code-review PR 123
 ```
 
 ## Contributing
 
-Found a bug or have a suggestion? Please [open an issue](https://github.com/e-stpierre/agent-skills/issues) on GitHub.
+Found a bug or have a suggestion? Please [open an issue](https://github.com/e-stpierre/skills/issues) on GitHub.
 
 ## License
 
