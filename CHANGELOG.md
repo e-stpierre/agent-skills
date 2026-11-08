@@ -2,7 +2,8 @@
 
 ## 0.6.0
 
-- **Breaking**: consolidated all 9 plugins into a single `esp-skills` plugin; skills are now invoked as `/esp-skills:<skill>`
+- **Breaking**: consolidated all 9 plugins into a single `esp-skills` plugin; skills are now invoked as `/esp-skills:esp-<skill>`; every skill is prefixed with `esp-` and the git skills drop their `git-` prefix (`esp-branch`, `esp-commit`, `esp-pr`)
+- Removed the `add-task` and `bump-version` skills
 - **Breaking**: renamed the marketplace from `estpierre-agent-skills` to `esp`; reinstall with `/plugin install esp-skills@esp`
 - Renamed the repository from `agent-skills` to `skills` (`e-stpierre/skills`)
 - Replaced `CLAUDE.md` with an agent-neutral `AGENTS.md`

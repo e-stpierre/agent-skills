@@ -1,5 +1,5 @@
 ---
-name: git-commit
+name: esp-commit
 description: Commit changes with a structured message
 argument-hint: "[message]"
 ---

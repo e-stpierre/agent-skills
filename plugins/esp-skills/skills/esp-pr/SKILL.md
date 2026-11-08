@@ -1,5 +1,5 @@
 ---
-name: git-pr
+name: esp-pr
 description: Create a pull request with contextual title and description
 argument-hint: "[--draft] [base-branch]"
 ---

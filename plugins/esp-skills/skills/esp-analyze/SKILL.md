@@ -1,5 +1,5 @@
 ---
-name: analyze
+name: esp-analyze
 description: Analyze codebase for bugs, debt, documentation, security, or style issues
 argument-hint: <type> [context]
 ---

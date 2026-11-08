@@ -1,5 +1,5 @@
 ---
-name: markdown
+name: esp-markdown
 description: >-
   MUST be used before creating, editing, or reviewing any markdown (.md) file.
   Enforces project formatting conventions and non-auto-fixable lint rules.

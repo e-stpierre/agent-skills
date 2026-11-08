@@ -1,5 +1,5 @@
 ---
-name: code-review
+name: esp-code-review
 description: Perform a high-signal code review of local changes or a pull request. Flags only bugs, security issues, and clear CLAUDE.md violations - no style nitpicks. Works locally (git diff) or in CI (gh pr diff). The skill produces the review text; routing it (comment, stdout, file) is the caller's responsibility.
 argument-hint: "[target]"
 ---

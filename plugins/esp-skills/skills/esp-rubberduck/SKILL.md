@@ -1,5 +1,5 @@
 ---
-name: rubberduck
+name: esp-rubberduck
 description: Clarify ideas through discussion, questions, and suggestions based on conversation context
 argument-hint: "<context>"
 ---

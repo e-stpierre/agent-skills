@@ -1,5 +1,5 @@
 ---
-name: git-branch
+name: esp-branch
 description: Create a branch with standardized naming convention
 argument-hint: "<branch-name> [category] [issue-id] [base]"
 ---

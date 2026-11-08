@@ -40,7 +40,6 @@ pnpm check  # Format and lint
 ## Internal Tools
 
 - **`/normalize`** - Validate prompt files and READMEs against templates. Use `--autofix` to auto-fix issues.
-- **`/bump-version`** - Analyze changes since the last release and update version numbers and CHANGELOGs following semantic versioning.
 ## Plugin Development
 
 ### Structure

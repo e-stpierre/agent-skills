@@ -1,5 +1,5 @@
 ---
-name: qna
+name: esp-qna
 description: Answer questions clearly and concisely without modifying the codebase
 argument-hint: "<question>"
 ---

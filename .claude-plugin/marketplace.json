@@ -12,7 +12,7 @@
     {
       "name": "esp-skills",
       "source": "./plugins/esp-skills",
-      "description": "Git workflows, PR maintenance, code review, SDLC planning and analysis, helpers, task tracking, markdown style, skill authoring, and versioning skills",
+      "description": "Git workflows, PR maintenance, code review, SDLC planning and analysis, helpers, markdown style, and skill authoring skills",
       "version": "0.6.0",
       "homepage": "https://github.com/e-stpierre/skills/tree/main/plugins/esp-skills",
       "repository": "https://github.com/e-stpierre/skills",
@@ -31,15 +31,10 @@
         "helpers",
         "qna",
         "rubberduck",
-        "tasks",
-        "tracking",
         "markdown",
         "style",
         "skill",
-        "template",
-        "versioning",
-        "semver",
-        "changelog"
+        "template"
       ],
       "category": "development",
       "strict": false

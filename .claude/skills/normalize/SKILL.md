@@ -13,7 +13,7 @@ Validate that prompt files and plugin READMEs conform to the exact structure def
 Templates used for validation:
 
 - `docs/templates/agent-template.md` for agents
-- `plugins/esp-skills/skills/create-skill/references/action-skill-template.md` for skills
+- `plugins/esp-skills/skills/esp-create-skill/references/action-skill-template.md` for skills
 - `docs/templates/readme-template.md` for plugin READMEs
 
 All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`) with HTML comment instructions. See `AGENTS.md` section "Prompt Template Convention" for complete details.
@@ -68,7 +68,7 @@ Arguments: $ARGUMENTS
    | Path Contains           | Type   | Template to Read                                                             |
    | ----------------------- | ------ | ---------------------------------------------------------------------------- |
    | `/agents/` or `agents`  | Agent  | `docs/templates/agent-template.md`                                           |
-   | `/skills/` or `skills`  | Skill  | `plugins/esp-skills/skills/create-skill/references/action-skill-template.md` |
+   | `/skills/` or `skills`  | Skill  | `plugins/esp-skills/skills/esp-create-skill/references/action-skill-template.md` |
    | `/hooks/` or `hooks`    | Hook   | (no template - skip validation)                                              |
    | Filename is `README.md` | README | `docs/templates/readme-template.md`                                          |
 
@@ -186,7 +186,7 @@ Arguments: $ARGUMENTS
 
 ### path/to/skill/SKILL.md (Skill)
 
-Template: plugins/esp-skills/skills/create-skill/references/action-skill-template.md
+Template: plugins/esp-skills/skills/esp-create-skill/references/action-skill-template.md
 
 **Frontmatter:**
 
@@ -233,7 +233,7 @@ Template: docs/templates/readme-template.md
 
 ### path/to/skill/SKILL.md (Skill)
 
-Template: plugins/esp-skills/skills/create-skill/references/action-skill-template.md
+Template: plugins/esp-skills/skills/esp-create-skill/references/action-skill-template.md
 
 - [FIXED] Added missing section: "Output Guidance"
 - [FIXED] Renamed section: "## arguments" -> "## Arguments"

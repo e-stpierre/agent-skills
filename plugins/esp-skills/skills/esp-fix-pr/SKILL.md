@@ -1,5 +1,5 @@
 ---
-name: fix-pr
+name: esp-fix-pr
 description: >-
   Fix all issues on a PR: review comments, failing CI checks
   (lint, format, build, tests), and push the results.

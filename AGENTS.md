@@ -63,7 +63,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 ### Naming Conventions
 
 - **Agents**: Use descriptive names with domain prefix (e.g., `devops-agent.md`, `test-agent.md`)
-- **Skills**: Use kebab-case directory names (e.g., `git-branch/`, `sdlc-plan/`) with `SKILL.md` inside
+- **Skills**: Use kebab-case directory names prefixed with `esp-` (e.g., `esp-branch/`, `esp-sdlc-plan/`) with `SKILL.md` inside. The skill `name` in the frontmatter must match the directory name
 - **Hooks**: Include event name (e.g., `session-start-hook.sh`, `tool-call-hook.sh`)
 
 ### Documentation Guidelines
@@ -86,7 +86,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 All prompt files (agents, skills) and plugin READMEs must follow the exact structure defined in the template files:
 
 - `docs/templates/agent-template.md` - Structure for agent prompts
-- `plugins/esp-skills/skills/create-skill/references/action-skill-template.md` - Structure for skill prompts
+- `plugins/esp-skills/skills/esp-create-skill/references/action-skill-template.md` - Structure for skill prompts
 - `docs/templates/readme-template.md` - Structure for plugin README files
 
 **Placeholder Convention:**
@@ -140,11 +140,11 @@ Skills referenced in workflow YAML files must use the full plugin namespace to a
 ```yaml
 # Correct - explicit namespace
 - type: skill
-  skill: esp-skills:sdlc-plan
+  skill: esp-skills:esp-sdlc-plan
 
 # Incorrect - ambiguous, could match multiple plugins
 - type: skill
-  skill: sdlc-plan
+  skill: esp-sdlc-plan
 ```
 
 ### Marketplace Ordering
