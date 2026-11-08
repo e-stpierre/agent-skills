@@ -16,7 +16,7 @@ Templates used for validation:
 - `plugins/skill-builder/skills/create-skill/references/action-skill-template.md` for skills
 - `docs/templates/readme-template.md` for plugin READMEs
 
-All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`) with HTML comment instructions. See `CLAUDE.md` section "Prompt Template Convention" for complete details.
+All templates use Mustache/Handlebars-style placeholders (`{{placeholder_name}}`) with HTML comment instructions. See `AGENTS.md` section "Prompt Template Convention" for complete details.
 
 ## Arguments
 

@@ -1,12 +1,14 @@
-# Claude
+# Agent Instructions
 
 ## Project Overview
 
-This repository is a collection of modular extensions for AI coding agents. It serves as a centralized hub for reusable agents, skills, hooks, configuration templates that enhance agent capabilities across diverse tasks and domains.
+The `skills` repository is a collection of modular extensions for AI coding agents. It serves as a centralized hub for reusable agents, skills, hooks, configuration templates that enhance agent capabilities across diverse tasks and domains.
+
+All components are currently shipped as a single plugin, `esp-skills`, published through the `esp` marketplace.
 
 ## Purpose
 
-The `agent-skills` repository aims to offer ready-to-use components that solve common problems.
+The `skills` repository aims to offer ready-to-use components that solve common problems.
 
 ## Repository Structure
 
@@ -17,7 +19,7 @@ This directory also contains template files for agent and skill. These templates
 
 ### `/plugins/`
 
-Root directory containing all plugins. Each plugin is self-contained within its own subdirectory.
+Root directory containing all plugins. Each plugin is self-contained within its own subdirectory. The current plugin is `esp-skills` (`plugins/esp-skills/`), which contains every skill in the repository.
 
 ### `/plugins/<plugin-name>/`
 
@@ -84,7 +86,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 All prompt files (agents, skills) and plugin READMEs must follow the exact structure defined in the template files:
 
 - `docs/templates/agent-template.md` - Structure for agent prompts
-- `plugins/skill-builder/skills/create-skill/references/action-skill-template.md` - Structure for skill prompts
+- `plugins/esp-skills/skills/create-skill/references/action-skill-template.md` - Structure for skill prompts
 - `docs/templates/readme-template.md` - Structure for plugin README files
 
 **Placeholder Convention:**
@@ -138,7 +140,7 @@ Skills referenced in workflow YAML files must use the full plugin namespace to a
 ```yaml
 # Correct - explicit namespace
 - type: skill
-  skill: agent-skills:sdlc-plan
+  skill: esp-skills:sdlc-plan
 
 # Incorrect - ambiguous, could match multiple plugins
 - type: skill

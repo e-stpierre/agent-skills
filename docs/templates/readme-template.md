@@ -17,7 +17,7 @@ PROMPT SECTIONS (include only if plugin contains prompts of that type):
 OPTIONAL SECTIONS (only include when applicable):
 - Documentation (only if plugin has additional docs to link to)
 - Dependencies (only if plugin depends on other plugins)
-- Configuration (only if plugin is configurable via command or CLAUDE.md)
+- Configuration (only if plugin is configurable via command or AGENTS.md)
 - Architecture (only when important to understand the plugin)
 - Limitations (only if there are noteworthy limitations)
 
@@ -201,7 +201,7 @@ Instructions:
 - Include if plugin has:
   - A /plugin:configure command
   - Settings that can be added to .claude/configs/plugin-name.json
-  - Instructions for CLAUDE.md customization
+  - Instructions for AGENTS.md / CLAUDE.md customization
 - Show example configuration with all options
 - Example:
   Configure in `.claude/configs/plugin-name.json`:
