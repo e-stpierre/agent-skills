@@ -1,7 +1,7 @@
 ---
 name: normalize
 description: Validate files against prompt reference guidelines
-argument-hint: [--autofix] [paths...]
+argument-hint: "[--autofix] [paths...]"
 ---
 
 # Normalize

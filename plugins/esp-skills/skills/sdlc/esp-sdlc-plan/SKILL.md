@@ -1,7 +1,7 @@
 ---
 name: esp-sdlc-plan
 description: Create an implementation plan for a task (feature, bug fix, or chore)
-argument-hint: [--git] [type] [explore-count] [path] [context]
+argument-hint: "[--git] [type] [explore-count] [path] [context]"
 ---
 
 # Plan
