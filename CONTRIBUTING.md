@@ -40,6 +40,7 @@ pnpm check  # Format and lint
 ## Internal Tools
 
 - **`/normalize`** - Validate prompt files and READMEs against templates. Use `--autofix` to auto-fix issues.
+
 ## Plugin Development
 
 ### Structure
