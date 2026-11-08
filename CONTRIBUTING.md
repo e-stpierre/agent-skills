@@ -41,8 +41,6 @@ pnpm check  # Format and lint
 
 - **`/normalize`** - Validate prompt files and READMEs against templates. Use `--autofix` to auto-fix issues.
 - **`/bump-version`** - Analyze changes since the last release and update version numbers and CHANGELOGs following semantic versioning.
-- **`uv run .claude/re-install-plugins.py`** - Reinstall all plugins from the local marketplace (or specify plugin names to reinstall specific ones).
-
 ## Plugin Development
 
 ### Structure
