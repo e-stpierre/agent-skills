@@ -21,16 +21,16 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/git-commit
 
 ### Git
 
-| Skill                   | Description                                          |
-| ----------------------- | ---------------------------------------------------- |
+| Skill                    | Description                                          |
+| ------------------------ | ---------------------------------------------------- |
 | `/esp-skills:git-branch` | Create branches with standardized naming conventions |
 | `/esp-skills:git-commit` | Commit changes with structured messages              |
 | `/esp-skills:git-pr`     | Create pull requests with contextual descriptions    |
 
 ### GitHub
 
-| Skill                | Description                                                                 |
-| -------------------- | --------------------------------------------------------------------------- |
+| Skill                | Description                                                                   |
+| -------------------- | ----------------------------------------------------------------------------- |
 | `/esp-skills:fix-pr` | **Beta** - Fix review comments and failing CI checks on a PR, then push fixes |
 
 ### Code Review
