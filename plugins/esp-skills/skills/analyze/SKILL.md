@@ -74,7 +74,7 @@ Load ONE of these based on the `<type>` argument:
 
 4. **Understand Project Context**
    - Check for linter configs (ESLint, Prettier, Ruff)
-   - Read CLAUDE.md for project-specific guidelines
+   - Read CLAUDE.md and AGENTS.md (if present) for project-specific guidelines
    - Analyze existing code patterns to understand conventions
 
 5. **Analyze for Issues**

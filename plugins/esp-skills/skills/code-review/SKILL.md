@@ -44,7 +44,7 @@ Flag only when at least one of these is true:
 - Code will fail to compile/parse (syntax errors, type errors, missing imports, unresolved references)
 - Code will definitely produce wrong results regardless of inputs (clear logic errors)
 - Real security issues introduced by the diff (injection, auth bypass, secret exposure, unsafe deserialization, etc.)
-- Clear, unambiguous CLAUDE.md violations where you can quote the exact rule. Only consider CLAUDE.md files whose directory is an ancestor of the reviewed file.
+- Clear, unambiguous CLAUDE.md (or AGENTS.md) violations where you can quote the exact rule. Only consider CLAUDE.md or AGENTS.md files whose directory is an ancestor of the reviewed file.
 
 ### What to never flag
 
@@ -83,7 +83,7 @@ If the resolved diff is empty, report that there is nothing to review and stop.
 ## Instructions
 
 1. Resolve the target per the rules in "Resolving the target" above and obtain the diff plus the list of changed files.
-2. Read the repository root `CLAUDE.md` if it exists. Then read any `CLAUDE.md` located in a directory that is an ancestor of a changed file. Do not read other files unless needed to validate a specific suspected issue.
+2. Read the repository root `CLAUDE.md` and `AGENTS.md` if they exist. Then read any `CLAUDE.md` or `AGENTS.md` located in a directory that is an ancestor of a changed file. Rules from `AGENTS.md` are treated exactly like CLAUDE.md rules throughout this skill. Do not read other files unless needed to validate a specific suspected issue.
 3. Walk the diff and collect candidate issues. For each candidate, ask: "Am I confident this is a real problem introduced by this diff?" If no, drop it.
 4. For each surviving issue, assign a severity and write one concise finding that:
    - Begins with the severity emoji (🔴 / 🟠 / 🟡 / 🟢)

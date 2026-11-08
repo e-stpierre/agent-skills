@@ -2,7 +2,7 @@
 name: bump-version
 description: >-
   Update library versions by analyzing changes since the last release. Supports npm packages (package.json + root CHANGELOG)
-  and agent-skills repositories (per-plugin CHANGELOGs + marketplace.json). Automatically detects version component or accepts
+  and plugin marketplace repositories (per-plugin CHANGELOGs + marketplace.json). Automatically detects version component or accepts
   an explicit major/minor/patch argument.
 argument-hint: "[version-component] [context]"
 ---
@@ -11,7 +11,7 @@ argument-hint: "[version-component] [context]"
 
 ## Overview
 
-Analyze the diff between the current code and the latest released version, then update version numbers and CHANGELOGs accordingly. Supports two project types: npm packages (single package.json and root CHANGELOG) and agent-skills repositories (per-plugin CHANGELOGs with optional marketplace.json). Automatically detects the appropriate version component from the nature of changes, or accepts an explicit override.
+Analyze the diff between the current code and the latest released version, then update version numbers and CHANGELOGs accordingly. Supports two project types: npm packages (single package.json and root CHANGELOG) and plugin marketplace repositories (per-plugin CHANGELOGs with optional marketplace.json). Automatically detects the appropriate version component from the nature of changes, or accepts an explicit override.
 
 ## Arguments
 
@@ -29,7 +29,7 @@ Arguments: $ARGUMENTS
 ## Additional Resources
 
 - For npm package version updates, see [node-package.md](references/node-package.md)
-- For agent-skills repository version updates, see [agent-skills.md](references/agent-skills.md)
+- For plugin marketplace repository version updates, see [plugin-marketplace.md](references/plugin-marketplace.md)
 
 ## Core Principles
 
@@ -57,9 +57,9 @@ Arguments: $ARGUMENTS
 Detect the project type to determine which reference to follow:
 
 - **npm package**: A `package.json` exists at the repository root with a `version` field
-- **agent-skills repository**: A `plugins/` directory exists containing plugin subdirectories with `CHANGELOG.md` files
+- **plugin marketplace repository**: A `plugins/` directory exists containing plugin subdirectories with `CHANGELOG.md` files
 
-If both indicators are present, prefer the agent-skills flow when operating inside an agent-skills repository structure.
+If both indicators are present, prefer the plugin marketplace flow when operating inside a plugin marketplace repository structure.
 
 ### Auto-Detection of Version Component
 
@@ -112,20 +112,20 @@ This same rule applies to global version files (`package.json`, `marketplace.jso
 
 1. **Detect project type**
 
-   Check if the project is an npm package or an agent-skills repository:
+   Check if the project is an npm package or a plugin marketplace repository:
    - Look for `package.json` at the root with a `version` field
    - Look for `plugins/` directory with plugin subdirectories containing `CHANGELOG.md` files
    - Follow the appropriate reference file based on the detected type
 
 2. **Determine the latest released version**
    - **npm package**: Read the `version` field from `package.json`
-   - **agent-skills**: Read the latest version from each plugin's `CHANGELOG.md`
+   - **plugin marketplace**: Read the latest version from each plugin's `CHANGELOG.md`
 
 3. **Get the diff since the latest release**
 
    Compare the current branch against the main branch (`git diff main...HEAD`) to identify all changes. For project-specific details:
    - **npm package**: Follow instructions in [node-package.md](references/node-package.md)
-   - **agent-skills**: Follow instructions in [agent-skills.md](references/agent-skills.md)
+   - **plugin marketplace**: Follow instructions in [plugin-marketplace.md](references/plugin-marketplace.md)
 
 4. **Determine version component**
 
@@ -143,7 +143,7 @@ This same rule applies to global version files (`package.json`, `marketplace.jso
 
    Update all version declarations to the new version:
    - **npm package**: Update `version` in `package.json`
-   - **agent-skills**: Update `marketplace.json` if it exists, and any other version files
+   - **plugin marketplace**: Update `marketplace.json` and plugin `plugin.json` manifests if they exist, and any other version files
 
 7. **Report changes**
 
@@ -158,7 +158,7 @@ Report the version bump results:
 ```text
 ## Version Bump Summary
 
-Project type: <npm-package | agent-skills>
+Project type: <npm-package | plugin-marketplace>
 
 ### Changes Analyzed
 - <brief summary of changes detected>

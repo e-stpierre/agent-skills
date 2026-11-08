@@ -93,7 +93,7 @@ Parse each comment to extract:
 For each comment, determine if it is **valid and actionable**:
 
 - **Valid**: The comment identifies a real issue (bug, missing handling, style violation, naming, logic error, performance concern, security issue) or requests a concrete change
-- **Invalid / Skip**: The comment is a question with no action, a compliment, already addressed by another commit, outdated (file/line no longer exists), or contradicts project conventions in CLAUDE.md
+- **Invalid / Skip**: The comment is a question with no action, a compliment, already addressed by another commit, outdated (file/line no longer exists), or contradicts project conventions in CLAUDE.md or AGENTS.md
 
 Classify each valid comment by severity:
 
