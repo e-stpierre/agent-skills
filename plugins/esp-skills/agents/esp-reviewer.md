@@ -18,7 +18,8 @@ Review a change with no knowledge of how it was built, so the review is not anch
 
 The spawn prompt provides:
 
-- **Diff**: the path of a diff file (for example `<run-dir>/review-1.diff`) or the diff text, plus the list of changed files
+- **Diff**: the path of a diff file (for example `<run-dir>/review-1.diff`) or the diff text, plus the list of changed files. Untracked files are listed separately: they are not in the diff, so read them in full as new files
+- **Pull request** (optional): its title, URL and description, to check the change against its stated intent
 - **Base and head**: the refs or SHAs the diff was taken from, for the report
 - **Dimensions**: a subset of `correctness`, `security`, `plan-conformance`, `tests`, `conventions`, `simplification`, `performance`. Default: `correctness`, `security`, `conventions`, `plan-conformance`
 - **Plan** (optional): the plan path and the milestone IDs the diff implements. Without it, skip `plan-conformance`
@@ -40,10 +41,11 @@ The spawn prompt provides:
    - **simplification**: duplicated logic, dead code, an existing helper the change re-implements
    - **performance**: work in hot loops, N+1 queries, unbounded growth, blocking calls on hot paths
 4. Report only issues the diff introduces or touches. Pre-existing issues elsewhere are not findings; mention a serious one as a discovered item.
+5. Never flag: issues a linter, formatter or type checker the repo runs would catch; issues silenced in code (lint-ignore, type-ignore); hypothetical problems that need an input the code never receives; style preferences the repo does not enforce; missing tests outside the `tests` dimension.
 
 ### Pass 2: Verify
 
-For every candidate, try to prove it wrong before keeping it: re-read the code path, look for a guard elsewhere, check whether a test already covers it, check whether the convention really exists. Keep a finding only when the evidence holds after this check. Count the candidates you rejected and give a one-line reason for each.
+For every candidate, try to prove it wrong before keeping it (skip this pass when **Verify** is `false`, write `Verify pass: skipped.` under the Dimensions line, and set `verified: false`): re-read the code path, look for a guard elsewhere, check whether a test already covers it, check whether the convention really exists. Keep a finding only when the evidence holds after this check. Count the candidates you rejected and give a one-line reason for each.
 
 ### Classify
 
@@ -99,7 +101,12 @@ Dimensions: correctness, security, conventions. Candidates: 9, verified: 3, reje
 - `src/auth/refresh.ts:12` missing null check: `getToken()` never returns null (`src/auth/store.ts:30`)
 ```
 
-- One `#### F<n> - <severity> - <dimension> - <class>` section per finding, most severe first. B-Decide findings list the options and mark the recommended one.
+- One `#### F<n> - <severity> - <dimension> - <class>` section per finding, most severe first, numbered from F1. `<class>` is `A`, `B-Decide` or `B-Scope`. `esp-review` parses this format with `scripts/review.mjs`, so keep it exact:
+  - The first line starts with the backticked location (`` `path:line` `` or `` `path:start-end` ``), a colon, and the issue in one sentence
+  - `- Evidence:` the code or fact that proves it
+  - `- Fix:` the change to make. B-Scope findings give the fix and recommend deferring it
+  - B-Decide findings give `- Options:` (separated by semicolons) and `- Recommended:` instead of, or in addition to, `- Fix:`
+- Keep the `Dimensions: <list>. Candidates: <n>, verified: <n>, rejected: <n>.` line: the counts feed the result block.
 - When nothing survives, write `No findings.` and still list the rejected candidates.
 - The result block is one line of JSON and the last line of the reply:
   - `status`: `done` (review complete, with or without findings) or `failed` (the diff could not be read)

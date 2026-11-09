@@ -10,7 +10,7 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-commit` - Commit changes with a structured message
 - `/esp-skills:esp-pr` - Create a pull request with a contextual description
 - `/esp-skills:esp-fix-pr 42` - Fix review comments and CI failures on a PR
-- `/esp-skills:esp-code-review PR 123` - Review a pull request for high-signal issues
+- `/esp-skills:esp-review PR 123` - Review a pull request across correctness, security, tests and conventions, with classified findings
 - `/esp-skills:esp-plan feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
 - `/esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login` - Build the plan, one verified commit per milestone
 - `/esp-skills:esp-analyze security` - Analyze the codebase for security issues
@@ -51,9 +51,9 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 
 ### Code Review
 
-| Skill                         | Description                                                                |
-| ----------------------------- | -------------------------------------------------------------------------- |
-| `/esp-skills:esp-code-review` | Review a diff (local changes, a ref range, or a PR) for high-signal issues |
+| Skill                    | Description                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------- |
+| `/esp-skills:esp-review` | Review a diff, branch or PR across dimensions; findings classified A, B-Decide, B-Scope |
 
 ### SDLC
 
@@ -121,13 +121,16 @@ Keys read by the current skills:
 | `analyze.output_dir`           | `analysis`                                | `esp-analyze`          | Directory for analysis reports                         |
 | `plan.default_type`            | `auto`                                    | `esp-plan`             | Plan type when `--type` is not given                   |
 | `plan.explore_agents`          | `feature: 3, bug: 2, chore: 2`            | `esp-plan`             | Explore subagents per plan type                        |
-| `defaults.interactive`         | `off`                                     | `esp-plan`             | When skills stop to ask (`off`, `plan`, `all`)         |
-| `defaults.models`              | see `references/model-selection.md`       | `esp-plan`, `esp-build` | Model and effort per subagent role                    |
+| `defaults.interactive`         | `off`                                     | `esp-plan`, `esp-review` | When skills stop to ask (`off`, `plan`, `all`)       |
+| `defaults.models`              | see `references/model-selection.md`       | `esp-plan`, `esp-build`, `esp-review` | Model and effort per subagent role      |
 | `build.max_retries_per_milestone` | `2`                                    | `esp-build`            | Builder retries before the build halts                 |
 | `build.parallel`               | `false`                                   | `esp-build`            | Run disjoint milestones in parallel worktrees          |
 | `build.commit_per_milestone`   | `true`                                    | `esp-build`            | `false` squashes milestone commits at the end          |
 | `build.gates`                  | all `null` (auto-detect)                  | `esp-build`            | Gate commands: `test`, `lint`, `typecheck`, `build`    |
 | `worktrees.root`               | `~/.esp-skills/worktrees`                 | `esp-build`            | Where parallel milestone worktrees are created         |
+| `review.dimensions`            | `correctness, security, conventions, plan-conformance` | `esp-review` | Dimensions checked when `--focus` names none |
+| `review.min_severity`          | `medium`                                  | `esp-review`           | Findings below it are dropped                          |
+| `review.verify_findings`       | `true`                                    | `esp-review`           | Run the verify pass that rejects false positives       |
 | `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
@@ -138,7 +141,6 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 | `worktrees.cleanup`                    | Worktree cleanup policy                                              |
 | `commit.review_fixes`                  | Review-fix commit style                                              |
 | `pr.body_from_run`, `pr.body_sections` | PR body built from run artifacts                                     |
-| `review`                               | Review dimensions, minimum severity, finding verification            |
 | `await-review`                         | Bot reviewers, triggers, timeout and polling                         |
 | `fix-review`                           | Review fix rounds, CI fixes, deferred items                          |
 | `merge`                                | Merge conditions and method                                          |
@@ -157,7 +159,7 @@ The SDLC skills (`esp-plan`, `esp-analyze`) accept an optional `[context]` argum
 /esp-skills:esp-plan --interactive plan bug
 ```
 
-The `esp-code-review` skill produces plain markdown and performs no write-side effects. Routing the review (stdout, PR comment, file, CI annotation) is the caller's responsibility.
+The `esp-review` skill produces markdown and a result block and performs no write-side effects on the repository. Routing the review (stdout, PR comment, file, CI annotation) is the caller's responsibility.
 
 ### Plans
 
@@ -186,6 +188,18 @@ node scripts/build.mjs gates --project-dir .
 - `state.json` records each milestone's status, attempts, base and commit, and the frozen config snapshot, so `--resume` continues where the build stopped
 - `--milestone next` runs one milestone per invocation, for loop-driven harness steps
 - An amended plan (`esp-plan --amend`) is picked up on the next call, and done milestones are kept
+
+### Reviews
+
+`esp-review` reviews a diff in a fresh-context `esp-reviewer` (or inline on a runtime without subagents) across the dimensions `correctness`, `security`, `plan-conformance`, `tests`, `conventions`, `simplification` and `performance`. A find pass collects candidates and a verify pass tries to prove each one wrong; survivors get a severity and a class from the decision policy (A, B-Decide, B-Scope) with a fix. `scripts/review.mjs` resolves the target into a diff file and parses the review into findings and a result block:
+
+```bash
+node scripts/review.mjs target main --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
+node scripts/review.mjs parse review-1.md --min-severity medium --md-out review-1.md --out review-1.json
+```
+
+- Findings below `review.min_severity` are dropped, and the counts by class and severity go to the result block
+- `review-<N>.json` (`review_format: 1`) is the machine-readable list a fixer consumes
 
 ### Run Directories
 
@@ -320,30 +334,43 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-fix-pr 42
 ```
 
-### /esp-skills:esp-code-review
+### /esp-skills:esp-review
 
 **Arguments:**
 
-- `[target]` - What to review. Omit for local changes. Accepts `staged`, `unstaged`, a ref (`main`, `origin/main`), a range (`main..HEAD`), or a PR reference (`PR 123`, `#123`).
+- `[--focus <area>]` - Comma-separated dimensions to review (`security,tests`), or a concern to weigh more heavily
+- `[--plan <path>]` - Plan the diff implements, for `plan-conformance` (default with `--run-dir`: the run's latest plan)
+- `[--interactive <mode>]` - `off`, `plan` or `all`; `all` settles B-Decide and B-Scope findings with you (default: `defaults.interactive`)
+- `[--run-dir <path>]` - Save `review-<N>.diff`, `.md` and `.json` in a run and record step `review-<N>` (default: a temporary directory, no run)
+- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
+- `[target]` - What to review. Omit for local changes (or the branch against the default branch when the tree is clean). Accepts `staged`, `unstaged`, a ref (`main`, `origin/main`), a range (`main..HEAD`), or a PR (`PR 123`, `#123`, a PR URL).
 
 **Examples:**
 
 ```bash
-# Review all local changes (staged + unstaged, or branch vs default if clean)
-/esp-skills:esp-code-review
+# Review all local changes (staged, unstaged and untracked, or the branch if clean)
+/esp-skills:esp-review
 
 # Review only staged changes, e.g. as a pre-commit sanity check
-/esp-skills:esp-code-review staged
+/esp-skills:esp-review staged
 
-# Review the current branch against main
-/esp-skills:esp-code-review main
-
-# Review an explicit range
-/esp-skills:esp-code-review origin/main..HEAD
+# Review the current branch against main, or an explicit range
+/esp-skills:esp-review main
+/esp-skills:esp-review origin/main..HEAD
 
 # Review a GitHub pull request (requires gh to be authenticated)
-/esp-skills:esp-code-review PR 123
-/esp-skills:esp-code-review #123
+/esp-skills:esp-review PR 123
+/esp-skills:esp-review #123
+
+# Review only security and tests, or weigh a concern more heavily
+/esp-skills:esp-review --focus security,tests main
+/esp-skills:esp-review --focus "token refresh" PR 123
+
+# Check the build of a run against its plan, saving the review in the run
+/esp-skills:esp-review --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login main
+
+# Settle B-Decide and B-Scope findings interactively
+/esp-skills:esp-review --interactive all
 ```
 
 ### /esp-skills:esp-plan

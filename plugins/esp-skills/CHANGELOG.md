@@ -14,6 +14,9 @@
 - Added `scripts/plan.mjs` to parse plans into JSON, lint them, and diff plan versions; `plan`, `defaults.interactive` and `defaults.models` are now active config keys
 - Added `esp-build` skill: builds a plan with one `esp-builder` commit per milestone, verified by `esp-verifier`, with retries that amend the commit, `--milestone next` single-milestone mode, `--resume`, and `--parallel` worktrees for disjoint milestones
 - Added `scripts/build.mjs` to manage `state.json` (milestone status, attempts, commits, frozen config), pick the next milestone, resolve builder and verifier models, and detect gate commands; `build` and `worktrees.root` are now active config keys
+- **Breaking**: renamed `esp-code-review` to `esp-review` (`/esp-skills:esp-code-review` -> `/esp-skills:esp-review`). The output is now the `esp-reviewer` finding format (`#### F<n> - <severity> - <dimension> - <class>`) followed by a contract result block, instead of the `## Code review` emoji list
+- `esp-review` reviews in a fresh-context `esp-reviewer` across configurable dimensions (correctness, security, plan conformance, tests, conventions, simplification, performance) with a find and a verify pass, classifies findings as A, B-Decide or B-Scope, and gains `--focus`, `--plan`, `--interactive`, `--run-dir` and `--config-snapshot`; untracked files and PR URLs are now reviewed too
+- Added `scripts/review.mjs` to resolve review targets into diff files and parse reviews into findings (`review-<N>.json`) and a result block; `review` is now an active config key
 - Skill templates allow valued options (`[--name <value>]`) for harness and orchestration inputs such as `--run-dir <path>`
 
 ## 0.6.0

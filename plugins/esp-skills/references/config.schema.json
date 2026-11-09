@@ -217,7 +217,7 @@
       }
     },
     "review": {
-      "description": "Reserved (esp-review): review dimensions and filtering.",
+      "description": "esp-review: review dimensions, minimum severity and finding verification.",
       "type": "object",
       "additionalProperties": false,
       "properties": {

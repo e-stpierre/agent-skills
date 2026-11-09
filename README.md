@@ -49,7 +49,7 @@ All skills ship in a single plugin and are invoked as `/esp-skills:<skill>`. See
 /esp-skills:esp-plan feature Add OAuth login
 
 # Review a pull request for high-signal issues
-/esp-skills:esp-code-review PR 123
+/esp-skills:esp-review PR 123
 ```
 
 ## Contributing
