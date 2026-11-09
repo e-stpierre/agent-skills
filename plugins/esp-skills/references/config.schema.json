@@ -146,11 +146,11 @@
           "type": "boolean"
         },
         "body_from_run": {
-          "description": "esp-go-light (and esp-pr with a run directory): build the PR body from run artifacts.",
+          "description": "esp-go, esp-go-light, and esp-pr with a run directory: build the PR body from run artifacts.",
           "type": "boolean"
         },
         "body_sections": {
-          "description": "esp-go-light (and esp-pr with a run directory): sections of a PR body built from run artifacts, in order.",
+          "description": "esp-go, esp-go-light, and esp-pr with a run directory: sections of a PR body built from run artifacts, in order.",
           "type": "array",
           "items": {
             "enum": [
@@ -304,7 +304,7 @@
       }
     },
     "go": {
-      "description": "Reserved (esp-go): full workflow. default_reviewers and halt_on are already read by esp-await-review, esp-fix-review and esp-go-light.",
+      "description": "esp-go: full workflow (phases, internal review rounds, worktree, draft PR, budgets). default_reviewers and halt_on are also read by esp-await-review, esp-fix-review and esp-go-light.",
       "type": "object",
       "additionalProperties": false,
       "properties": {

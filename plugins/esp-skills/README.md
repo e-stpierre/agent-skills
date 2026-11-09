@@ -16,6 +16,7 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-review PR 123` - Review a pull request across correctness, security, tests and conventions, with classified findings
 - `/esp-skills:esp-plan feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
 - `/esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login` - Build the plan, one verified commit per milestone
+- `/esp-skills:esp-go Add OAuth login with Google` - Take a feature from request to merged PR: plan, one commit per milestone, internal review, bot review fixes, merge
 - `/esp-skills:esp-go-light Add a --json flag to the status command` - Take a small task from request to merged PR in one session, escalating when it is not small
 - `/esp-skills:esp-analyze security` - Analyze the codebase for security issues
 - `/esp-skills:esp-qna How does OAuth 2.0 work?` - Get a concise answer without code changes
@@ -67,6 +68,7 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 | --------------------------- | -------------------------------------------------------------------- |
 | `/esp-skills:esp-plan`      | **Beta** - Create or amend a machine-readable implementation plan    |
 | `/esp-skills:esp-build`     | **Beta** - Build a plan with one verified commit per milestone       |
+| `/esp-skills:esp-go`        | **Beta** - Feature to merged PR, with phase subagents                |
 | `/esp-skills:esp-go-light`  | **Beta** - Small task to merged PR in one session, or escalate       |
 | `/esp-skills:esp-analyze`   | **Beta** - Analyze codebase for bugs, debt, docs, security, or style |
 
@@ -128,8 +130,8 @@ Keys read by the current skills:
 | `analyze.output_dir`           | `analysis`                                | `esp-analyze`          | Directory for analysis reports                         |
 | `plan.default_type`            | `auto`                                    | `esp-plan`             | Plan type when `--type` is not given                   |
 | `plan.explore_agents`          | `feature: 3, bug: 2, chore: 2`            | `esp-plan`             | Explore subagents per plan type                        |
-| `defaults.interactive`         | `off`                                     | `esp-plan`, `esp-review`, `esp-go-light` | When skills stop to ask (`off`, `plan`, `all`)       |
-| `defaults.models`              | see `references/model-selection.md`       | `esp-plan`, `esp-build`, `esp-review` | Model and effort per subagent role      |
+| `defaults.interactive`         | `off`                                     | `esp-plan`, `esp-review`, `esp-go`, `esp-go-light` | When skills stop to ask (`off`, `plan`, `all`)       |
+| `defaults.models`              | see `references/model-selection.md`       | `esp-plan`, `esp-build`, `esp-review`, `esp-go` | Model and effort per subagent role      |
 | `build.max_retries_per_milestone` | `2`                                    | `esp-build`            | Builder retries before the build halts                 |
 | `build.parallel`               | `false`                                   | `esp-build`            | Run disjoint milestones in parallel worktrees          |
 | `build.commit_per_milestone`   | `true`                                    | `esp-build`            | `false` squashes milestone commits at the end          |
@@ -142,8 +144,8 @@ Keys read by the current skills:
 | `await-review.timeout_minutes` | `30`                                      | `esp-await-review`     | Time before the wait gives up                          |
 | `await-review.poll_seconds`    | `60`                                      | `esp-await-review`     | First poll interval, backing off to 5x                 |
 | `await-review.auto_trigger`    | `false`                                   | `esp-await-review`     | Post trigger comments without `--trigger`              |
-| `go.default_reviewers`         | `["claude"]`                              | `esp-await-review`, `esp-fix-review`, `esp-go-light` | Reviewers waited for when `--reviewers` is not given |
-| `fix-review.max_rounds`        | `3`                                       | `esp-fix-review`       | Fix rounds when `--rounds` is not given                |
+| `go.default_reviewers`         | `["claude"]`                              | `esp-await-review`, `esp-fix-review`, `esp-go`, `esp-go-light` | Reviewers waited for when `--reviewers` is not given |
+| `fix-review.max_rounds`        | `3`                                       | `esp-fix-review`, `esp-go` | Fix rounds when `--rounds` is not given                |
 | `fix-review.fix_ci`            | `true`                                    | `esp-fix-review`       | Diagnose and fix failing CI checks                     |
 | `fix-review.reply_to_rejected` | `true`                                    | `esp-fix-review`       | Reply with the reason to rejected comments             |
 | `fix-review.deferred_items`    | `follow-up`                               | `esp-fix-review`       | `follow-up` (reply, resolve, discovered item) or `block` |
@@ -161,9 +163,15 @@ Keys read by the current skills:
 | `go-light.max_files_changed`   | `10`                                      | `esp-go-light`         | More changed files escalates to `esp-go`               |
 | `go-light.escalate_to_go`      | `true`                                    | `esp-go-light`         | `false`: continue over the file limit, halt on gates   |
 | `go-light.budgets.max_wall_minutes` | `60`                                 | `esp-go-light`         | Wall time budget, checked at each phase boundary       |
-| `go.halt_on`                   | all five stop conditions                  | `esp-go-light`, `esp-fix-review` | Stop conditions honored (see `decision-policy.md`) |
-| `pr.body_from_run`             | `true`                                    | `esp-go-light`         | Build the PR body from the run artifacts               |
-| `pr.body_sections`             | `summary, milestones, decisions, review-resolution, follow-ups` | `esp-go-light` | Sections of that body, in order |
+| `go.phases`                    | `plan, branch, build, review, pr, await-review, fix-review, merge` | `esp-go` | Phases to run (`build` is required) |
+| `go.internal_review_rounds`    | `2`                                       | `esp-go`               | Review and fix rounds before the PR (`0` skips them)   |
+| `go.worktree`                  | `false`                                   | `esp-go`               | Build in a task worktree under `worktrees.root`        |
+| `go.pr_draft_until_reviewed`   | `true`                                    | `esp-go`               | Open the PR as a draft, mark it ready once the body is in place |
+| `go.budgets.max_milestones`    | `12`                                      | `esp-go`               | A larger plan halts with `budget`                      |
+| `go.budgets.max_wall_minutes`  | `240`                                     | `esp-go`               | Wall time budget, checked at each phase boundary       |
+| `go.halt_on`                   | all five stop conditions                  | `esp-go`, `esp-go-light`, `esp-fix-review` | Stop conditions honored (see `decision-policy.md`) |
+| `pr.body_from_run`             | `true`                                    | `esp-go`, `esp-go-light`, `esp-pr` | Build the PR body from the run artifacts               |
+| `pr.body_sections`             | `summary, milestones, decisions, review-resolution, follow-ups` | `esp-go`, `esp-go-light`, `esp-pr` | Sections of that body, in order |
 | `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
@@ -171,7 +179,6 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 | Key                                    | Planned use                                                          |
 | -------------------------------------- | -------------------------------------------------------------------- |
 | `runs.retention_days`                  | Days to keep finished runs                                           |
-| `go` (except `default_reviewers`, `halt_on`) | Full workflow phases, rounds and budgets                       |
 | `recap`                                | Runs roots and fan-out                                               |
 
 ## Architecture
@@ -270,6 +277,22 @@ node scripts/merge-ready.mjs merge 42 --run-dir <run>
 - Unmet branch protection ends `awaiting-human` and is never bypassed (no `--admin`). A Halt decision blocks the merge until an operator decision references it
 - With `AF_MERGE_LOCK` set (a harness serializing merges), `merge` holds that lock file from its final check to the cleanup; standalone runs merge directly
 
+### Full Workflow
+
+`esp-go` runs a feature end to end: `preflight -> plan -> [approve] -> branch -> build -> review <-> fix -> PR -> await-review <-> fix-review -> refresh PR body -> merge -> summary`. It is an orchestrator: each phase runs in its own subagent (`esp-plan`, `esp-build`, `esp-review`, `esp-fix-review`, `esp-pr`, `esp-merge`), with the model of its role, and the session keeps only the run state and the result lines. The review wait runs in the session, as a background script. `esp-build` spawns the builders and verifiers from its subagent, which stays within the default nesting depth. `scripts/go.mjs` keeps the state (`go.json`) and decides what runs next:
+
+```bash
+node scripts/go.mjs next --run-dir <run>
+node scripts/go.mjs phase plan --run-dir <run> --status done --plan <run>/plan.md
+node scripts/go.mjs pr-loop --run-dir <run> --after fix
+node scripts/go.mjs pr-body --run-dir <run> --out <run>/pr-body.md
+```
+
+- One commit per milestone from `esp-build`; internal and PR review fixes are separate `fix(review)` commits
+- The internal review loop runs up to `go.internal_review_rounds` rounds; critical findings left after it halt the task
+- Halt conditions (`go.halt_on`) stop the task and write the summary; a halted task is never merged
+- `--resume` continues an interrupted run from `go.json`, and a run escalated by `esp-go-light` is picked up in place
+
 ### Fast Track
 
 `esp-go-light` runs a small task in one session, with no subagents and no plan file: `context -> branch -> implement -> gates -> commit -> push -> PR -> await-review -> fix-review -> refresh PR body -> merge -> summary`. It produces one commit plus review-fix commits, and runs `esp-await-review`, `esp-fix-review` and `esp-merge` inline in the same run. `scripts/go-light.mjs` keeps the phase state (`go-light.json`), the limits and the hand-off:
@@ -355,6 +378,7 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 - `[base-branch]` - Target branch for the PR (defaults to main/master)
 - `[--draft]` - Create the PR as a draft
+- `[--run-dir <path>]` - Run directory: the body is built from its artifacts (`pr.body_from_run`) and the PR URL is recorded
 
 **Examples:**
 
@@ -367,6 +391,9 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 # Create draft PR
 /esp-skills:esp-pr --draft
+
+# Build the body from a run's plan, decisions and review resolution
+/esp-skills:esp-pr --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
 ```
 
 ### /esp-skills:esp-config
@@ -585,6 +612,40 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 # Resume an interrupted build, running independent milestones in parallel
 /esp-skills:esp-build --resume --parallel --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
+```
+
+### /esp-skills:esp-go
+
+**Arguments:**
+
+- `[--interactive <mode>]` - `off`, `plan` (approve the plan) or `all` (also review findings, PR rounds and merge) (default: `defaults.interactive`)
+- `[--worktree]` - Build in a task worktree (default: `go.worktree`)
+- `[--reviewers <names>]` - Reviewers to wait for and fix (default: `go.default_reviewers`)
+- `[--no-pr]` - Stop after the internal review
+- `[--no-merge]` - Stop after the PR review fixes, with the PR open
+- `[--max-rounds <n>]` - PR fix rounds (default: `fix-review.max_rounds`)
+- `[--resume]` - Continue the run in `--run-dir` from `go.json`
+- `[--run-dir <path>]` - Run directory: a harness or parent run, or an `esp-go-light` escalation to pick up (default: a new run under `runs.root`)
+- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
+- `[context]` - The feature: a description, an issue URL or `#<number>`, or a file path
+
+**Examples:**
+
+```bash
+# Plan, build, review, open the PR, fix the bot review and merge
+/esp-skills:esp-go Add OAuth login with Google
+
+# Approve the plan first, then run on its own, in a separate worktree
+/esp-skills:esp-go --interactive plan --worktree https://github.com/o/r/issues/31
+
+# Stop with the PR open, waiting for Codex
+/esp-skills:esp-go --no-merge --reviewers codex Add a session store
+
+# Pick up a task that esp-go-light escalated
+/esp-skills:esp-go --run-dir ~/.esp-skills/runs/2026-11-10-status-json
+
+# Continue an interrupted run
+/esp-skills:esp-go --resume --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
 ```
 
 ### /esp-skills:esp-go-light

@@ -19,6 +19,7 @@
     "./skills/review/esp-review",
     "./skills/sdlc/esp-plan",
     "./skills/sdlc/esp-build",
+    "./skills/sdlc/esp-go",
     "./skills/sdlc/esp-go-light",
     "./skills/sdlc/esp-analyze",
     "./skills/helpers/esp-qna",

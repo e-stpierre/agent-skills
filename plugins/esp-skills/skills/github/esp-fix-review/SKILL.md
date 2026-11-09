@@ -167,7 +167,7 @@ Record each answer with `source: operator`. In every other mode, apply the auton
 1. **Parse arguments**: read the flags and `[target]`. Resolve the interactive mode (the flag, else `defaults.interactive`, `off` when headless).
 2. **Load configuration** (see Configuration).
 3. **Check prerequisites**: in pull request mode, `gh auth status` must succeed and the pull request must exist and be open. The working tree must be clean and on the pull request branch (internal mode: on the branch that was reviewed). Otherwise report it and stop.
-4. **Prepare the state**: with `--run-dir`, use it. Otherwise create a temporary directory and pass `--state <dir>/fix-review.json` to every call.
+4. **Prepare the state**: with `--run-dir`, use it. In internal mode, also pass `--state <run-dir>/fix-review-<N>.json` to every call (N from the findings file `review-<N>.json`): each internal round then keeps its own round counter, apart from the pull request rounds in `fix-review.json`. Without `--run-dir`, create a temporary directory and pass `--state <dir>/fix-review.json` to every call.
 5. **Read operator messages**: the injected `## Operator Messages` section, plus `runs.mjs messages` with `--run-dir`. They override comments they contradict. Deliver them with `runs.mjs deliver` once applied.
 6. **Start a round**: run `fix-review.mjs round` with `--max-rounds` from `--rounds`. If it returns `exhausted: true`, go to step 12.
 7. **Fetch items**: `fix-review.mjs fetch [pr] [--reviewers]`, or `fix-review.mjs internal [findings]` with `--internal`. If `pending_github` is not empty, run `fix-review.mjs respond` first: a previous run stopped before replying.

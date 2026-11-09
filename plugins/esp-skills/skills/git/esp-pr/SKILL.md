@@ -1,20 +1,21 @@
 ---
 name: esp-pr
 description: Create a pull request with contextual title and description
-argument-hint: "[--draft] [base-branch]"
+argument-hint: "[--draft] [--run-dir <path>] [base-branch]"
 ---
 
 # Git PR
 
 ## Overview
 
-Create a pull request with a title and description sized appropriately to the scope and impact of the changes using the GitHub CLI. Always includes AI attribution at the end of the body.
+Create a pull request with a title and description sized appropriately to the scope and impact of the changes using the GitHub CLI. Always includes AI attribution at the end of the body. With a run directory and `pr.body_from_run`, the body is built from the run artifacts (plan milestones, decisions, review resolution, follow-ups) instead of being written from the diff.
 
 ## Arguments
 
 ### Definitions
 
 - **`[--draft]`** (optional): Create the PR as a draft. Defaults to `pr.draft` (`false`).
+- **`[--run-dir <path>]`** (optional): Run directory of the task (from `esp-go`, `esp-build` or a harness). With `pr.body_from_run`, the body is rendered from its artifacts, and the pull request URL is recorded in its `run.json`.
 - **`[base-branch]`** (optional): Target branch for the PR. Defaults to `pr.base`, or the repository default branch when `pr.base` is `null`.
 
 ### Values
@@ -49,8 +50,8 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 | `pr.draft`          | `false` | Open the PR as a draft even without `--draft`                                                   |
 | `pr.attribution`    | `true`  | Append the AI attribution line to the body                                                      |
 | `defaults.language` | `en-US` | Language of the PR title and body                                                               |
-
-`pr.body_from_run` and `pr.body_sections` are reserved for building the body from run artifacts and are not read yet.
+| `pr.body_from_run` | `true` | With `--run-dir`: build the body from the run artifacts                                        |
+| `pr.body_sections` | `summary, milestones, decisions, review-resolution, follow-ups` | Sections of a body built from the run, in order |
 
 ## Instructions
 
@@ -65,7 +66,7 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
    - **Small**: <50 lines, focused change
    - **Medium**: 50-200 lines, feature or significant fix
    - **Large**: >200 lines, major feature or refactor
-8. Construct PR content based on size:
+8. **Body from the run** (only with `--run-dir` and `pr.body_from_run`): write a 1-2 sentence summary of why the change exists, then render the body with `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" pr-body --run-dir <path> --summary "<summary>" --out <run-dir>/pr-body.md`. It applies `pr.body_sections` and `pr.attribution`. Create the PR with `gh pr create --title "<title>" --body-file <run-dir>/pr-body.md` (add `--draft` per step 9), then go to step 11. Otherwise, construct the PR content based on size:
 
    **Trivial/Small**: Brief description with attribution
 
@@ -90,7 +91,8 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 
 9. If the `--draft` flag is specified or `pr.draft` is `true`, add `--draft` to the gh command. Drop the attribution line when `pr.attribution` is `false`
 10. Execute `gh pr create` with constructed content
-11. Report the PR URL
+11. With `--run-dir`, record the URL: `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" update --run-dir <path> --pr <url>`
+12. Report the PR URL
 
 ## Output Guidance
 

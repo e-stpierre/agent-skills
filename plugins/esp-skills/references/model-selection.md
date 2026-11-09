@@ -11,10 +11,12 @@ Each spawn site names a role. The role selects a key under `defaults.models` in 
 | `planner`    | `esp-plan`, `esp-go`                     | none (plan phase)         | `opus`, effort `high`    |
 | `explorer`   | `esp-plan`                               | `Explore`                 | `sonnet`                 |
 | `builder`    | `esp-build`, `esp-go`                    | `esp-skills:esp-builder`  | per milestone complexity |
-| `verifier`   | `esp-build`                              | `esp-skills:esp-verifier` | `sonnet`                 |
+| `verifier`   | `esp-build`, `esp-go` (build phase)      | `esp-skills:esp-verifier` | `sonnet`                 |
 | `reviewer`   | `esp-review`, `esp-go`                   | `esp-skills:esp-reviewer` | `opus`, effort `high`    |
 | `fixer`      | `esp-fix-review`, `esp-go`               | `esp-skills:esp-builder`  | `opus`                   |
-| `mechanical` | any skill, for rote work (renames, logs) | any                       | `haiku`                  |
+| `mechanical` | any skill, for rote work; `esp-go` branch and PR phases | any        | `haiku`                  |
+
+`esp-go` spawns each phase as a `general-purpose` subagent that follows the phase skill, with the model of the phase role from `go.mjs next`: plan `planner`, branch and PR `mechanical`, build `verifier` (the build subagent only runs the milestone loop; its builders get the `builder` models), review `reviewer`, internal and PR fixes and the merge `fixer`. The review wait runs in the orchestrator.
 
 `builder` has one entry per plan milestone complexity: `low` (`sonnet`), `medium` (`opus`), `high` (`opus`, effort `high`).
 

@@ -36,6 +36,7 @@ import {
   validateArtifact
 } from "./lib/contract.mjs";
 import { withLock } from "./lib/lock.mjs";
+import { ATTRIBUTION, BODY_SECTIONS, collectRunArtifacts, renderPrBody } from "./lib/pr-body.mjs";
 
 export class RunsError extends Error {
   constructor(message, exitCode = 1) {
@@ -729,6 +730,30 @@ export function validateFile(file, schemaName) {
 }
 
 // ---------------------------------------------------------------------------
+// Pull request body
+// ---------------------------------------------------------------------------
+
+/**
+ * Pull request body built from the run artifacts (decisions.jsonl, the build
+ * state.json and the step results), per pr.body_sections. Used by esp-pr with
+ * a run directory when pr.body_from_run is on. --summary is the one free text.
+ */
+export function cmdPrBody(options) {
+  const dir = requireRunDir(options);
+  const config = configFor(options);
+  const sections = config.pr?.body_sections ?? BODY_SECTIONS;
+  const attribution = config.pr?.attribution === false ? null : ATTRIBUTION;
+  const summary = options.summary && options.summary !== true ? String(options.summary) : null;
+  const body = renderPrBody(collectRunArtifacts(dir), { summary, sections, attribution });
+  if (options.out) {
+    const out = resolve(expandHome(String(options.out)));
+    writeFileSync(out, body, "utf8");
+    return { path: out, bytes: Buffer.byteLength(body), body_from_run: config.pr?.body_from_run !== false };
+  }
+  return body;
+}
+
+// ---------------------------------------------------------------------------
 // CLI
 // ---------------------------------------------------------------------------
 
@@ -748,6 +773,7 @@ Commands:
   deliver <id>...        Mark messages delivered and log them as operator decisions
   amend                  Append to amendments.jsonl (--text, --affects M2,M3, --plan-version <N>)
   index                  List runs (--root, --since, --until, --last 7d, --repo, --status, --risk, --limit)
+  pr-body                Pull request body from the run artifacts (--summary <text>, --out <file>)
   validate <file>        Validate a contract file (--schema <artifact> when it cannot be inferred)
   exit-code <status>     Print the exit code of a result status
 
@@ -818,6 +844,8 @@ export function run(argv, env = process.env) {
       return { output: cmdAmend(options, env) };
     case "index":
       return { output: cmdIndex(options, env) };
+    case "pr-body":
+      return { output: cmdPrBody(options) };
     case "validate": {
       if (!args[0]) throw new RunsError("Usage: validate <file> [--schema <artifact>]", 2);
       const out = validateFile(args[0], options.schema);

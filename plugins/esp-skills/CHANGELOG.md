@@ -26,6 +26,10 @@
 - Added `scripts/merge-ready.mjs` to check merge conditions, resolve the merge method from repository settings, rulesets and merge queues, and merge under the `AF_MERGE_LOCK` lock when a harness sets it; `merge` and `worktrees.cleanup` are now active config keys
 - Added `esp-go-light` skill: takes a small task from request to merged PR in one session (context, branch, implement, gates, one commit, PR, bot review wait, review fixes, refreshed PR body, merge, summary), with no subagents and no plan file. It escalates to `esp-go` (`status: escalate`, exit 30) beyond `go-light.max_files_changed`, on a design decision, or after two gate failures, saving the work as a patch and a stash; `--stop-before-wait` ends once the PR is open
 - Added `scripts/go-light.mjs` (phase state, file and gate limits, wall time budget, escalation hand-off, PR body, result block) and `scripts/lib/pr-body.mjs` (PR body from run artifacts); `go-light`, `go.halt_on`, `pr.body_from_run` and `pr.body_sections` are now active config keys
+- Added `esp-go` skill: takes a feature from request to merged PR (plan, approve, branch, build one commit per milestone, internal review and fix rounds bounded by `go.internal_review_rounds`, PR, bot review wait, PR fix rounds, refreshed PR body, merge, summary). Each phase runs in its own subagent with its role model, and the orchestrator keeps only result blocks; `--resume` continues an interrupted run, `--worktree` builds in a task worktree, and runs escalated by `esp-go-light` are picked up in place
+- Added `scripts/go.mjs` (phase dispatch, internal review and PR round loops, budgets, task worktree, escalation pickup, PR body, result block); every `go` key is now active
+- `esp-pr` gains `--run-dir`: with `pr.body_from_run`, the body is built from the run artifacts (`runs.mjs pr-body`) and the PR URL is recorded in `run.json`
+- `esp-fix-review` in internal mode keeps one state file per review round (`fix-review-<N>.json`) under a run directory, apart from the PR rounds
 - Skill templates allow valued options (`[--name <value>]`) for harness and orchestration inputs such as `--run-dir <path>`
 
 ## 0.6.0

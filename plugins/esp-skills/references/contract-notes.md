@@ -50,6 +50,7 @@ Extension fields are allowed on most artifacts when they start with `x-` (for ex
 | Waiting costs no tokens; reviews matched on the head SHA         | `wait-for-review.mjs` in the background (emits `review.received`), piped into `runs.mjs result await-review` (esp-await-review) |
 | Every review comment resolution logged; handled comments never reprocessed | `fix-review.mjs record` (decision + `fix-review.json` handled IDs), `fix-review.mjs result` piped into `runs.mjs result fix-review` (esp-fix-review) |
 | Merge only under objective conditions; method and reason logged; merges serialized under a harness lock | `merge-ready.mjs check` (conditions), `merge-ready.mjs merge` (holds `AF_MERGE_LOCK`, emits `merge.locked` and `merge.completed`, logs the decision), piped into `runs.mjs result merge` (esp-merge) |
+| Multi-phase task owns its run: phase dispatch with subagents, bounded internal review and PR rounds, resume, escalation pickup, PR body from run artifacts | `go.mjs init`, `next`, `phase`, `pr-loop`, `stop`, `halt`, `pr-body`, `result` piped into `runs.mjs result go` (esp-go); `runs.mjs pr-body` (esp-pr) |
 | Single-session task owns its run: phases, escalation (exit 30) with a hand-off, PR body from run artifacts | `go-light.mjs init`, `phase`, `scope`, `gate-failure`, `escalate`, `halt`, `pr-body`, `result` piped into `runs.mjs result go-light` (esp-go-light) |
 | `summary.md` frontmatter per the schema                           | `references/summary-template.md`, `runs.mjs validate summary.md` |
 | Date filtering without file reads, other filters from `run.json`  | `runs.mjs index --since --until --last --repo --status --risk` |
@@ -100,6 +101,7 @@ Target level of each planned skill:
 - `scripts/review.mjs --help`: esp-review target resolution and finding parsing
 - `scripts/wait-for-review.mjs --help`: esp-await-review wait, completion matching and exit codes
 - `scripts/fix-review.mjs --help`: esp-fix-review items, rounds, resolutions and replies
+- `scripts/go.mjs --help`: esp-go phase dispatch, review and PR loops, worktree, PR body and result
 - `scripts/go-light.mjs --help`: esp-go-light phase state, limits, escalation hand-off and PR body
 - `scripts/merge-ready.mjs --help`: esp-merge conditions, method resolution and the `AF_MERGE_LOCK` merge lock
 - `scripts/plan.mjs --help` and [`plan-format.md`](./plan-format.md): plan format 1, parsing, lint and amendment checks

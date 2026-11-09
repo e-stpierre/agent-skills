@@ -445,6 +445,21 @@ describe("plans, messages and amendments", () => {
   });
 });
 
+describe("pr-body", () => {
+  test("renders the body from the run artifacts, per pr.body_sections", () => {
+    const dir = createRun();
+    cli(["decision", "--run-dir", dir, "--json", JSON.stringify({ phase: "build", source: "agent", risk: "medium", decision: "Use a session cookie", rationale: "B-Decide" })]);
+    const body = cli(["pr-body", "--run-dir", dir, "--summary", "Fixes the login timeout."]).stdout;
+    assert.match(body, /^## Summary\n\nFixes the login timeout\.\n\n## Decisions\n\n- D001 \(medium\): Use a session cookie/);
+    assert.match(body, /Generated with \[Claude Code\]/);
+    writeFileSync(join(home, "config.json"), JSON.stringify({ version: 1, pr: { attribution: false, body_sections: ["decisions"] } }));
+    const out = cli(["pr-body", "--run-dir", dir, "--summary", "x", "--out", join(dir, "pr-body.md")]).json();
+    assert.equal(out.body_from_run, true);
+    const written = readFileSync(join(dir, "pr-body.md"), "utf8");
+    assert.equal(written, "## Decisions\n\n- D001 (medium): Use a session cookie\n");
+  });
+});
+
 describe("index", () => {
   function seed() {
     const runs = join(root, "runs");
