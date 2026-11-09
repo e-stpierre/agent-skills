@@ -19,6 +19,9 @@
 - Added `scripts/review.mjs` to resolve review targets into diff files and parse reviews into findings (`review-<N>.json`) and a result block; `review` is now an active config key
 - Added `esp-await-review` skill: waits in the background for bot reviewers (Claude, Codex, or any login) to review the head commit of a PR, with timeout, backoff and optional trigger comments, and ends with a contract result block
 - Added `scripts/wait-for-review.mjs`, the token-free wait loop behind it (`--once` for a single check); `await-review` and `go.default_reviewers` are now active config keys
+- **Breaking**: renamed `esp-fix-pr` to `esp-fix-review` (`/esp-skills:esp-fix-pr 42` -> `/esp-skills:esp-fix-review 42`). The PR argument is now optional (default: the PR of the current branch), fixes are committed as `fix(review): ...` and `fix(ci): ...` commits, and the output ends with a contract result block
+- `esp-fix-review` classifies every comment with the decision policy, replies to rejected and deferred comments, filters by `--reviewers`, runs up to `--rounds` rounds with a re-review wait between them, never reprocesses a handled comment, logs every resolution in `decisions.jsonl`, returns deferred items as `discovered_items`, and gains `--internal` (apply `esp-review` findings without a PR), `--interactive`, `--run-dir` and `--config-snapshot`
+- Added `scripts/fix-review.mjs` to fetch and filter review items, track rounds and handled IDs, record resolutions, post replies and resolve threads, and build the result block; `fix-review` and `commit.review_fixes` are now active config keys
 - Skill templates allow valued options (`[--name <value>]`) for harness and orchestration inputs such as `--run-dir <path>`
 
 ## 0.6.0

@@ -10,7 +10,8 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-commit` - Commit changes with a structured message
 - `/esp-skills:esp-pr` - Create a pull request with a contextual description
 - `/esp-skills:esp-await-review --reviewers codex 42` - Wait in the background until Codex has reviewed the head commit of PR 42
-- `/esp-skills:esp-fix-pr 42` - Fix review comments and CI failures on a PR
+- `/esp-skills:esp-fix-review --reviewers codex 42` - Fix, reply to, or defer Codex's comments and failing CI on PR 42, re-review included
+- `/esp-skills:esp-fix-review --internal --run-dir <run>` - Apply the findings of the last `esp-review` of a run, without a PR
 - `/esp-skills:esp-review PR 123` - Review a pull request across correctness, security, tests and conventions, with classified findings
 - `/esp-skills:esp-plan feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
 - `/esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login` - Build the plan, one verified commit per milestone
@@ -48,7 +49,7 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 
 | Skill                    | Description                                                                   |
 | ------------------------ | ----------------------------------------------------------------------------- |
-| `/esp-skills:esp-fix-pr` | **Beta** - Fix review comments and failing CI checks on a PR, then push fixes |
+| `/esp-skills:esp-fix-review` | Fix, reply to, or defer PR review comments and failing CI checks over bounded rounds, or apply `esp-review` findings |
 | `/esp-skills:esp-await-review` | Wait in the background for bot reviews of the PR head commit, then report |
 
 ### Code Review
@@ -137,7 +138,12 @@ Keys read by the current skills:
 | `await-review.timeout_minutes` | `30`                                      | `esp-await-review`     | Time before the wait gives up                          |
 | `await-review.poll_seconds`    | `60`                                      | `esp-await-review`     | First poll interval, backing off to 5x                 |
 | `await-review.auto_trigger`    | `false`                                   | `esp-await-review`     | Post trigger comments without `--trigger`              |
-| `go.default_reviewers`         | `["claude"]`                              | `esp-await-review`     | Reviewers waited for when `--reviewers` is not given   |
+| `go.default_reviewers`         | `["claude"]`                              | `esp-await-review`, `esp-fix-review` | Reviewers waited for when `--reviewers` is not given |
+| `fix-review.max_rounds`        | `3`                                       | `esp-fix-review`       | Fix rounds when `--rounds` is not given                |
+| `fix-review.fix_ci`            | `true`                                    | `esp-fix-review`       | Diagnose and fix failing CI checks                     |
+| `fix-review.reply_to_rejected` | `true`                                    | `esp-fix-review`       | Reply with the reason to rejected comments             |
+| `fix-review.deferred_items`    | `follow-up`                               | `esp-fix-review`       | `follow-up` (reply, resolve, discovered item) or `block` |
+| `commit.review_fixes`          | `separate`                                | `esp-fix-review`       | `fix(review)` commits, or `fixup!` commits             |
 | `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
@@ -146,9 +152,7 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 | -------------------------------------- | -------------------------------------------------------------------- |
 | `runs.retention_days`                  | Days to keep finished runs                                           |
 | `worktrees.cleanup`                    | Worktree cleanup policy                                              |
-| `commit.review_fixes`                  | Review-fix commit style                                              |
 | `pr.body_from_run`, `pr.body_sections` | PR body built from run artifacts                                     |
-| `fix-review`                           | Review fix rounds, CI fixes, deferred items                          |
 | `merge`                                | Merge conditions and method                                          |
 | `go` (except `default_reviewers`), `go-light` | Workflow phases, budgets and halt conditions                  |
 | `recap`                                | Runs roots and fan-out                                               |
@@ -218,6 +222,22 @@ node scripts/wait-for-review.mjs 42 --reviewers codex --once
 
 - Exit codes: 0 done, 10 awaiting-human (timeout, with a `needs_input` request to wait again or skip), 1 failed (closed pull request or repeated `gh` errors), 2 usage error
 - Verified logins: Codex reviews as `chatgpt-codex-connector[bot]` and starts on its own when a PR opens or leaves draft; `@codex review` asks for a new review after a push. The Claude GitHub Action reviews through an issue comment by `claude[bot]`, not a PR review
+
+### Fixing Reviews
+
+`esp-fix-review` resolves review items in rounds: fetch -> classify (A-Fix, B-Decide, B-Scope, Reject) -> fix and commit -> push -> reply and resolve -> wait for the re-review. `scripts/fix-review.mjs` keeps the state (`<run-dir>/fix-review.json`): handled item IDs, so a later round or a rerun never reprocesses a comment, the round count bounded by `--rounds`, and the GitHub replies still owed. The model classifies and fixes; the script posts the replies, resolves the threads and builds the result block:
+
+```bash
+node scripts/fix-review.mjs round --run-dir <run>
+node scripts/fix-review.mjs fetch 42 --reviewers codex --run-dir <run>
+node scripts/fix-review.mjs record --run-dir <run> --json '{"items":["inline:101"],"resolution":"fixed","class":"A-Fix","decision":"Fixed the bound","rationale":"skipped the last element","commit":"3f2a1c0"}'
+node scripts/fix-review.mjs respond --run-dir <run>
+node scripts/fix-review.mjs result --run-dir <run>
+```
+
+- `internal [review-<N>.json]` loads `esp-review` findings instead of PR comments, for the internal review loop
+- Every resolution is a decision in `decisions.jsonl`; deferred items become `discovered_items` (no GitHub issues are opened)
+- Rounds exhausted with items left halt the task when `budget` is in `go.halt_on`, else they become a follow-up item
 
 ### Run Directories
 
@@ -339,17 +359,33 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-config sources
 ```
 
-### /esp-skills:esp-fix-pr
+### /esp-skills:esp-fix-review
 
 **Arguments:**
 
-- `<pr-number>` (required) - The pull request number to fix
+- `[--internal]` (optional) - Fix the findings of an `esp-review` run (`review-<N>.json`) instead of PR comments, without pushing
+- `[--rounds <n>]` (optional) - Maximum fix rounds across invocations (default: `fix-review.max_rounds`)
+- `[--reviewers <names>]` (optional) - Only handle, and wait for, these reviewers (names from `await-review.reviewers`, or logins)
+- `[--interactive <mode>]` (optional) - `off`, `plan` or `all` (`all` asks about B-Decide and B-Scope items and shows a recap before pushing)
+- `[--run-dir <path>]` (optional) - Keep the state in the run, log every resolution, record step `fix-review`
+- `[--config-snapshot <path>]` (optional) - Read this config snapshot instead of the user and project layers
+- `[target]` (optional) - Pull request number, `#<n>` or URL (default: the PR of the current branch); with `--internal`, a findings file
 
 **Examples:**
 
 ```bash
-# Fix all review comments and CI failures on PR 42
-/esp-skills:esp-fix-pr 42
+# Fix the comments and CI failures on the PR of the current branch, up to 3 rounds
+/esp-skills:esp-fix-review
+
+# Handle only Codex's comments on PR 42, in one round
+/esp-skills:esp-fix-review --reviewers codex --rounds 1 42
+
+# Settle B-Decide and B-Scope comments with the user
+/esp-skills:esp-fix-review --interactive all https://github.com/o/r/pull/42
+
+# Apply the latest esp-review findings of a run, or a given findings file
+/esp-skills:esp-fix-review --internal --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
+/esp-skills:esp-fix-review --internal /tmp/esp-review-x1/review-1.json
 ```
 
 ### /esp-skills:esp-await-review

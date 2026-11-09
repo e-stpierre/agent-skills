@@ -48,6 +48,7 @@ Extension fields are allowed on most artifacts when they start with `x-` (for ex
 | Milestone loop state (`state.json`, reserved name)               | `build.mjs init`, `next`, `start`, `finish` (emits `iteration.*`, `commit.created`) |
 | Review result block built from the findings, not by hand          | `review.mjs parse --result` piped into `runs.mjs result review-<N>` (esp-review) |
 | Waiting costs no tokens; reviews matched on the head SHA         | `wait-for-review.mjs` in the background (emits `review.received`), piped into `runs.mjs result await-review` (esp-await-review) |
+| Every review comment resolution logged; handled comments never reprocessed | `fix-review.mjs record` (decision + `fix-review.json` handled IDs), `fix-review.mjs result` piped into `runs.mjs result fix-review` (esp-fix-review) |
 | `summary.md` frontmatter per the schema                           | `references/summary-template.md`, `runs.mjs validate summary.md` |
 | Date filtering without file reads, other filters from `run.json`  | `runs.mjs index --since --until --last --repo --status --risk` |
 | Any contract file can be checked                                  | `runs.mjs validate <file>`                                    |
@@ -96,5 +97,6 @@ Target level of each planned skill:
 - `scripts/build.mjs --help`: the esp-build milestone state (`state.json`)
 - `scripts/review.mjs --help`: esp-review target resolution and finding parsing
 - `scripts/wait-for-review.mjs --help`: esp-await-review wait, completion matching and exit codes
+- `scripts/fix-review.mjs --help`: esp-fix-review items, rounds, resolutions and replies
 - `scripts/plan.mjs --help` and [`plan-format.md`](./plan-format.md): plan format 1, parsing, lint and amendment checks
 - `scripts/lib/contract.mjs`: status vocabulary, exit codes and schema loading for other scripts

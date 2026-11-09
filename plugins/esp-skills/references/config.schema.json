@@ -122,7 +122,7 @@
           "type": "boolean"
         },
         "review_fixes": {
-          "description": "Reserved (esp-fix-review): separate commits for review fixes, or fixup commits.",
+          "description": "esp-fix-review: separate fix(review) commits, or fixup! commits of the commit that last changed the file.",
           "enum": ["separate", "fixup"]
         }
       }
@@ -267,7 +267,7 @@
       }
     },
     "fix-review": {
-      "description": "Reserved (esp-fix-review): review fix rounds.",
+      "description": "esp-fix-review: review fix rounds, CI fixes, replies and deferrals.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
