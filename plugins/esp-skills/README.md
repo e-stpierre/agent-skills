@@ -14,6 +14,7 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-sdlc-plan feature Add OAuth login` - Plan a feature with milestones
 - `/esp-skills:esp-analyze security` - Analyze the codebase for security issues
 - `/esp-skills:esp-qna How does OAuth 2.0 work?` - Get a concise answer without code changes
+- `/esp-skills:esp-config set pr.draft true` - Change a configuration default
 
 ## Skills
 
@@ -24,6 +25,12 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 | `/esp-skills:esp-branch` | Create branches with standardized naming conventions |
 | `/esp-skills:esp-commit` | Commit changes with structured messages              |
 | `/esp-skills:esp-pr`     | Create pull requests with contextual descriptions    |
+
+### Config
+
+| Skill                    | Description                                                           |
+| ------------------------ | --------------------------------------------------------------------- |
+| `/esp-skills:esp-config` | Initialize, show, get, set, and validate the esp-skills configuration |
 
 ### GitHub
 
@@ -62,6 +69,63 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 | Skill                          | Description                                                        |
 | ------------------------------ | ------------------------------------------------------------------ |
 | `/esp-skills:esp-create-skill` | **Beta** - Create a new Claude Code skill following best practices |
+
+## Configuration
+
+Configuration is optional. Every skill works with the built-in defaults, and `/esp-skills:esp-config` creates and edits config files. Skills resolve their settings through `scripts/config.mjs`, which merges these layers (later wins):
+
+1. Built-in defaults: `references/config-defaults.json`
+2. User config: `~/.esp-skills/config.json` (`ESP_SKILLS_HOME` overrides `~/.esp-skills`)
+3. Project config: `<repo>/.esp-skills/config.json`
+4. Config snapshot (`--config-snapshot <path>`): replaces the user and project layers for one run
+5. Skill arguments
+
+Objects merge key by key; arrays and scalars replace. Invalid config fails with the file, key path and expected type. Files are validated against `references/config.schema.json`; add its URL as `$schema` for editor completion:
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/e-stpierre/skills/main/plugins/esp-skills/references/config.schema.json",
+  "version": 1,
+  "pr": { "draft": true },
+  "commit": { "style": "conventional" }
+}
+```
+
+Keys read by the current skills:
+
+| Key                            | Default                                   | Read by                | Effect                                                 |
+| ------------------------------ | ----------------------------------------- | ---------------------- | ------------------------------------------------------ |
+| `defaults.language`            | `en-US`                                   | `esp-commit`, `esp-pr` | Language of generated messages                         |
+| `branch.pattern`               | `{category}/{issue}_{name}`               | `esp-branch`           | Branch name when an issue ID is known                  |
+| `branch.pattern_without_issue` | `{category}/{name}`                       | `esp-branch`           | Branch name when no issue ID is known                  |
+| `branch.default_category`      | `feature`                                 | `esp-branch`           | Category when none is given or inferred                |
+| `branch.categories`            | `feature, fix, chore, doc, refactor, poc` | `esp-branch`           | Suggested categories (others still work)               |
+| `commit.style`                 | `plain`                                   | `esp-commit`           | `plain` imperative title or `conventional` commits     |
+| `commit.co_author`             | `true`                                    | `esp-commit`           | Add the `Co-Authored-By` trailer                       |
+| `commit.plan_step_prefix`      | `true`                                    | `esp-commit`           | Prefix titles with `[Task N]` when following a plan    |
+| `pr.base`                      | `null`                                    | `esp-pr`               | Base branch, `null` uses the repository default branch |
+| `pr.draft`                     | `false`                                   | `esp-pr`               | Open PRs as drafts                                     |
+| `pr.attribution`               | `true`                                    | `esp-pr`               | Append the AI attribution line                         |
+| `analyze.output_dir`           | `analysis`                                | `esp-analyze`          | Directory for analysis reports                         |
+
+Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
+
+| Key                                    | Planned use                                                          |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| `defaults.interactive`                 | When workflow skills stop to ask (`off`, `plan`, `all`)              |
+| `defaults.models`                      | Model and effort per subagent role (planner, builder, reviewer, ...) |
+| `runs`                                 | Run directory root and retention                                     |
+| `worktrees`                            | Worktree root and cleanup                                            |
+| `commit.review_fixes`                  | Review-fix commit style                                              |
+| `pr.body_from_run`, `pr.body_sections` | PR body built from run artifacts                                     |
+| `plan`                                 | Default plan type and explore agents                                 |
+| `build`                                | Milestone loop retries, parallelism and gate commands                |
+| `review`                               | Review dimensions, minimum severity, finding verification            |
+| `await-review`                         | Bot reviewers, triggers, timeout and polling                         |
+| `fix-review`                           | Review fix rounds, CI fixes, deferred items                          |
+| `merge`                                | Merge conditions and method                                          |
+| `go`, `go-light`                       | Workflow phases, budgets and halt conditions                         |
+| `recap`                                | Runs roots and fan-out                                               |
 
 ## Architecture
 
@@ -147,6 +211,42 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 # Create draft PR
 /esp-skills:esp-pr --draft
+```
+
+### /esp-skills:esp-config
+
+**Arguments:**
+
+- `<action>` - `init`, `show`, `get`, `set`, `unset`, `validate`, or `sources` (required)
+- `[key]` - Section or dotted key for `get`, `set`, `unset`; a file path for `validate`
+- `[value]` - Value for `set`, parsed as JSON when valid, otherwise a string
+- `[--project]` - Target `<repo>/.esp-skills/config.json` instead of the user file
+- `[--force]` - Overwrite an existing file on `init`
+
+**Examples:**
+
+```bash
+# Create ~/.esp-skills/config.json
+/esp-skills:esp-config init
+
+# Create a project config in the current repository
+/esp-skills:esp-config --project init
+
+# Show the merged config, or one section or key
+/esp-skills:esp-config show
+/esp-skills:esp-config get pr
+/esp-skills:esp-config get defaults.models.reviewer
+
+# Change a value for every repository, or only this one
+/esp-skills:esp-config set pr.draft true
+/esp-skills:esp-config --project set pr.base develop
+/esp-skills:esp-config set merge.preference '["squash","merge"]'
+
+# Remove a key, validate all layers or one file, list layers
+/esp-skills:esp-config unset pr.draft
+/esp-skills:esp-config validate
+/esp-skills:esp-config validate ./candidate-config.json
+/esp-skills:esp-config sources
 ```
 
 ### /esp-skills:esp-fix-pr

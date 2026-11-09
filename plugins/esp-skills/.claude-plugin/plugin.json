@@ -20,6 +20,7 @@
     "./skills/helpers/esp-qna",
     "./skills/helpers/esp-rubberduck",
     "./skills/style/esp-markdown",
+    "./skills/config/esp-config",
     "./skills/authoring/esp-create-skill"
   ]
 }

@@ -25,9 +25,30 @@ Arguments: $ARGUMENTS
 - Title must be short (50 chars ideal, 120 max) and focus on the main task completed
 - Description is optional for small commits
 - Description uses 1-5 bullet points for larger commits highlighting important aspects
-- Always include AI attribution with your model name: `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
+- Include AI attribution with your model name: `Co-Authored-By: Claude <model> <noreply@anthropic.com>`, unless `commit.co_author` is `false`
+- Arguments override configuration; missing configuration falls back to the defaults below
 
 ## Skill-Specific Guidelines
+
+### Configuration
+
+Read the `commit` section and the shared language once at the start:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get commit
+node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults.language
+```
+
+If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
+
+| Key                       | Default | Effect                                                                                   |
+| ------------------------- | ------- | ---------------------------------------------------------------------------------------- |
+| `commit.style`            | `plain` | `plain`: imperative title. `conventional`: `type(scope): subject` (Conventional Commits) |
+| `commit.co_author`        | `true`  | Add the `Co-Authored-By` trailer                                                         |
+| `commit.plan_step_prefix` | `true`  | Add the plan step prefix (`[Task N]`, `[Milestone N]`) when following a plan             |
+| `defaults.language`       | `en-US` | Language of the commit title and description                                             |
+
+With `conventional` style and a plan step, the prefix comes first: `[Task 2] feat(auth): add token refresh`.
 
 ### Plan Step Reference
 
@@ -48,19 +69,21 @@ Only include this prefix if you are actively following a plan with numbered step
 
 ## Instructions
 
-1. Run `git status` to verify there are changes to commit
-2. Run `git diff --staged` to analyze staged changes (if none, stage all with `git add .`)
-3. Analyze the changes to determine:
+1. Load the `commit` configuration (see Configuration)
+2. Run `git status` to verify there are changes to commit
+3. Run `git diff --staged` to analyze staged changes (if none, stage all with `git add .`)
+4. Analyze the changes to determine:
    - Primary purpose of the changes (the "what")
    - Impact and scope (small fix vs. larger feature)
-4. Determine plan step reference (if following a plan):
+5. Determine plan step reference (if following a plan and `commit.plan_step_prefix` is `true`):
    - Check if there is an active plan with numbered tasks or milestones
    - Identify which task/milestone these changes correspond to
    - Format the prefix accordingly (e.g., `[Task 3]`, `[Milestone 2]`, `[Task 1.2]`)
-5. Construct commit message:
-   - **Title**: `[Step Ref]` prefix (if applicable) + imperative mood, capitalize first letter, no period
+6. Construct commit message:
+   - **Title**: `[Step Ref]` prefix (if applicable), then per `commit.style`: imperative mood with a capitalized first letter and no period (`plain`), or `type(scope): subject` (`conventional`)
    - **Description**: Only if changes are substantial; 1-5 bullets on key aspects
-6. Execute commit using HEREDOC for proper formatting:
+   - **Trailer**: the `Co-Authored-By` line, unless `commit.co_author` is `false`
+7. Execute commit using HEREDOC for proper formatting:
 
    ```bash
    git commit -m "$(cat <<'EOF'
@@ -74,7 +97,7 @@ Only include this prefix if you are actively following a plan with numbered step
    )"
    ```
 
-7. Report success with commit hash
+8. Report success with commit hash
 
 ## Output Guidance
 

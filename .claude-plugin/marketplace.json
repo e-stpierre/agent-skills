@@ -34,7 +34,8 @@
         "markdown",
         "style",
         "skill",
-        "template"
+        "template",
+        "config"
       ],
       "category": "development",
       "strict": false

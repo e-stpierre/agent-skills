@@ -47,6 +47,24 @@ Load ONE of these based on the `<type>` argument:
 - Recognize test-specific patterns and legitimate edge cases
 - If no issues found, return success with zero counts
 
+## Skill-Specific Guidelines
+
+### Configuration
+
+Read the `analyze` section once at the start:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get analyze
+```
+
+If the command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
+
+| Key                  | Default    | Effect                                                        |
+| -------------------- | ---------- | ------------------------------------------------------------- |
+| `analyze.output_dir` | `analysis` | Directory, relative to the repository root, for saved reports |
+
+In the instructions below, `{output_dir}` is the resolved `analyze.output_dir`.
+
 ## Instructions
 
 1. **Validate Type Argument**
@@ -57,6 +75,8 @@ Load ONE of these based on the `<type>` argument:
      ```text
      Error: Invalid or missing type argument. Must be one of: bug, debt, doc, security, style
      ```
+
+   - Load the `analyze` configuration (see Configuration)
 
 2. **Load Type-Specific Guidelines**
    Based on the `<type>` argument, load the corresponding reference file:
@@ -87,7 +107,7 @@ Load ONE of these based on the `<type>` argument:
    - Use consistent severity levels across all types
 
 7. **Generate Report**
-   - Save to `analysis/{type}.md`
+   - Save to `{output_dir}/{type}.md`
    - Include date in report header
    - Group findings by severity
    - Use the template from the type-specific reference file
@@ -101,7 +121,7 @@ Load ONE of these based on the `<type>` argument:
 Save a detailed markdown report and present a user-friendly summary:
 
 ```text
-{Type} analysis complete. Report saved to analysis/{type}.md
+{Type} analysis complete. Report saved to {output_dir}/{type}.md
 
 ## Summary
 - Critical: X issues
