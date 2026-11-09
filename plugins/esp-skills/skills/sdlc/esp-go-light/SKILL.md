@@ -59,18 +59,18 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), stop: the limits and the hand-off need the scripts.
 
-| Key                                | Default                                                                  | Effect                                                                         |
-| ---------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
-| `go-light.phases`                  | `context, branch, implement, pr, await-review, fix-review, merge`        | Phases to run. `implement` is required; without `pr`, the wait phases are skipped |
-| `go-light.max_files_changed`       | `10`                                                                     | More changed files (estimated or actual) escalates                             |
-| `go-light.escalate_to_go`          | `true`                                                                   | `false`: no escalation. Over the file limit, continue and log it; design decisions follow the decision policy; a second gate failure halts |
-| `go-light.budgets.max_wall_minutes`| `60`                                                                     | Wall time budget, checked at each phase boundary                               |
-| `go.halt_on`                       | all five stop conditions                                                 | Stop conditions honored (see decision-policy.md)                               |
-| `go.default_reviewers`             | `["claude"]`                                                             | Reviewers to wait for and fix when `--reviewers` is not given                  |
-| `pr.base`, `pr.draft`              | `null`, `false`                                                          | Base branch (`null`: the repository default branch) and draft pull requests    |
-| `pr.body_from_run`, `pr.body_sections` | `true`, `summary, milestones, decisions, review-resolution, follow-ups` | Build the pull request body from the run artifacts, with these sections        |
-| `pr.attribution`                   | `true`                                                                   | Append the AI attribution line to the body                                     |
-| `defaults.interactive`             | `off`                                                                    | Interactive mode when `--interactive` is not given                             |
+| Key                                    | Default                                                                 | Effect                                                                                                                                     |
+| -------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `go-light.phases`                      | `context, branch, implement, pr, await-review, fix-review, merge`       | Phases to run. `implement` is required; without `pr`, the wait phases are skipped                                                          |
+| `go-light.max_files_changed`           | `10`                                                                    | More changed files (estimated or actual) escalates                                                                                         |
+| `go-light.escalate_to_go`              | `true`                                                                  | `false`: no escalation. Over the file limit, continue and log it; design decisions follow the decision policy; a second gate failure halts |
+| `go-light.budgets.max_wall_minutes`    | `60`                                                                    | Wall time budget, checked at each phase boundary                                                                                           |
+| `go.halt_on`                           | all five stop conditions                                                | Stop conditions honored (see decision-policy.md)                                                                                           |
+| `go.default_reviewers`                 | `["claude"]`                                                            | Reviewers to wait for and fix when `--reviewers` is not given                                                                              |
+| `pr.base`, `pr.draft`                  | `null`, `false`                                                         | Base branch (`null`: the repository default branch) and draft pull requests                                                                |
+| `pr.body_from_run`, `pr.body_sections` | `true`, `summary, milestones, decisions, review-resolution, follow-ups` | Build the pull request body from the run artifacts, with these sections                                                                    |
+| `pr.attribution`                       | `true`                                                                  | Append the AI attribution line to the body                                                                                                 |
+| `defaults.interactive`                 | `off`                                                                   | Interactive mode when `--interactive` is not given                                                                                         |
 
 The phase skills read their own sections (`await-review`, `fix-review`, `merge`, `commit`) through the frozen snapshot.
 
@@ -78,17 +78,17 @@ The phase skills read their own sections (`await-review`, `fix-review`, `merge`,
 
 `scripts/go-light.mjs` owns `<run-dir>/go-light.json`. Every command takes `--run-dir <path>`:
 
-| Command                                                                    | Use                                                                                         |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `init --request <text> --base <branch> [--stop-before-wait] [--config-snapshot <path>]` | Create the state, resolve the phases, freeze the config. A second call prints the state |
-| `phase <name> --status started\|done\|skipped\|failed [--branch] [--base-sha] [--commit] [--pr] [--summary] [--gates <json>]` | Record a phase and its facts (emits `branch.created`, `commit.created`, `pr.opened`, updates `run.json`) |
-| `scope [--estimate <n>]`                                                   | Changed files since the base (tracked and untracked), or a planned count, vs `max_files_changed`. `action`: `continue`, `escalate`, `continue-over-limit` |
-| `gate-failure --reason <text>`                                             | Count a gate failure. `action`: `retry`, then `escalate` (or `halt` without escalation) at the second |
-| `budget`                                                                   | Elapsed wall time. `action`: `continue`, `halt` (when `budget` is in `go.halt_on`), `continue-over-budget` |
-| `escalate --trigger files\|design\|gates --reason <text> [--question <text>]` | Save `escalation.patch`, stash the work, log the decision, print the escalate block (exit 30) |
-| `halt --key <go.halt_on key> --reason <text>`                              | Log a Halt decision, print the halted block (exit 20)                                       |
-| `pr-body [--summary <text>] [--out <file>]`                                | Pull request body from `decisions.jsonl` and the step results, per `pr.body_sections`       |
-| `result [--status <status>] [--summary <text>]`                            | Final result block from the state and the phase steps (exits with its contract code)       |
+| Command                                                                                                                       | Use                                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `init --request <text> --base <branch> [--stop-before-wait] [--config-snapshot <path>]`                                       | Create the state, resolve the phases, freeze the config. A second call prints the state                                                                   |
+| `phase <name> --status started\|done\|skipped\|failed [--branch] [--base-sha] [--commit] [--pr] [--summary] [--gates <json>]` | Record a phase and its facts (emits `branch.created`, `commit.created`, `pr.opened`, updates `run.json`)                                                  |
+| `scope [--estimate <n>]`                                                                                                      | Changed files since the base (tracked and untracked), or a planned count, vs `max_files_changed`. `action`: `continue`, `escalate`, `continue-over-limit` |
+| `gate-failure --reason <text>`                                                                                                | Count a gate failure. `action`: `retry`, then `escalate` (or `halt` without escalation) at the second                                                     |
+| `budget`                                                                                                                      | Elapsed wall time. `action`: `continue`, `halt` (when `budget` is in `go.halt_on`), `continue-over-budget`                                                |
+| `escalate --trigger files\|design\|gates --reason <text> [--question <text>]`                                                 | Save `escalation.patch`, stash the work, log the decision, print the escalate block (exit 30)                                                             |
+| `halt --key <go.halt_on key> --reason <text>`                                                                                 | Log a Halt decision, print the halted block (exit 20)                                                                                                     |
+| `pr-body [--summary <text>] [--out <file>]`                                                                                   | Pull request body from `decisions.jsonl` and the step results, per `pr.body_sections`                                                                     |
+| `result [--status <status>] [--summary <text>]`                                                                               | Final result block from the state and the phase steps (exits with its contract code)                                                                      |
 
 ### Running Phase Skills Inline
 
@@ -100,11 +100,11 @@ For `esp-branch` and `esp-commit`, invoke the skill when the runtime has a skill
 
 Escalate (with `go-light.escalate_to_go`) when:
 
-| Trigger  | When                                                                                                                       |
-| -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `files`  | `scope --estimate <n>` in the context phase, or `scope` after the gates pass, returns `action: escalate`                    |
+| Trigger  | When                                                                                                                                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `files`  | `scope --estimate <n>` in the context phase, or `scope` after the gates pass, returns `action: escalate`                                                                                                                   |
 | `design` | The request needs a choice that changes scope, a public API, or the data model, or several designs are defensible and the choice matters beyond this change (a B-Scope item, or a B-Decide item with lasting consequences) |
-| `gates`  | `gate-failure` returns `action: escalate`: the gates failed twice                                                          |
+| `gates`  | `gate-failure` returns `action: escalate`: the gates failed twice                                                                                                                                                          |
 
 How to escalate:
 

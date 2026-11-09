@@ -50,7 +50,8 @@ export function withLock(
         // The lock disappeared between open and stat: retry immediately.
         continue;
       }
-      if (Date.now() > deadline) throw new LockTimeoutError(lockPath, timeoutMs);
+      if (Date.now() > deadline)
+        throw new LockTimeoutError(lockPath, timeoutMs);
       sleep(delay + Math.floor(Math.random() * delay));
       delay = Math.min(delay * 2, 50);
     }

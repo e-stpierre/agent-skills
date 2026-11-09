@@ -51,28 +51,28 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 
 ### GitHub
 
-| Skill                    | Description                                                                   |
-| ------------------------ | ----------------------------------------------------------------------------- |
-| `/esp-skills:esp-fix-review` | Fix, reply to, or defer PR review comments and failing CI checks over bounded rounds, or apply `esp-review` findings |
-| `/esp-skills:esp-await-review` | Wait in the background for bot reviews of the PR head commit, then report |
-| `/esp-skills:esp-merge` | Merge a PR under objective conditions, with the method the repository allows, rebasing when behind |
+| Skill                          | Description                                                                                                          |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `/esp-skills:esp-fix-review`   | Fix, reply to, or defer PR review comments and failing CI checks over bounded rounds, or apply `esp-review` findings |
+| `/esp-skills:esp-await-review` | Wait in the background for bot reviews of the PR head commit, then report                                            |
+| `/esp-skills:esp-merge`        | Merge a PR under objective conditions, with the method the repository allows, rebasing when behind                   |
 
 ### Code Review
 
-| Skill                    | Description                                                                              |
-| ------------------------ | ---------------------------------------------------------------------------------------- |
+| Skill                    | Description                                                                             |
+| ------------------------ | --------------------------------------------------------------------------------------- |
 | `/esp-skills:esp-review` | Review a diff, branch or PR across dimensions; findings classified A, B-Decide, B-Scope |
 
 ### SDLC
 
-| Skill                       | Description                                                          |
-| --------------------------- | -------------------------------------------------------------------- |
-| `/esp-skills:esp-plan`      | **Beta** - Create or amend a machine-readable implementation plan    |
-| `/esp-skills:esp-build`     | **Beta** - Build a plan with one verified commit per milestone       |
-| `/esp-skills:esp-go`        | **Beta** - Feature to merged PR, with phase subagents                |
-| `/esp-skills:esp-go-light`  | **Beta** - Small task to merged PR in one session, or escalate       |
-| `/esp-skills:esp-recap`     | **Beta** - Recap runs, report their risks, or answer with sources    |
-| `/esp-skills:esp-analyze`   | **Beta** - Analyze codebase for bugs, debt, docs, security, or style |
+| Skill                      | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| `/esp-skills:esp-plan`     | **Beta** - Create or amend a machine-readable implementation plan    |
+| `/esp-skills:esp-build`    | **Beta** - Build a plan with one verified commit per milestone       |
+| `/esp-skills:esp-go`       | **Beta** - Feature to merged PR, with phase subagents                |
+| `/esp-skills:esp-go-light` | **Beta** - Small task to merged PR in one session, or escalate       |
+| `/esp-skills:esp-recap`    | **Beta** - Recap runs, report their risks, or answer with sources    |
+| `/esp-skills:esp-analyze`  | **Beta** - Analyze codebase for bugs, debt, docs, security, or style |
 
 ### Helpers
 
@@ -116,74 +116,74 @@ Objects merge key by key; arrays and scalars replace. Invalid config fails with 
 
 Keys read by the current skills:
 
-| Key                            | Default                                   | Read by                | Effect                                                 |
-| ------------------------------ | ----------------------------------------- | ---------------------- | ------------------------------------------------------ |
-| `defaults.language`            | `en-US`                                   | `esp-commit`, `esp-pr` | Language of generated messages                         |
-| `branch.pattern`               | `{category}/{issue}_{name}`               | `esp-branch`           | Branch name when an issue ID is known                  |
-| `branch.pattern_without_issue` | `{category}/{name}`                       | `esp-branch`           | Branch name when no issue ID is known                  |
-| `branch.default_category`      | `feature`                                 | `esp-branch`           | Category when none is given or inferred                |
-| `branch.categories`            | `feature, fix, chore, doc, refactor, poc` | `esp-branch`           | Suggested categories (others still work)               |
-| `commit.style`                 | `plain`                                   | `esp-commit`           | `plain` imperative title or `conventional` commits     |
-| `commit.co_author`             | `true`                                    | `esp-commit`           | Add the `Co-Authored-By` trailer                       |
-| `commit.plan_step_prefix`      | `true`                                    | `esp-commit`           | Prefix titles with `[Task N]` when following a plan    |
-| `pr.base`                      | `null`                                    | `esp-pr`               | Base branch, `null` uses the repository default branch |
-| `pr.draft`                     | `false`                                   | `esp-pr`               | Open PRs as drafts                                     |
-| `pr.attribution`               | `true`                                    | `esp-pr`               | Append the AI attribution line                         |
-| `analyze.output_dir`           | `analysis`                                | `esp-analyze`          | Directory for analysis reports                         |
-| `plan.default_type`            | `auto`                                    | `esp-plan`             | Plan type when `--type` is not given                   |
-| `plan.explore_agents`          | `feature: 3, bug: 2, chore: 2`            | `esp-plan`             | Explore subagents per plan type                        |
-| `defaults.interactive`         | `off`                                     | `esp-plan`, `esp-review`, `esp-go`, `esp-go-light` | When skills stop to ask (`off`, `plan`, `all`)       |
-| `defaults.models`              | see `references/model-selection.md`       | `esp-plan`, `esp-build`, `esp-review`, `esp-go` | Model and effort per subagent role      |
-| `build.max_retries_per_milestone` | `2`                                    | `esp-build`            | Builder retries before the build halts                 |
-| `build.parallel`               | `false`                                   | `esp-build`            | Run disjoint milestones in parallel worktrees          |
-| `build.commit_per_milestone`   | `true`                                    | `esp-build`            | `false` squashes milestone commits at the end          |
-| `build.gates`                  | all `null` (auto-detect)                  | `esp-build`            | Gate commands: `test`, `lint`, `typecheck`, `build`    |
-| `worktrees.root`               | `~/.esp-skills/worktrees`                 | `esp-build`            | Where parallel milestone worktrees are created         |
-| `review.dimensions`            | `correctness, security, conventions, plan-conformance` | `esp-review` | Dimensions checked when `--focus` names none |
-| `review.min_severity`          | `medium`                                  | `esp-review`           | Findings below it are dropped                          |
-| `review.verify_findings`       | `true`                                    | `esp-review`           | Run the verify pass that rejects false positives       |
-| `await-review.reviewers`       | `claude`, `codex` (`@codex review` trigger) | `esp-await-review`   | Reviewer names, GitHub logins and trigger comments     |
-| `await-review.timeout_minutes` | `30`                                      | `esp-await-review`     | Time before the wait gives up                          |
-| `await-review.poll_seconds`    | `60`                                      | `esp-await-review`     | First poll interval, backing off to 5x                 |
-| `await-review.auto_trigger`    | `false`                                   | `esp-await-review`     | Post trigger comments without `--trigger`              |
-| `go.default_reviewers`         | `["claude"]`                              | `esp-await-review`, `esp-fix-review`, `esp-go`, `esp-go-light` | Reviewers waited for when `--reviewers` is not given |
-| `fix-review.max_rounds`        | `3`                                       | `esp-fix-review`, `esp-go` | Fix rounds when `--rounds` is not given                |
-| `fix-review.fix_ci`            | `true`                                    | `esp-fix-review`       | Diagnose and fix failing CI checks                     |
-| `fix-review.reply_to_rejected` | `true`                                    | `esp-fix-review`       | Reply with the reason to rejected comments             |
-| `fix-review.deferred_items`    | `follow-up`                               | `esp-fix-review`       | `follow-up` (reply, resolve, discovered item) or `block` |
-| `commit.review_fixes`          | `separate`                                | `esp-fix-review`       | `fix(review)` commits, or `fixup!` commits             |
-| `merge.enabled`                | `true`                                    | `esp-merge`            | `false` leaves the PR open                             |
-| `merge.method`                 | `repo`                                    | `esp-merge`            | `repo` resolves it from the repository, else forced    |
-| `merge.preference`             | `squash, rebase, merge`                   | `esp-merge`            | Order when the repository allows several methods       |
-| `merge.delete_branch`          | `true`                                    | `esp-merge`            | Delete the remote head branch after the merge          |
-| `merge.require_resolved_threads` | `true`                                  | `esp-merge`            | Unresolved review threads block the merge              |
-| `merge.require_green_checks`   | `true`                                    | `esp-merge`            | Every check must pass (`false`: required checks only)  |
-| `merge.use_auto_merge`         | `false`                                   | `esp-merge`            | Enable auto-merge on pending checks instead of waiting |
-| `merge.checks_timeout_minutes` | `30`                                      | `esp-merge`            | Wait for pending checks and for a busy merge lock      |
-| `worktrees.cleanup`            | `on-merge`                                | `esp-merge`            | Remove the task worktree after the merge (`never` keeps it) |
-| `go-light.phases`              | `context, branch, implement, pr, await-review, fix-review, merge` | `esp-go-light` | Phases to run (`implement` is required) |
-| `go-light.max_files_changed`   | `10`                                      | `esp-go-light`         | More changed files escalates to `esp-go`               |
-| `go-light.escalate_to_go`      | `true`                                    | `esp-go-light`         | `false`: continue over the file limit, halt on gates   |
-| `go-light.budgets.max_wall_minutes` | `60`                                 | `esp-go-light`         | Wall time budget, checked at each phase boundary       |
-| `go.phases`                    | `plan, branch, build, review, pr, await-review, fix-review, merge` | `esp-go` | Phases to run (`build` is required) |
-| `go.internal_review_rounds`    | `2`                                       | `esp-go`               | Review and fix rounds before the PR (`0` skips them)   |
-| `go.worktree`                  | `false`                                   | `esp-go`               | Build in a task worktree under `worktrees.root`        |
-| `go.pr_draft_until_reviewed`   | `true`                                    | `esp-go`               | Open the PR as a draft, mark it ready once the body is in place |
-| `go.budgets.max_milestones`    | `12`                                      | `esp-go`               | A larger plan halts with `budget`                      |
-| `go.budgets.max_wall_minutes`  | `240`                                     | `esp-go`               | Wall time budget, checked at each phase boundary       |
-| `go.halt_on`                   | all five stop conditions                  | `esp-go`, `esp-go-light`, `esp-fix-review` | Stop conditions honored (see `decision-policy.md`) |
-| `pr.body_from_run`             | `true`                                    | `esp-go`, `esp-go-light`, `esp-pr` | Build the PR body from the run artifacts               |
-| `pr.body_sections`             | `summary, milestones, decisions, review-resolution, follow-ups` | `esp-go`, `esp-go-light`, `esp-pr` | Sections of that body, in order |
-| `recap.roots`                  | `["~/.esp-skills/runs"]`                  | `esp-recap`            | Runs roots read by the recap, besides `runs.root` (add the agentic-forge runs root) |
-| `recap.default_range_days`     | `7`                                       | `esp-recap`            | Days covered when no date option is given              |
-| `recap.fan_out_threshold`      | `5`                                       | `esp-recap`            | Above this many runs, digest them in parallel subagents |
-| `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
+| Key                                 | Default                                                            | Read by                                                        | Effect                                                                              |
+| ----------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `defaults.language`                 | `en-US`                                                            | `esp-commit`, `esp-pr`                                         | Language of generated messages                                                      |
+| `branch.pattern`                    | `{category}/{issue}_{name}`                                        | `esp-branch`                                                   | Branch name when an issue ID is known                                               |
+| `branch.pattern_without_issue`      | `{category}/{name}`                                                | `esp-branch`                                                   | Branch name when no issue ID is known                                               |
+| `branch.default_category`           | `feature`                                                          | `esp-branch`                                                   | Category when none is given or inferred                                             |
+| `branch.categories`                 | `feature, fix, chore, doc, refactor, poc`                          | `esp-branch`                                                   | Suggested categories (others still work)                                            |
+| `commit.style`                      | `plain`                                                            | `esp-commit`                                                   | `plain` imperative title or `conventional` commits                                  |
+| `commit.co_author`                  | `true`                                                             | `esp-commit`                                                   | Add the `Co-Authored-By` trailer                                                    |
+| `commit.plan_step_prefix`           | `true`                                                             | `esp-commit`                                                   | Prefix titles with `[Task N]` when following a plan                                 |
+| `pr.base`                           | `null`                                                             | `esp-pr`                                                       | Base branch, `null` uses the repository default branch                              |
+| `pr.draft`                          | `false`                                                            | `esp-pr`                                                       | Open PRs as drafts                                                                  |
+| `pr.attribution`                    | `true`                                                             | `esp-pr`                                                       | Append the AI attribution line                                                      |
+| `analyze.output_dir`                | `analysis`                                                         | `esp-analyze`                                                  | Directory for analysis reports                                                      |
+| `plan.default_type`                 | `auto`                                                             | `esp-plan`                                                     | Plan type when `--type` is not given                                                |
+| `plan.explore_agents`               | `feature: 3, bug: 2, chore: 2`                                     | `esp-plan`                                                     | Explore subagents per plan type                                                     |
+| `defaults.interactive`              | `off`                                                              | `esp-plan`, `esp-review`, `esp-go`, `esp-go-light`             | When skills stop to ask (`off`, `plan`, `all`)                                      |
+| `defaults.models`                   | see `references/model-selection.md`                                | `esp-plan`, `esp-build`, `esp-review`, `esp-go`                | Model and effort per subagent role                                                  |
+| `build.max_retries_per_milestone`   | `2`                                                                | `esp-build`                                                    | Builder retries before the build halts                                              |
+| `build.parallel`                    | `false`                                                            | `esp-build`                                                    | Run disjoint milestones in parallel worktrees                                       |
+| `build.commit_per_milestone`        | `true`                                                             | `esp-build`                                                    | `false` squashes milestone commits at the end                                       |
+| `build.gates`                       | all `null` (auto-detect)                                           | `esp-build`                                                    | Gate commands: `test`, `lint`, `typecheck`, `build`                                 |
+| `worktrees.root`                    | `~/.esp-skills/worktrees`                                          | `esp-build`                                                    | Where parallel milestone worktrees are created                                      |
+| `review.dimensions`                 | `correctness, security, conventions, plan-conformance`             | `esp-review`                                                   | Dimensions checked when `--focus` names none                                        |
+| `review.min_severity`               | `medium`                                                           | `esp-review`                                                   | Findings below it are dropped                                                       |
+| `review.verify_findings`            | `true`                                                             | `esp-review`                                                   | Run the verify pass that rejects false positives                                    |
+| `await-review.reviewers`            | `claude`, `codex` (`@codex review` trigger)                        | `esp-await-review`                                             | Reviewer names, GitHub logins and trigger comments                                  |
+| `await-review.timeout_minutes`      | `30`                                                               | `esp-await-review`                                             | Time before the wait gives up                                                       |
+| `await-review.poll_seconds`         | `60`                                                               | `esp-await-review`                                             | First poll interval, backing off to 5x                                              |
+| `await-review.auto_trigger`         | `false`                                                            | `esp-await-review`                                             | Post trigger comments without `--trigger`                                           |
+| `go.default_reviewers`              | `["claude"]`                                                       | `esp-await-review`, `esp-fix-review`, `esp-go`, `esp-go-light` | Reviewers waited for when `--reviewers` is not given                                |
+| `fix-review.max_rounds`             | `3`                                                                | `esp-fix-review`, `esp-go`                                     | Fix rounds when `--rounds` is not given                                             |
+| `fix-review.fix_ci`                 | `true`                                                             | `esp-fix-review`                                               | Diagnose and fix failing CI checks                                                  |
+| `fix-review.reply_to_rejected`      | `true`                                                             | `esp-fix-review`                                               | Reply with the reason to rejected comments                                          |
+| `fix-review.deferred_items`         | `follow-up`                                                        | `esp-fix-review`                                               | `follow-up` (reply, resolve, discovered item) or `block`                            |
+| `commit.review_fixes`               | `separate`                                                         | `esp-fix-review`                                               | `fix(review)` commits, or `fixup!` commits                                          |
+| `merge.enabled`                     | `true`                                                             | `esp-merge`                                                    | `false` leaves the PR open                                                          |
+| `merge.method`                      | `repo`                                                             | `esp-merge`                                                    | `repo` resolves it from the repository, else forced                                 |
+| `merge.preference`                  | `squash, rebase, merge`                                            | `esp-merge`                                                    | Order when the repository allows several methods                                    |
+| `merge.delete_branch`               | `true`                                                             | `esp-merge`                                                    | Delete the remote head branch after the merge                                       |
+| `merge.require_resolved_threads`    | `true`                                                             | `esp-merge`                                                    | Unresolved review threads block the merge                                           |
+| `merge.require_green_checks`        | `true`                                                             | `esp-merge`                                                    | Every check must pass (`false`: required checks only)                               |
+| `merge.use_auto_merge`              | `false`                                                            | `esp-merge`                                                    | Enable auto-merge on pending checks instead of waiting                              |
+| `merge.checks_timeout_minutes`      | `30`                                                               | `esp-merge`                                                    | Wait for pending checks and for a busy merge lock                                   |
+| `worktrees.cleanup`                 | `on-merge`                                                         | `esp-merge`                                                    | Remove the task worktree after the merge (`never` keeps it)                         |
+| `go-light.phases`                   | `context, branch, implement, pr, await-review, fix-review, merge`  | `esp-go-light`                                                 | Phases to run (`implement` is required)                                             |
+| `go-light.max_files_changed`        | `10`                                                               | `esp-go-light`                                                 | More changed files escalates to `esp-go`                                            |
+| `go-light.escalate_to_go`           | `true`                                                             | `esp-go-light`                                                 | `false`: continue over the file limit, halt on gates                                |
+| `go-light.budgets.max_wall_minutes` | `60`                                                               | `esp-go-light`                                                 | Wall time budget, checked at each phase boundary                                    |
+| `go.phases`                         | `plan, branch, build, review, pr, await-review, fix-review, merge` | `esp-go`                                                       | Phases to run (`build` is required)                                                 |
+| `go.internal_review_rounds`         | `2`                                                                | `esp-go`                                                       | Review and fix rounds before the PR (`0` skips them)                                |
+| `go.worktree`                       | `false`                                                            | `esp-go`                                                       | Build in a task worktree under `worktrees.root`                                     |
+| `go.pr_draft_until_reviewed`        | `true`                                                             | `esp-go`                                                       | Open the PR as a draft, mark it ready once the body is in place                     |
+| `go.budgets.max_milestones`         | `12`                                                               | `esp-go`                                                       | A larger plan halts with `budget`                                                   |
+| `go.budgets.max_wall_minutes`       | `240`                                                              | `esp-go`                                                       | Wall time budget, checked at each phase boundary                                    |
+| `go.halt_on`                        | all five stop conditions                                           | `esp-go`, `esp-go-light`, `esp-fix-review`                     | Stop conditions honored (see `decision-policy.md`)                                  |
+| `pr.body_from_run`                  | `true`                                                             | `esp-go`, `esp-go-light`, `esp-pr`                             | Build the PR body from the run artifacts                                            |
+| `pr.body_sections`                  | `summary, milestones, decisions, review-resolution, follow-ups`    | `esp-go`, `esp-go-light`, `esp-pr`                             | Sections of that body, in order                                                     |
+| `recap.roots`                       | `["~/.esp-skills/runs"]`                                           | `esp-recap`                                                    | Runs roots read by the recap, besides `runs.root` (add the agentic-forge runs root) |
+| `recap.default_range_days`          | `7`                                                                | `esp-recap`                                                    | Days covered when no date option is given                                           |
+| `recap.fan_out_threshold`           | `5`                                                                | `esp-recap`                                                    | Above this many runs, digest them in parallel subagents                             |
+| `runs.root`                         | `~/.esp-skills/runs`                                               | `scripts/runs.mjs`                                             | Where standalone run directories are created                                        |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
 
-| Key                                    | Planned use                                                          |
-| -------------------------------------- | -------------------------------------------------------------------- |
-| `runs.retention_days`                  | Days to keep finished runs                                           |
+| Key                   | Planned use                |
+| --------------------- | -------------------------- |
+| `runs.retention_days` | Days to keep finished runs |
 
 ## Architecture
 

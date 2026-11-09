@@ -28,7 +28,12 @@ function cli(args, script = SCRIPT, env = {}) {
     encoding: "utf8",
     env: { ...process.env, ...env }
   });
-  return { code: r.status, stdout: r.stdout, stderr: r.stderr, json: () => JSON.parse(r.stdout) };
+  return {
+    code: r.status,
+    stdout: r.stdout,
+    stderr: r.stderr,
+    json: () => JSON.parse(r.stdout)
+  };
 }
 
 const errorsOf = (text, opts) => parsePlan(text, opts).errors;
@@ -42,7 +47,10 @@ describe("parsePlan", () => {
     assert.equal(plan.type, "feature");
     assert.equal(plan.version, 1);
     assert.equal(plan.created, "2026-11-08");
-    assert.deepEqual(plan.context.map((c) => c.title), ["Architecture"]);
+    assert.deepEqual(
+      plan.context.map((c) => c.title),
+      ["Architecture"]
+    );
     assert.deepEqual(plan.open_questions, []);
     assert.deepEqual(plan.out_of_scope, ["Other OAuth providers"]);
     assert.equal(plan.milestones.length, 2);
@@ -53,8 +61,13 @@ describe("parsePlan", () => {
       complexity: "low",
       depends: ["M1"],
       files: ["src/routes/login.ts", "src/views/login.html"],
-      tasks: ["Add `/auth/google` and `/auth/google/callback`", 'Add the "Sign in with Google" button'],
-      acceptance: ["A successful callback creates a session and redirects to `/`"],
+      tasks: [
+        "Add `/auth/google` and `/auth/google/callback`",
+        'Add the "Sign in with Google" button'
+      ],
+      acceptance: [
+        "A successful callback creates a session and redirects to `/`"
+      ],
       validation: ["pnpm test", "pnpm lint"]
     });
     assert.deepEqual(plan.milestones[0].depends, []);
@@ -70,8 +83,14 @@ describe("parsePlan", () => {
     );
     const { plan, errors } = parsePlan(text);
     assert.deepEqual(errors, []);
-    assert.equal(plan.milestones[0].tasks[0], "Add `src/auth/google.ts`\n   with two functions");
-    assert.equal(plan.milestones[0].goal, "The app can complete a Google OAuth flow and read the user profile");
+    assert.equal(
+      plan.milestones[0].tasks[0],
+      "Add `src/auth/google.ts`\n   with two functions"
+    );
+    assert.equal(
+      plan.milestones[0].goal,
+      "The app can complete a Google OAuth flow and read the user profile"
+    );
   });
 
   test("ignores headings inside code fences", () => {
@@ -93,7 +112,10 @@ describe("parsePlan", () => {
   });
 
   test("warns on open questions", () => {
-    const text = EXAMPLE.replace("## Open Questions\n\n- None", "## Open Questions\n\n- Which scopes?");
+    const text = EXAMPLE.replace(
+      "## Open Questions\n\n- None",
+      "## Open Questions\n\n- Which scopes?"
+    );
     const { plan, errors, warnings } = parsePlan(text);
     assert.deepEqual(errors, []);
     assert.deepEqual(plan.open_questions, ["Which scopes?"]);
@@ -101,36 +123,148 @@ describe("parsePlan", () => {
   });
 
   const invalid = [
-    ["missing frontmatter", (t) => t.replace(/^---[\s\S]*?---\n/, ""), /frontmatter: missing/],
-    ["wrong plan_format", (t) => t.replace("plan_format: 1", "plan_format: 2"), /plan_format must be 1/],
-    ["unknown frontmatter key", (t) => t.replace("version: 1", "version: 1\nmodel: opus"), /unknown key "model"/],
-    ["bad type", (t) => t.replace("type: feature", "type: epic"), /type must be one of/],
-    ["missing section", (t) => t.replace("## Risks\n\n- The provider rate-limits token exchanges during tests: the tests mock the endpoint\n\n", ""), /missing section "## Risks"/],
-    ["empty list section", (t) => t.replace("## Out of Scope\n\n- Other OAuth providers", "## Out of Scope\n"), /"## Out of Scope" needs list items/],
-    ["context after milestones", (t) => t.replace("## Risks", "## Notes\n\nlate\n\n## Risks"), /"## Notes" must come before/],
-    ["sections out of order", (t) => t.replace("## Open Questions\n\n- None\n\n", "").replace("## Risks", "## Open Questions\n\n- None\n\n## Risks"), /out of order/],
-    ["bad milestone heading", (t) => t.replace("### M2: Add the login route", "### Step 2: Add the login route"), /heading must be/],
-    ["duplicate ID", (t) => t.replace("### M2:", "### M1:").replace("**Depends**: M1", "**Depends**: none"), /duplicate ID/],
-    ["missing field", (t) => t.replace("- **Complexity**: low\n", ""), /missing field "\*\*Complexity\*\*"/],
-    ["unknown field", (t) => t.replace("- **Complexity**: low", "- **Complexity**: low\n- **Model**: opus"), /unknown field "Model"/],
-    ["bad complexity", (t) => t.replace("**Complexity**: low", "**Complexity**: trivial"), /complexity must be one of/],
-    ["unknown dependency", (t) => t.replace("**Depends**: M1", "**Depends**: M7"), /unknown milestone M7/],
-    ["forward dependency", (t) => t.replace("**Depends**: none", "**Depends**: M2"), /comes later/],
-    ["missing subsection", (t) => t.replace("#### Acceptance Criteria\n\n- A successful callback creates a session and redirects to `/`\n\n", ""), /missing subsection "#### Acceptance Criteria"/],
-    ["unknown subsection", (t) => t.replace("#### Tasks", "#### Steps"), /unknown subsection "#### Steps"/],
-    ["validation without command", (t) => t.replace("- `pnpm lint`", "- run the linter"), /must start with a command in backticks/],
-    ["no milestones", (t) => t.replace(/## Milestones[\s\S]*?## Risks/, "## Milestones\n\nTBD\n\n## Risks"), /has no "### M<n>/]
+    [
+      "missing frontmatter",
+      (t) => t.replace(/^---[\s\S]*?---\n/, ""),
+      /frontmatter: missing/
+    ],
+    [
+      "wrong plan_format",
+      (t) => t.replace("plan_format: 1", "plan_format: 2"),
+      /plan_format must be 1/
+    ],
+    [
+      "unknown frontmatter key",
+      (t) => t.replace("version: 1", "version: 1\nmodel: opus"),
+      /unknown key "model"/
+    ],
+    [
+      "bad type",
+      (t) => t.replace("type: feature", "type: epic"),
+      /type must be one of/
+    ],
+    [
+      "missing section",
+      (t) =>
+        t.replace(
+          "## Risks\n\n- The provider rate-limits token exchanges during tests: the tests mock the endpoint\n\n",
+          ""
+        ),
+      /missing section "## Risks"/
+    ],
+    [
+      "empty list section",
+      (t) =>
+        t.replace(
+          "## Out of Scope\n\n- Other OAuth providers",
+          "## Out of Scope\n"
+        ),
+      /"## Out of Scope" needs list items/
+    ],
+    [
+      "context after milestones",
+      (t) => t.replace("## Risks", "## Notes\n\nlate\n\n## Risks"),
+      /"## Notes" must come before/
+    ],
+    [
+      "sections out of order",
+      (t) =>
+        t
+          .replace("## Open Questions\n\n- None\n\n", "")
+          .replace("## Risks", "## Open Questions\n\n- None\n\n## Risks"),
+      /out of order/
+    ],
+    [
+      "bad milestone heading",
+      (t) =>
+        t.replace(
+          "### M2: Add the login route",
+          "### Step 2: Add the login route"
+        ),
+      /heading must be/
+    ],
+    [
+      "duplicate ID",
+      (t) =>
+        t
+          .replace("### M2:", "### M1:")
+          .replace("**Depends**: M1", "**Depends**: none"),
+      /duplicate ID/
+    ],
+    [
+      "missing field",
+      (t) => t.replace("- **Complexity**: low\n", ""),
+      /missing field "\*\*Complexity\*\*"/
+    ],
+    [
+      "unknown field",
+      (t) =>
+        t.replace(
+          "- **Complexity**: low",
+          "- **Complexity**: low\n- **Model**: opus"
+        ),
+      /unknown field "Model"/
+    ],
+    [
+      "bad complexity",
+      (t) => t.replace("**Complexity**: low", "**Complexity**: trivial"),
+      /complexity must be one of/
+    ],
+    [
+      "unknown dependency",
+      (t) => t.replace("**Depends**: M1", "**Depends**: M7"),
+      /unknown milestone M7/
+    ],
+    [
+      "forward dependency",
+      (t) => t.replace("**Depends**: none", "**Depends**: M2"),
+      /comes later/
+    ],
+    [
+      "missing subsection",
+      (t) =>
+        t.replace(
+          "#### Acceptance Criteria\n\n- A successful callback creates a session and redirects to `/`\n\n",
+          ""
+        ),
+      /missing subsection "#### Acceptance Criteria"/
+    ],
+    [
+      "unknown subsection",
+      (t) => t.replace("#### Tasks", "#### Steps"),
+      /unknown subsection "#### Steps"/
+    ],
+    [
+      "validation without command",
+      (t) => t.replace("- `pnpm lint`", "- run the linter"),
+      /must start with a command in backticks/
+    ],
+    [
+      "no milestones",
+      (t) =>
+        t.replace(
+          /## Milestones[\s\S]*?## Risks/,
+          "## Milestones\n\nTBD\n\n## Risks"
+        ),
+      /has no "### M<n>/
+    ]
   ];
   for (const [name, mutate, pattern] of invalid) {
     test(`rejects: ${name}`, () => {
       const errors = errorsOf(mutate(EXAMPLE));
-      assert.ok(errors.some((e) => pattern.test(e)), `expected ${pattern} in ${JSON.stringify(errors)}`);
+      assert.ok(
+        errors.some((e) => pattern.test(e)),
+        `expected ${pattern} in ${JSON.stringify(errors)}`
+      );
     });
   }
 
   test("checks the version against the file name", () => {
     assert.deepEqual(errorsOf(EXAMPLE, { file: "/x/plan.md" }), []);
-    assert.match(errorsOf(EXAMPLE, { file: "/x/plan.v2.md" })[0], /does not match the file name/);
+    assert.match(
+      errorsOf(EXAMPLE, { file: "/x/plan.v2.md" })[0],
+      /does not match the file name/
+    );
     const v3 = EXAMPLE.replace("version: 1", "version: 3");
     assert.deepEqual(errorsOf(v3, { file: "/x/plan.v3.md" }), []);
   });
@@ -140,7 +274,10 @@ describe("diffPlans", () => {
   const v1 = parsePlan(EXAMPLE).plan;
   const amendedText = EXAMPLE.replace("version: 1", "version: 2")
     .replace("**Complexity**: low", "**Complexity**: medium")
-    .replace("## Risks", "### M3: Add logout\n\n- **Goal**: Users can sign out\n- **Complexity**: low\n- **Depends**: M2\n- **Files**: `src/routes/logout.ts`\n\n#### Tasks\n\n1. Add `/logout`\n\n#### Acceptance Criteria\n\n- The session is destroyed\n\n#### Validation\n\n- `pnpm test`\n\n## Risks");
+    .replace(
+      "## Risks",
+      "### M3: Add logout\n\n- **Goal**: Users can sign out\n- **Complexity**: low\n- **Depends**: M2\n- **Files**: `src/routes/logout.ts`\n\n#### Tasks\n\n1. Add `/logout`\n\n#### Acceptance Criteria\n\n- The session is destroyed\n\n#### Validation\n\n- `pnpm test`\n\n## Risks"
+    );
   const v2 = parsePlan(amendedText).plan;
 
   test("reports changed and added milestones", () => {
@@ -160,7 +297,9 @@ describe("diffPlans", () => {
   });
 
   test("rejects removing a completed milestone and skipping a version", () => {
-    const text = EXAMPLE.replace("version: 1", "version: 3").replace(/### M1:[\s\S]*?### M2/, "### M2").replace("**Depends**: M1", "**Depends**: none");
+    const text = EXAMPLE.replace("version: 1", "version: 3")
+      .replace(/### M1:[\s\S]*?### M2/, "### M2")
+      .replace("**Depends**: M1", "**Depends**: none");
     const report = diffPlans(v1, parsePlan(text).plan, ["M1"]);
     assert.equal(report.valid, false);
     assert.ok(report.errors.some((e) => /must be 2, got 3/.test(e)));
@@ -181,15 +320,28 @@ describe("CLI", () => {
     writeFileSync(file, EXAMPLE);
     const parsed = cli(["parse", file]);
     assert.equal(parsed.code, 0, parsed.stderr);
-    assert.deepEqual(parsed.json().milestones.map((m) => m.id), ["M1", "M2"]);
+    assert.deepEqual(
+      parsed.json().milestones.map((m) => m.id),
+      ["M1", "M2"]
+    );
     const lint = cli(["lint", file]);
     assert.equal(lint.code, 0);
-    assert.deepEqual(lint.json(), { file, valid: true, version: 1, milestones: ["M1", "M2"], errors: [], warnings: [] });
+    assert.deepEqual(lint.json(), {
+      file,
+      valid: true,
+      version: 1,
+      milestones: ["M1", "M2"],
+      errors: [],
+      warnings: []
+    });
   });
 
   test("parse and lint exit 1 on an invalid plan, 2 on usage errors", () => {
     const file = join(dir, "plan.md");
-    writeFileSync(file, EXAMPLE.replace("**Complexity**: low", "**Complexity**: huge"));
+    writeFileSync(
+      file,
+      EXAMPLE.replace("**Complexity**: low", "**Complexity**: huge")
+    );
     assert.equal(cli(["parse", file]).code, 1);
     const lint = cli(["lint", file]);
     assert.equal(lint.code, 1);
@@ -201,30 +353,84 @@ describe("CLI", () => {
 
   test("amendment flow: diff reads state.json, then runs.mjs amend logs it", () => {
     const home = join(dir, "home");
-    const env = { ESP_SKILLS_HOME: home, ESP_RUNS_NOW: "2026-11-08T10:00:00.000Z" };
-    const created = cli(["create", "oauth", "--root", join(dir, "runs"), "--project-dir", dir], RUNS, env);
+    const env = {
+      ESP_SKILLS_HOME: home,
+      ESP_RUNS_NOW: "2026-11-08T10:00:00.000Z"
+    };
+    const created = cli(
+      ["create", "oauth", "--root", join(dir, "runs"), "--project-dir", dir],
+      RUNS,
+      env
+    );
     assert.equal(created.code, 0, created.stderr);
     const runDir = created.json().run_dir;
     writeFileSync(join(runDir, "plan.md"), EXAMPLE);
-    writeFileSync(join(runDir, "state.json"), JSON.stringify({ milestones: { M1: { status: "done" }, M2: { status: "pending" } } }));
+    writeFileSync(
+      join(runDir, "state.json"),
+      JSON.stringify({
+        milestones: { M1: { status: "done" }, M2: { status: "pending" } }
+      })
+    );
     assert.deepEqual(completedFromState(runDir), ["M1"]);
 
     // Changing the completed milestone fails.
-    writeFileSync(join(runDir, "plan.v2.md"), EXAMPLE.replace("version: 1", "version: 2").replace("**Complexity**: medium", "**Complexity**: high"));
-    const bad = cli(["diff", join(runDir, "plan.md"), join(runDir, "plan.v2.md"), "--run-dir", runDir]);
+    writeFileSync(
+      join(runDir, "plan.v2.md"),
+      EXAMPLE.replace("version: 1", "version: 2").replace(
+        "**Complexity**: medium",
+        "**Complexity**: high"
+      )
+    );
+    const bad = cli([
+      "diff",
+      join(runDir, "plan.md"),
+      join(runDir, "plan.v2.md"),
+      "--run-dir",
+      runDir
+    ]);
     assert.equal(bad.code, 1);
-    assert.match(bad.json().errors.join("\n"), /completed milestone M1 was changed/);
+    assert.match(
+      bad.json().errors.join("\n"),
+      /completed milestone M1 was changed/
+    );
 
     // Changing only the remaining milestone passes.
-    writeFileSync(join(runDir, "plan.v2.md"), EXAMPLE.replace("version: 1", "version: 2").replace("**Complexity**: low", "**Complexity**: medium"));
-    const good = cli(["diff", join(runDir, "plan.md"), join(runDir, "plan.v2.md"), "--run-dir", runDir]);
+    writeFileSync(
+      join(runDir, "plan.v2.md"),
+      EXAMPLE.replace("version: 1", "version: 2").replace(
+        "**Complexity**: low",
+        "**Complexity**: medium"
+      )
+    );
+    const good = cli([
+      "diff",
+      join(runDir, "plan.md"),
+      join(runDir, "plan.v2.md"),
+      "--run-dir",
+      runDir
+    ]);
     assert.equal(good.code, 0, good.stdout);
     assert.deepEqual(good.json().affects, ["M2"]);
 
-    const amended = cli(["amend", "--run-dir", runDir, "--text", "M2 needs a session check", "--affects", good.json().affects.join(",")], RUNS, env);
+    const amended = cli(
+      [
+        "amend",
+        "--run-dir",
+        runDir,
+        "--text",
+        "M2 needs a session check",
+        "--affects",
+        good.json().affects.join(",")
+      ],
+      RUNS,
+      env
+    );
     assert.equal(amended.code, 0, amended.stderr);
     assert.equal(amended.json().plan_version, 2);
-    const decisions = readFileSync(join(runDir, "decisions.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+    const decisions = readFileSync(join(runDir, "decisions.jsonl"), "utf8")
+      .trim()
+      .split("\n")
+      .map((l) => JSON.parse(l));
     assert.deepEqual(decisions.at(-1).refs, ["A001", "M2"]);
   });
 });

@@ -56,11 +56,11 @@ Read the section once at the start (add `--config-snapshot <path>` when given):
 node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get recap
 ```
 
-| Key                        | Default                 | Effect                                                                             |
-| -------------------------- | ----------------------- | ---------------------------------------------------------------------------------- |
+| Key                        | Default                  | Effect                                                                                                    |
+| -------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------- |
 | `recap.roots`              | `["~/.esp-skills/runs"]` | Runs roots to read. Add the agentic-forge runs root to recap harness runs too. `runs.root` is always read |
-| `recap.default_range_days` | `7`                     | Days covered when no date option is given, today included                          |
-| `recap.fan_out_threshold`  | `5`                     | Above this number of runs, digest them in parallel subagents, one batch each       |
+| `recap.default_range_days` | `7`                      | Days covered when no date option is given, today included                                                 |
+| `recap.fan_out_threshold`  | `5`                      | Above this number of runs, digest them in parallel subagents, one batch each                              |
 
 If the command exits with code 1 (invalid config), report its error and stop. If `node` is missing, say the skill needs Node 22 and stop.
 
@@ -68,12 +68,12 @@ If the command exits with code 1 (invalid config), report its error and stop. If
 
 `scripts/recap.mjs` takes the filters above (`--since`, `--until`, `--last`, `--all`, `--repo`, `--status`, `--risk`, `--limit <N>`), plus `--config-snapshot`. Every item it returns carries a `source` path.
 
-| Command                                 | Returns                                                                                                    |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `collect`                               | `range`, `count`, `fan_out`, `batches` (run paths per subagent), and one digest per run: title, workflow, repo, status, PR, outcome, decision counts by risk, critical findings, steps, commits |
-| `show <run-id\|path>`                   | One run in full: `run.json`, summary sections, decisions, step results, commits, critical findings, latest plan path |
-| `risks [--min-risk <level>]`            | Decisions at or above the level (default `high`), critical review findings, and halted, blocked, failed or waiting runs |
-| `sources --question <text>`             | Q&A candidates in source order: matching decisions and summary sections, then per matching run the repo, branch, commits and files for git, and the PR URLs |
+| Command                      | Returns                                                                                                                                                                                         |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collect`                    | `range`, `count`, `fan_out`, `batches` (run paths per subagent), and one digest per run: title, workflow, repo, status, PR, outcome, decision counts by risk, critical findings, steps, commits |
+| `show <run-id\|path>`        | One run in full: `run.json`, summary sections, decisions, step results, commits, critical findings, latest plan path                                                                            |
+| `risks [--min-risk <level>]` | Decisions at or above the level (default `high`), critical review findings, and halted, blocked, failed or waiting runs                                                                         |
+| `sources --question <text>`  | Q&A candidates in source order: matching decisions and summary sections, then per matching run the repo, branch, commits and files for git, and the PR URLs                                     |
 
 Exit codes: `0` success, `1` failure (for example an unknown run), `2` usage error.
 

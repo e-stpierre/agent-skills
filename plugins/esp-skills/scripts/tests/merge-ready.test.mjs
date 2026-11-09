@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  utimesSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
@@ -32,11 +40,25 @@ const URL = "https://github.com/o/r/pull/9";
 let tmp;
 let home;
 let runDir;
-const env = (extra = {}) => ({ ...process.env, ESP_SKILLS_HOME: home, ESP_RUNS_NOW: NOW, AF_MERGE_LOCK: "", ...extra });
+const env = (extra = {}) => ({
+  ...process.env,
+  ESP_SKILLS_HOME: home,
+  ESP_RUNS_NOW: NOW,
+  AF_MERGE_LOCK: "",
+  ...extra
+});
 
 function cli(script, args, extraEnv = {}) {
-  const r = spawnSync(process.execPath, [script, ...args], { encoding: "utf8", env: { ...env(), ...extraEnv } });
-  return { code: r.status, stdout: r.stdout, stderr: r.stderr, json: () => JSON.parse(r.stdout) };
+  const r = spawnSync(process.execPath, [script, ...args], {
+    encoding: "utf8",
+    env: { ...env(), ...extraEnv }
+  });
+  return {
+    code: r.status,
+    stdout: r.stdout,
+    stderr: r.stderr,
+    json: () => JSON.parse(r.stdout)
+  };
 }
 
 function facts(overrides = {}) {
@@ -57,9 +79,20 @@ function facts(overrides = {}) {
       auto_merge: false,
       ...overrides.pr
     },
-    settings: { squash: true, rebase: true, merge: true, delete_branch_on_merge: false, merge_queue: false, in_merge_queue: false, ...overrides.settings },
+    settings: {
+      squash: true,
+      rebase: true,
+      merge: true,
+      delete_branch_on_merge: false,
+      merge_queue: false,
+      in_merge_queue: false,
+      ...overrides.settings
+    },
     rules: overrides.rules ?? [],
-    protection: overrides.protection === undefined ? { linear_history: false } : overrides.protection,
+    protection:
+      overrides.protection === undefined
+        ? { linear_history: false }
+        : overrides.protection,
     checks: overrides.checks ?? [{ name: "test", bucket: "pass" }],
     required: overrides.required ?? [{ name: "test", bucket: "pass" }],
     threads: overrides.threads ?? [],
@@ -76,7 +109,8 @@ function fakeClient(data = facts()) {
     settings: () => ({ ...data.settings }),
     rules: () => data.rules,
     protection: () => data.protection,
-    checks: (n, { required = false } = {}) => (required ? data.required : data.checks),
+    checks: (n, { required = false } = {}) =>
+      required ? data.required : data.checks,
     unresolvedThreads: () => data.threads,
     compare: () => data.compare,
     merge: (number, opts) => {
@@ -90,14 +124,25 @@ function fakeClient(data = facts()) {
   };
 }
 
-function ctx(client = fakeClient(), { options = {}, extraEnv = {}, io = {} } = {}) {
-  return buildContext({ "run-dir": runDir, "project-dir": tmp, ...options }, env(extraEnv), {
-    client,
-    sleep: async () => {},
-    inspectWorktree: () => ({ path: null, remove: false, reason: "not a linked worktree" }),
-    log: () => {},
-    ...io
-  });
+function ctx(
+  client = fakeClient(),
+  { options = {}, extraEnv = {}, io = {} } = {}
+) {
+  return buildContext(
+    { "run-dir": runDir, "project-dir": tmp, ...options },
+    env(extraEnv),
+    {
+      client,
+      sleep: async () => {},
+      inspectWorktree: () => ({
+        path: null,
+        remove: false,
+        reason: "not a linked worktree"
+      }),
+      log: () => {},
+      ...io
+    }
+  );
 }
 
 const jsonl = (name) =>
@@ -113,7 +158,14 @@ beforeEach(() => {
   tmp = mkdtempSync(join(tmpdir(), "esp-merge-"));
   home = join(tmp, "home");
   mkdirSync(home);
-  const created = cli(RUNS, ["create", "toy", "--root", join(tmp, "runs"), "--project-dir", tmp]);
+  const created = cli(RUNS, [
+    "create",
+    "toy",
+    "--root",
+    join(tmp, "runs"),
+    "--project-dir",
+    tmp
+  ]);
   assert.equal(created.code, 0, created.stderr);
   runDir = created.json().run_dir;
 });
@@ -129,7 +181,10 @@ describe("method resolution", () => {
     const policy = mergePolicy(
       { ...ALL, delete_branch_on_merge: true },
       [
-        { type: "pull_request", parameters: { allowed_merge_methods: ["squash", "merge"] } },
+        {
+          type: "pull_request",
+          parameters: { allowed_merge_methods: ["squash", "merge"] }
+        },
         { type: "required_linear_history" }
       ],
       null
@@ -138,57 +193,101 @@ describe("method resolution", () => {
     assert.equal(policy.linear_history, true);
     assert.equal(policy.merge_queue, false);
     assert.equal(policy.delete_branch_on_merge, true);
-    assert.equal(mergePolicy({ squash: true }, [], { linear_history: true }).linear_history, true);
+    assert.equal(
+      mergePolicy({ squash: true }, [], { linear_history: true })
+        .linear_history,
+      true
+    );
   });
 
   test("rule 2: a merge queue enqueues and lets the queue decide", () => {
-    const fromSettings = resolveMethod(mergePolicy({ ...ALL, merge_queue: true }));
+    const fromSettings = resolveMethod(
+      mergePolicy({ ...ALL, merge_queue: true })
+    );
     assert.equal(fromSettings.queue, true);
     assert.equal(fromSettings.method, "squash");
     assert.match(fromSettings.reason, /merge queue/);
-    const fromRule = resolveMethod(mergePolicy(ALL, [{ type: "merge_queue", parameters: { merge_method: "REBASE" } }]));
+    const fromRule = resolveMethod(
+      mergePolicy(ALL, [
+        { type: "merge_queue", parameters: { merge_method: "REBASE" } }
+      ])
+    );
     assert.equal(fromRule.queue, true);
     assert.equal(fromRule.method, "rebase");
   });
 
   test("rule 3: a single allowed method is used", () => {
-    const out = resolveMethod(mergePolicy({ squash: false, rebase: true, merge: false }), { preference: ["squash", "merge"] });
+    const out = resolveMethod(
+      mergePolicy({ squash: false, rebase: true, merge: false }),
+      { preference: ["squash", "merge"] }
+    );
     assert.equal(out.method, "rebase");
     assert.match(out.reason, /only method allowed/);
     assert.deepEqual(out.alternatives, []);
   });
 
   test("rule 4: several methods use the first allowed in preference, excluding merge under linear history", () => {
-    const out = resolveMethod(mergePolicy({ squash: false, rebase: true, merge: true }), { preference: ["squash", "merge", "rebase"] });
+    const out = resolveMethod(
+      mergePolicy({ squash: false, rebase: true, merge: true }),
+      { preference: ["squash", "merge", "rebase"] }
+    );
     assert.equal(out.method, "merge");
     assert.deepEqual(out.alternatives, ["rebase"]);
-    const linear = resolveMethod(mergePolicy({ squash: false, rebase: true, merge: true }, [{ type: "required_linear_history" }]), {
-      preference: ["merge", "rebase"]
-    });
+    const linear = resolveMethod(
+      mergePolicy({ squash: false, rebase: true, merge: true }, [
+        { type: "required_linear_history" }
+      ]),
+      {
+        preference: ["merge", "rebase"]
+      }
+    );
     assert.equal(linear.method, "rebase");
     assert.match(linear.reason, /only method allowed.*linear history/);
   });
 
   test("rule 5: an explicit method overrides, and errors when it is not allowed", () => {
-    assert.equal(resolveMethod(mergePolicy(ALL), { method: "rebase" }).method, "rebase");
-    assert.throws(() => resolveMethod(mergePolicy({ squash: true }), { method: "merge" }), /not allowed: the repository does not allow it/);
+    assert.equal(
+      resolveMethod(mergePolicy(ALL), { method: "rebase" }).method,
+      "rebase"
+    );
     assert.throws(
-      () => resolveMethod(mergePolicy(ALL, [{ type: "required_linear_history" }]), { method: "merge" }),
+      () => resolveMethod(mergePolicy({ squash: true }), { method: "merge" }),
+      /not allowed: the repository does not allow it/
+    );
+    assert.throws(
+      () =>
+        resolveMethod(mergePolicy(ALL, [{ type: "required_linear_history" }]), {
+          method: "merge"
+        }),
       /not allowed: linear history is required/
     );
-    assert.throws(() => resolveMethod(mergePolicy(ALL), { method: "fast-forward" }), (err) => err instanceof MergeError && err.exitCode === 2);
+    assert.throws(
+      () => resolveMethod(mergePolicy(ALL), { method: "fast-forward" }),
+      (err) => err instanceof MergeError && err.exitCode === 2
+    );
   });
 
   test("no allowed method is an error", () => {
-    assert.throws(() => resolveMethod(mergePolicy({ merge: true }, [{ type: "required_linear_history" }])), /No merge method is allowed/);
+    assert.throws(
+      () =>
+        resolveMethod(
+          mergePolicy({ merge: true }, [{ type: "required_linear_history" }])
+        ),
+      /No merge method is allowed/
+    );
   });
 
   test("rule 6: the method and its reason are logged as a decision on merge", async () => {
     const client = fakeClient();
     const block = await cmdMerge(ctx(client), "9");
-    const [decision] = jsonl("decisions.jsonl").filter((d) => d.phase === "merge");
+    const [decision] = jsonl("decisions.jsonl").filter(
+      (d) => d.phase === "merge"
+    );
     assert.equal(decision.decision, "Merged #9 with squash");
-    assert.match(decision.rationale, /^Method: first allowed method in merge.preference/);
+    assert.match(
+      decision.rationale,
+      /^Method: first allowed method in merge.preference/
+    );
     assert.deepEqual(decision.alternatives, ["rebase", "merge"]);
     assert.equal(block.outputs.decision, decision.id);
   });
@@ -196,9 +295,24 @@ describe("method resolution", () => {
 
 describe("conditions", () => {
   function evaluateFacts(f, config = {}) {
-    const policy = { ...mergePolicy(f.settings, f.rules, f.protection), in_merge_queue: f.settings.in_merge_queue };
-    const checks = classifyChecks(f.checks, f.required, { requireGreen: config.require_green_checks !== false });
-    return evaluate({ pr: f.pr, policy, checks, threads: f.threads, compare: f.compare, halt: { known: false, reasons: [] } }, config);
+    const policy = {
+      ...mergePolicy(f.settings, f.rules, f.protection),
+      in_merge_queue: f.settings.in_merge_queue
+    };
+    const checks = classifyChecks(f.checks, f.required, {
+      requireGreen: config.require_green_checks !== false
+    });
+    return evaluate(
+      {
+        pr: f.pr,
+        policy,
+        checks,
+        threads: f.threads,
+        compare: f.compare,
+        halt: { known: false, reasons: [] }
+      },
+      config
+    );
   }
   const status = (out, name) => out.conditions.find((c) => c.name === name);
 
@@ -224,7 +338,10 @@ describe("conditions", () => {
   test("draft, changes requested, unresolved threads and failing checks block with a reason", () => {
     const out = evaluateFacts(
       facts({
-        pr: { draft: true, latest_reviews: [{ login: "alice", state: "CHANGES_REQUESTED" }] },
+        pr: {
+          draft: true,
+          latest_reviews: [{ login: "alice", state: "CHANGES_REQUESTED" }]
+        },
         threads: ["u1", "u2"],
         checks: [
           { name: "test", bucket: "fail" },
@@ -241,7 +358,13 @@ describe("conditions", () => {
 
   test("require_resolved_threads false ignores threads; require_green_checks false only counts required checks", () => {
     const out = evaluateFacts(
-      facts({ threads: ["u1"], checks: [{ name: "optional", bucket: "fail" }, { name: "test", bucket: "pass" }] }),
+      facts({
+        threads: ["u1"],
+        checks: [
+          { name: "optional", bucket: "fail" },
+          { name: "test", bucket: "pass" }
+        ]
+      }),
       { require_resolved_threads: false, require_green_checks: false }
     );
     assert.equal(out.outcome, "ready");
@@ -250,7 +373,10 @@ describe("conditions", () => {
   });
 
   test("pending checks, including required checks that have not reported, give pending", () => {
-    const out = evaluateFacts(facts({ checks: [], required: [{ name: "build", bucket: "pending" }] }), { require_green_checks: false });
+    const out = evaluateFacts(
+      facts({ checks: [], required: [{ name: "build", bucket: "pending" }] }),
+      { require_green_checks: false }
+    );
     assert.equal(out.outcome, "pending");
     assert.deepEqual(status(out, "checks").pending, ["build"]);
   });
@@ -264,35 +390,78 @@ describe("conditions", () => {
   });
 
   test("a merge queue skips the up-to-date condition", () => {
-    const out = evaluateFacts(facts({ settings: { merge_queue: true }, compare: { behind_by: 5 } }));
+    const out = evaluateFacts(
+      facts({ settings: { merge_queue: true }, compare: { behind_by: 5 } })
+    );
     assert.equal(status(out, "up-to-date").status, "pass");
     assert.equal(out.outcome, "ready");
   });
 
   test("unmet branch protection gives protected, but a BLOCKED state caused by pending checks does not", () => {
-    const review = evaluateFacts(facts({ pr: { review_decision: "REVIEW_REQUIRED" } }));
+    const review = evaluateFacts(
+      facts({ pr: { review_decision: "REVIEW_REQUIRED" } })
+    );
     assert.equal(review.outcome, "protected");
     const blocked = evaluateFacts(facts({ pr: { merge_state: "BLOCKED" } }));
     assert.equal(blocked.outcome, "protected");
-    const pending = evaluateFacts(facts({ pr: { merge_state: "BLOCKED" }, checks: [{ name: "test", bucket: "pending" }] }));
+    const pending = evaluateFacts(
+      facts({
+        pr: { merge_state: "BLOCKED" },
+        checks: [{ name: "test", bucket: "pending" }]
+      })
+    );
     assert.equal(pending.outcome, "pending");
     assert.equal(status(pending, "branch-protection").status, "pass");
   });
 
   test("closed and merged pull requests", () => {
-    assert.equal(evaluateFacts(facts({ pr: { state: "CLOSED" } })).outcome, "closed");
-    assert.equal(evaluateFacts(facts({ pr: { state: "MERGED" } })).outcome, "merged");
+    assert.equal(
+      evaluateFacts(facts({ pr: { state: "CLOSED" } })).outcome,
+      "closed"
+    );
+    assert.equal(
+      evaluateFacts(facts({ pr: { state: "MERGED" } })).outcome,
+      "merged"
+    );
   });
 
   test("halt signals: run status, Halt decisions, and operator decisions that lift them", () => {
     assert.deepEqual(haltSignals(null), { known: false, reasons: [] });
     assert.deepEqual(haltSignals(runDir).reasons, []);
-    const halt = appendDecision(runDir, { phase: "fix-review", source: "policy", risk: "high", decision: "Stopped", rationale: "Halt: critical-security", "x-esp-class": "Halt" }, env());
+    const halt = appendDecision(
+      runDir,
+      {
+        phase: "fix-review",
+        source: "policy",
+        risk: "high",
+        decision: "Stopped",
+        rationale: "Halt: critical-security",
+        "x-esp-class": "Halt"
+      },
+      env()
+    );
     assert.match(haltSignals(runDir).reasons[0], /^D001: Stopped/);
-    appendDecision(runDir, { phase: "merge", source: "operator", risk: "low", decision: "Fixed by hand", rationale: "operator", refs: [halt.id] }, env());
+    appendDecision(
+      runDir,
+      {
+        phase: "merge",
+        source: "operator",
+        risk: "low",
+        decision: "Fixed by hand",
+        rationale: "operator",
+        refs: [halt.id]
+      },
+      env()
+    );
     assert.deepEqual(haltSignals(runDir).reasons, []);
     const runPath = join(runDir, "run.json");
-    writeFileSync(runPath, JSON.stringify({ ...JSON.parse(readFileSync(runPath, "utf8")), status: "halted" }));
+    writeFileSync(
+      runPath,
+      JSON.stringify({
+        ...JSON.parse(readFileSync(runPath, "utf8")),
+        status: "halted"
+      })
+    );
     assert.deepEqual(haltSignals(runDir).reasons, ["run status is halted"]);
   });
 });
@@ -303,8 +472,12 @@ describe("merge", () => {
     const block = await cmdMerge(ctx(client), "9");
     assert.equal(block.status, "merged");
     assert.equal(validateArtifact("result", block).valid, true);
-    assert.deepEqual(client.calls.merge, [{ number: 9, method: "squash", head: HEAD, auto: false }]);
-    assert.deepEqual(client.calls.deleteBranch, [{ repo: "o/r", branch: "feature/x" }]);
+    assert.deepEqual(client.calls.merge, [
+      { number: 9, method: "squash", head: HEAD, auto: false }
+    ]);
+    assert.deepEqual(client.calls.deleteBranch, [
+      { repo: "o/r", branch: "feature/x" }
+    ]);
     assert.equal(block.outputs.merged, true);
     assert.equal(block.outputs.cleanup.remote_branch, "deleted");
     assert.equal(block.pr, URL);
@@ -317,17 +490,38 @@ describe("merge", () => {
 
   test("the branch is kept for forks, with delete_branch false, and left to GitHub when it deletes on merge", async () => {
     const fork = fakeClient(facts({ pr: { cross_repository: true } }));
-    assert.match((await cmdMerge(ctx(fork), "9")).outputs.cleanup.remote_branch, /fork/);
-    const github = fakeClient(facts({ settings: { delete_branch_on_merge: true } }));
-    assert.match((await cmdMerge(ctx(github), "9")).outputs.cleanup.remote_branch, /deleted by GitHub/);
-    writeFileSync(join(home, "config.json"), JSON.stringify({ merge: { delete_branch: false } }));
+    assert.match(
+      (await cmdMerge(ctx(fork), "9")).outputs.cleanup.remote_branch,
+      /fork/
+    );
+    const github = fakeClient(
+      facts({ settings: { delete_branch_on_merge: true } })
+    );
+    assert.match(
+      (await cmdMerge(ctx(github), "9")).outputs.cleanup.remote_branch,
+      /deleted by GitHub/
+    );
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ merge: { delete_branch: false } })
+    );
     const kept = fakeClient();
-    assert.match((await cmdMerge(ctx(kept), "9")).outputs.cleanup.remote_branch, /delete_branch false/);
-    assert.equal(fork.calls.deleteBranch.length + github.calls.deleteBranch.length + kept.calls.deleteBranch.length, 0);
+    assert.match(
+      (await cmdMerge(ctx(kept), "9")).outputs.cleanup.remote_branch,
+      /delete_branch false/
+    );
+    assert.equal(
+      fork.calls.deleteBranch.length +
+        github.calls.deleteBranch.length +
+        kept.calls.deleteBranch.length,
+      0
+    );
   });
 
   test("unmet branch protection yields awaiting-human and is never bypassed", async () => {
-    const client = fakeClient(facts({ pr: { review_decision: "REVIEW_REQUIRED" } }));
+    const client = fakeClient(
+      facts({ pr: { review_decision: "REVIEW_REQUIRED" } })
+    );
     const block = await cmdMerge(ctx(client), "9");
     assert.equal(block.status, "awaiting-human");
     assert.equal(block.outputs.outcome, "protected");
@@ -340,7 +534,18 @@ describe("merge", () => {
   });
 
   test("a halted run never merges", async () => {
-    appendDecision(runDir, { phase: "build", source: "policy", risk: "high", decision: "Stopped M2", rationale: "Halt: gates-exhausted", "x-esp-class": "Halt" }, env());
+    appendDecision(
+      runDir,
+      {
+        phase: "build",
+        source: "policy",
+        risk: "high",
+        decision: "Stopped M2",
+        rationale: "Halt: gates-exhausted",
+        "x-esp-class": "Halt"
+      },
+      env()
+    );
     const client = fakeClient();
     const block = await cmdMerge(ctx(client), "9");
     assert.equal(block.status, "halted");
@@ -350,7 +555,9 @@ describe("merge", () => {
 
   test("--halt records a Halt decision and reports halted", async () => {
     const client = fakeClient();
-    const block = await cmdMerge(ctx(client), "9", { halt: "rebase conflict in src/a.js" });
+    const block = await cmdMerge(ctx(client), "9", {
+      halt: "rebase conflict in src/a.js"
+    });
     assert.equal(block.status, "halted");
     assert.deepEqual(block.blockers, ["rebase conflict in src/a.js"]);
     const [decision] = jsonl("decisions.jsonl");
@@ -368,7 +575,10 @@ describe("merge", () => {
 
   test("an explicit method the repository does not allow fails the merge, not silently falls back", async () => {
     const client = fakeClient(facts({ settings: { merge: false } }));
-    const block = await cmdMerge(ctx(client, { options: { method: "merge" } }), "9");
+    const block = await cmdMerge(
+      ctx(client, { options: { method: "merge" } }),
+      "9"
+    );
     assert.equal(block.status, "awaiting-human");
     assert.match(block.summary, /not allowed/);
     assert.equal(client.calls.merge.length, 0);
@@ -381,18 +591,33 @@ describe("merge", () => {
     assert.equal(block.outputs.outcome, "queued");
     assert.equal(client.calls.merge[0].auto, true);
     assert.match(block.outputs.cleanup.remote_branch, /pending/);
-    const queued = fakeClient(facts({ settings: { merge_queue: true, in_merge_queue: true } }));
-    assert.equal((await cmdMerge(ctx(queued), "9")).outputs.already_queued, true);
+    const queued = fakeClient(
+      facts({ settings: { merge_queue: true, in_merge_queue: true } })
+    );
+    assert.equal(
+      (await cmdMerge(ctx(queued), "9")).outputs.already_queued,
+      true
+    );
     assert.equal(queued.calls.merge.length, 0);
   });
 
   test("use_auto_merge enables auto-merge while checks are pending", async () => {
-    writeFileSync(join(home, "config.json"), JSON.stringify({ merge: { use_auto_merge: true } }));
-    const client = fakeClient(facts({ checks: [{ name: "test", bucket: "pending" }], required: [{ name: "test", bucket: "pending" }] }));
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ merge: { use_auto_merge: true } })
+    );
+    const client = fakeClient(
+      facts({
+        checks: [{ name: "test", bucket: "pending" }],
+        required: [{ name: "test", bucket: "pending" }]
+      })
+    );
     const block = await cmdMerge(ctx(client), "9");
     assert.equal(block.outputs.outcome, "auto-merge");
     assert.equal(block.status, "done");
-    assert.deepEqual(client.calls.merge, [{ number: 9, method: "squash", head: HEAD, auto: true }]);
+    assert.deepEqual(client.calls.merge, [
+      { number: 9, method: "squash", head: HEAD, auto: true }
+    ]);
   });
 
   test("merge.enabled false and --dry-run never merge", async () => {
@@ -400,9 +625,15 @@ describe("merge", () => {
     const block = await cmdMerge(ctx(dry), "9", { dryRun: true });
     assert.equal(block.outputs.outcome, "dry-run");
     assert.match(block.summary, /would merge with squash/);
-    writeFileSync(join(home, "config.json"), JSON.stringify({ merge: { enabled: false } }));
+    writeFileSync(
+      join(home, "config.json"),
+      JSON.stringify({ merge: { enabled: false } })
+    );
     const disabled = fakeClient();
-    assert.equal((await cmdMerge(ctx(disabled), "9")).outputs.outcome, "disabled");
+    assert.equal(
+      (await cmdMerge(ctx(disabled), "9")).outputs.outcome,
+      "disabled"
+    );
     assert.equal(dry.calls.merge.length + disabled.calls.merge.length, 0);
   });
 
@@ -425,7 +656,10 @@ describe("merge lock", () => {
       heldDuringMerge = existsSync(lockPath);
       return merge(...args);
     };
-    const block = await cmdMerge(ctx(client, { extraEnv: { AF_MERGE_LOCK: lockPath } }), "9");
+    const block = await cmdMerge(
+      ctx(client, { extraEnv: { AF_MERGE_LOCK: lockPath } }),
+      "9"
+    );
     assert.equal(block.status, "merged");
     assert.equal(heldDuringMerge, true);
     assert.equal(existsSync(lockPath), false);
@@ -444,7 +678,10 @@ describe("merge lock", () => {
     const lockPath = join(tmp, "busy.lock");
     writeFileSync(lockPath, "{}");
     const client = fakeClient();
-    const block = await cmdMerge(ctx(client), "9", { lock: lockPath, lockTimeoutMinutes: 0 });
+    const block = await cmdMerge(ctx(client), "9", {
+      lock: lockPath,
+      lockTimeoutMinutes: 0
+    });
     assert.equal(block.outputs.outcome, "lock-busy");
     assert.equal(block.status, "awaiting-human");
     assert.equal(client.calls.merge.length, 0);
@@ -453,7 +690,15 @@ describe("merge lock", () => {
     const old = new Date(Date.now() - 60_000);
     utimesSync(lockPath, old, old);
     const stale = fakeClient();
-    assert.equal((await cmdMerge(ctx(stale), "9", { lock: lockPath, lockTimeoutMinutes: 0 })).status, "merged");
+    assert.equal(
+      (
+        await cmdMerge(ctx(stale), "9", {
+          lock: lockPath,
+          lockTimeoutMinutes: 0
+        })
+      ).status,
+      "merged"
+    );
     assert.equal(existsSync(lockPath), false);
   });
 
@@ -496,14 +741,22 @@ describe("check", () => {
         }
       }
     });
-    const out = await waitForChecks(c, "9", { timeoutMinutes: 5, pollSeconds: 1 });
+    const out = await waitForChecks(c, "9", {
+      timeoutMinutes: 5,
+      pollSeconds: 1
+    });
     assert.equal(out.outcome, "ready");
     assert.equal(out.polls, 2);
   });
 
   test("--wait times out while checks stay pending", async () => {
-    const client = fakeClient(facts({ checks: [{ name: "test", bucket: "pending" }] }));
-    const out = await waitForChecks(ctx(client), "9", { timeoutMinutes: 0, pollSeconds: 1 });
+    const client = fakeClient(
+      facts({ checks: [{ name: "test", bucket: "pending" }] })
+    );
+    const out = await waitForChecks(ctx(client), "9", {
+      timeoutMinutes: 0,
+      pollSeconds: 1
+    });
     assert.equal(out.outcome, "pending");
     assert.equal(out.timed_out, true);
   });
@@ -537,12 +790,19 @@ else { console.error("unexpected: " + a); process.exit(1); }
     assert.equal(check.json().method.method, "rebase");
     assert.equal(check.json().policy.linear_history, true);
 
-    const merged = cli(SCRIPT, ["merge", "9", "--run-dir", runDir, "--project-dir", tmp], ghEnv);
+    const merged = cli(
+      SCRIPT,
+      ["merge", "9", "--run-dir", runDir, "--project-dir", tmp],
+      ghEnv
+    );
     assert.equal(merged.code, 0, merged.stderr);
     const block = JSON.parse(merged.stdout.trim().split("\n").at(-1));
     assert.equal(block.status, "merged");
     assert.equal(block.outputs.method, "rebase");
-    assert.match(readFileSync(log, "utf8"), new RegExp(`pr merge 9 --rebase --match-head-commit ${HEAD}`));
+    assert.match(
+      readFileSync(log, "utf8"),
+      new RegExp(`pr merge 9 --rebase --match-head-commit ${HEAD}`)
+    );
 
     const usage = cli(SCRIPT, ["merge", "--method", "fast"], ghEnv);
     assert.equal(usage.code, 2);

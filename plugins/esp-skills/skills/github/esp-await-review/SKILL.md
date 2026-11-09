@@ -53,13 +53,13 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get await-review
 
 If the command exits with code 1 (invalid config), report its error and stop. The script reads the same config itself, so the skill only needs it to report what it waits for.
 
-| Key                          | Default                                                   | Effect                                                      |
-| ---------------------------- | --------------------------------------------------------- | ----------------------------------------------------------- |
-| `await-review.reviewers`     | `claude` (`claude[bot]`), `codex` (`chatgpt-codex-connector[bot]`, trigger `@codex review`) | Reviewer names, GitHub logins and trigger comments |
-| `await-review.timeout_minutes` | `30`                                                    | Time before the wait gives up                               |
-| `await-review.poll_seconds`  | `60`                                                      | First poll interval; it grows 1.5x per unchanged poll, up to 5x |
-| `await-review.auto_trigger`  | `false`                                                   | Post trigger comments without `--trigger`                   |
-| `go.default_reviewers`       | `["claude"]`                                              | Reviewers waited for when `--reviewers` is not given        |
+| Key                            | Default                                                                                     | Effect                                                          |
+| ------------------------------ | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `await-review.reviewers`       | `claude` (`claude[bot]`), `codex` (`chatgpt-codex-connector[bot]`, trigger `@codex review`) | Reviewer names, GitHub logins and trigger comments              |
+| `await-review.timeout_minutes` | `30`                                                                                        | Time before the wait gives up                                   |
+| `await-review.poll_seconds`    | `60`                                                                                        | First poll interval; it grows 1.5x per unchanged poll, up to 5x |
+| `await-review.auto_trigger`    | `false`                                                                                     | Post trigger comments without `--trigger`                       |
+| `go.default_reviewers`         | `["claude"]`                                                                                | Reviewers waited for when `--reviewers` is not given            |
 
 ### How Completion Is Detected
 
@@ -92,11 +92,11 @@ While it runs, `node "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-review.mjs" [pr] --
 
 ### Outcomes
 
-| Status           | When                                                     | Next step                                                        |
-| ---------------- | -------------------------------------------------------- | ---------------------------------------------------------------- |
-| `done`           | Every reviewer reviewed the head commit                  | Fix the comments with `esp-fix-review`                           |
-| `awaiting-human` | Timeout, with a `needs_input` request (wait or skip)     | Interactive session: ask the question. Otherwise report and stop |
-| `failed`         | The pull request is closed with reviews missing, or `gh` failed 5 times in a row | Report the summary                                  |
+| Status           | When                                                                             | Next step                                                        |
+| ---------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `done`           | Every reviewer reviewed the head commit                                          | Fix the comments with `esp-fix-review`                           |
+| `awaiting-human` | Timeout, with a `needs_input` request (wait or skip)                             | Interactive session: ask the question. Otherwise report and stop |
+| `failed`         | The pull request is closed with reviews missing, or `gh` failed 5 times in a row | Report the summary                                               |
 
 On a timeout in an interactive session (not headless, not a subagent), ask whether to wait again or continue without the missing reviews, with "wait again" first. On "wait again", run the wait again with a new `--state` file. With `--run-dir`, log the answer with `runs.mjs decision` (`source: operator`, `phase: await-review`).
 

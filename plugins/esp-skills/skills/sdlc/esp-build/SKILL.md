@@ -60,16 +60,16 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), stop: the milestone loop needs `build.mjs`.
 
-| Key                               | Default                         | Effect                                                                  |
-| --------------------------------- | ------------------------------- | ----------------------------------------------------------------------- |
-| `build.max_retries_per_milestone` | `2`                             | Builder retries after a failed verification before the build halts     |
-| `build.parallel`                  | `false`                         | Run disjoint milestones in parallel worktrees when `--parallel` is not given |
-| `build.commit_per_milestone`      | `true`                          | `false` squashes the milestone commits into one commit when the build ends |
-| `build.gates`                     | all `null` (auto-detect)        | Gate commands for `test`, `lint`, `typecheck`, `build`                  |
-| `defaults.models.builder`         | `low: sonnet`, `medium: opus`, `high: opus` (effort `high`) | Builder model per milestone complexity      |
-| `defaults.models.verifier`        | `sonnet`                        | Verifier model                                                          |
-| `defaults.interactive`            | `off`                           | Interactive mode when `--interactive` is not given                      |
-| `worktrees.root`                  | `~/.esp-skills/worktrees`       | Where `--parallel` creates milestone worktrees                          |
+| Key                               | Default                                                     | Effect                                                                       |
+| --------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `build.max_retries_per_milestone` | `2`                                                         | Builder retries after a failed verification before the build halts           |
+| `build.parallel`                  | `false`                                                     | Run disjoint milestones in parallel worktrees when `--parallel` is not given |
+| `build.commit_per_milestone`      | `true`                                                      | `false` squashes the milestone commits into one commit when the build ends   |
+| `build.gates`                     | all `null` (auto-detect)                                    | Gate commands for `test`, `lint`, `typecheck`, `build`                       |
+| `defaults.models.builder`         | `low: sonnet`, `medium: opus`, `high: opus` (effort `high`) | Builder model per milestone complexity                                       |
+| `defaults.models.verifier`        | `sonnet`                                                    | Verifier model                                                               |
+| `defaults.interactive`            | `off`                                                       | Interactive mode when `--interactive` is not given                           |
+| `worktrees.root`                  | `~/.esp-skills/worktrees`                                   | Where `--parallel` creates milestone worktrees                               |
 
 `build.mjs init` freezes the merged config in `state.json` (`config_snapshot`), so a resumed build uses the same settings.
 
@@ -77,15 +77,15 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 
 `scripts/build.mjs` owns `<run-dir>/state.json`. Every command takes `--run-dir <path>`:
 
-| Command                                                   | Use                                                                                              |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `init [--plan <file>] [--base <sha>] [--config-snapshot <path>]` | Create `state.json` from the plan, or sync it with an amended plan (keeps done milestones)  |
-| `next [--milestone <id\|next>] [--parallel]`              | What to do now: `{ action, milestone, batch, attempt, amend, last_failure, reason }`             |
-| `start <id> --base <sha>`                                 | Begin an attempt (counts it, emits `iteration.started`)                                          |
-| `finish <id> --status done\|failed\|halted [--commit <sha>] [--reason <text>]` | End the attempt (emits `commit.created` when done, and `iteration.completed`) |
-| `models <id> [--model <alias>]`                           | Builder and verifier `{ model, effort }` for the milestone                                       |
-| `gates --project-dir <repo>`                              | Gate commands: `build.gates`, else detected from the project                                     |
-| `show`                                                    | Print `state.json`                                                                               |
+| Command                                                                        | Use                                                                                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| `init [--plan <file>] [--base <sha>] [--config-snapshot <path>]`               | Create `state.json` from the plan, or sync it with an amended plan (keeps done milestones) |
+| `next [--milestone <id\|next>] [--parallel]`                                   | What to do now: `{ action, milestone, batch, attempt, amend, last_failure, reason }`       |
+| `start <id> --base <sha>`                                                      | Begin an attempt (counts it, emits `iteration.started`)                                    |
+| `finish <id> --status done\|failed\|halted [--commit <sha>] [--reason <text>]` | End the attempt (emits `commit.created` when done, and `iteration.completed`)              |
+| `models <id> [--model <alias>]`                                                | Builder and verifier `{ model, effort }` for the milestone                                 |
+| `gates --project-dir <repo>`                                                   | Gate commands: `build.gates`, else detected from the project                               |
+| `show`                                                                         | Print `state.json`                                                                         |
 
 `next` actions: `run` (first attempt), `retry` (attempt N, `amend` is the commit to amend), `halt` (retries exhausted or a milestone halted), `blocked` (dependencies not done), `done` (nothing left). An attempt that was interrupted (still `in-progress`) comes back as a `retry` and counts as used.
 
@@ -93,14 +93,14 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 
 esp-build is a recappable skill. With `--run-dir` from a caller, it writes steps and decisions but leaves `run.json` status and `summary.md` to the caller. In its own run (created here, or `[plan]` in a run directory nobody else owns), it also sets the run status and writes `summary.md`.
 
-| Moment             | Command                                                                                     |
-| ------------------ | ------------------------------------------------------------------------------------------- |
-| Own run            | `runs.mjs create <slug> --title <plan title> --workflow esp-build --repo <repo-root>`       |
-| Pending messages   | `runs.mjs messages`, then `runs.mjs deliver <id>...` once passed to a builder               |
-| Decision           | `runs.mjs decision --json '<decision>'` with `phase: build` and the milestone ID in `refs`  |
-| Models used        | `runs.mjs update --model builder=<alias>[:<effort>] --model verifier=<alias>`               |
-| Result block       | `runs.mjs result build --json '<block>'` (or `build-<id>` in `--milestone` mode)            |
-| Own run finished   | `runs.mjs update --status done`, or `halted` or `failed` to match the result                |
+| Moment           | Command                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| Own run          | `runs.mjs create <slug> --title <plan title> --workflow esp-build --repo <repo-root>`      |
+| Pending messages | `runs.mjs messages`, then `runs.mjs deliver <id>...` once passed to a builder              |
+| Decision         | `runs.mjs decision --json '<decision>'` with `phase: build` and the milestone ID in `refs` |
+| Models used      | `runs.mjs update --model builder=<alias>[:<effort>] --model verifier=<alias>`              |
+| Result block     | `runs.mjs result build --json '<block>'` (or `build-<id>` in `--milestone` mode)           |
+| Own run finished | `runs.mjs update --status done`, or `halted` or `failed` to match the result               |
 
 The builder writes `steps/<NN>-build-<id>/result.json` and the verifier `steps/<NN>-verify-<id>/result.json`. A retry reuses both step directories.
 

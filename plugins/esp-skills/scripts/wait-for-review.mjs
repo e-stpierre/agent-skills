@@ -16,7 +16,13 @@
 // 2 usage error.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConfigError, findRepoRoot, loadConfig } from "./config.mjs";
@@ -35,7 +41,8 @@ export const STATE_FORMAT = 1;
 const SHORT_SHA = 7;
 const MAX_CONSECUTIVE_ERRORS = 5;
 const CODEX_STATE = /<!--\s*codex-review-state:v1\s+(\{.*?\})\s*-->/s;
-const IN_PROGRESS = /\b(is working|in progress|reviewing now)\b|^\s*:?eyes:?\s*$/i;
+const IN_PROGRESS =
+  /\b(is working|in progress|reviewing now)\b|^\s*:?eyes:?\s*$/i;
 
 // ---------------------------------------------------------------------------
 // Reviewers
@@ -59,7 +66,8 @@ export function resolveReviewers(names, configured = {}) {
   const list = (Array.isArray(names) ? names : String(names ?? "").split(","))
     .map((name) => String(name).trim())
     .filter((name) => name !== "");
-  if (list.length === 0) throw new WaitError("No reviewers to wait for (pass --reviewers)", 2);
+  if (list.length === 0)
+    throw new WaitError("No reviewers to wait for (pass --reviewers)", 2);
   const seen = new Set();
   const reviewers = [];
   for (const name of list) {
@@ -98,7 +106,10 @@ export function codexState(body) {
   try {
     const state = JSON.parse(match[1]);
     const review = state.code_review ?? {};
-    return { commit_sha: review.commit_sha ?? null, status: review.status ?? null };
+    return {
+      commit_sha: review.commit_sha ?? null,
+      status: review.status ?? null
+    };
   } catch {
     return null;
   }
@@ -123,7 +134,9 @@ export function reviewerStatus(reviewer, snapshot) {
   const stale = mine.filter((r) => r.commit_id && r.commit_id !== head).length;
   const onHead = mine
     .filter((r) => r.commit_id === head && r.state !== "PENDING")
-    .sort((a, b) => String(b.submitted_at).localeCompare(String(a.submitted_at)));
+    .sort((a, b) =>
+      String(b.submitted_at).localeCompare(String(a.submitted_at))
+    );
   if (onHead.length > 0) {
     const review = onHead[0];
     return {
@@ -140,28 +153,77 @@ export function reviewerStatus(reviewer, snapshot) {
   let inProgress = null;
   const byLogin = comments
     .filter((c) => sameLogin(c.login, reviewer.login))
-    .sort((a, b) => String(b.updated_at ?? b.created_at).localeCompare(String(a.updated_at ?? a.created_at)));
+    .sort((a, b) =>
+      String(b.updated_at ?? b.created_at).localeCompare(
+        String(a.updated_at ?? a.created_at)
+      )
+    );
   for (const comment of byLogin) {
     const at = comment.updated_at ?? comment.created_at ?? null;
     const state = codexState(comment.body);
     if (state) {
       if (state.commit_sha && state.commit_sha === head) {
         if (state.status === "completed") {
-          return { status: "reviewed", kind: "comment", state: "COMMENTED", id: comment.id ?? null, url: comment.html_url ?? null, at, stale };
+          return {
+            status: "reviewed",
+            kind: "comment",
+            state: "COMMENTED",
+            id: comment.id ?? null,
+            url: comment.html_url ?? null,
+            at,
+            stale
+          };
         }
-        inProgress ??= { status: "in-progress", kind: "comment", state: state.status, id: comment.id ?? null, url: comment.html_url ?? null, at, stale };
+        inProgress ??= {
+          status: "in-progress",
+          kind: "comment",
+          state: state.status,
+          id: comment.id ?? null,
+          url: comment.html_url ?? null,
+          at,
+          stale
+        };
       }
       continue;
     }
-    const recent = headDate && at ? Date.parse(at) >= Date.parse(headDate) : mentionsSha(comment.body, head);
+    const recent =
+      headDate && at
+        ? Date.parse(at) >= Date.parse(headDate)
+        : mentionsSha(comment.body, head);
     if (!recent) continue;
     if (IN_PROGRESS.test(comment.body ?? "")) {
-      inProgress ??= { status: "in-progress", kind: "comment", state: null, id: comment.id ?? null, url: comment.html_url ?? null, at, stale };
+      inProgress ??= {
+        status: "in-progress",
+        kind: "comment",
+        state: null,
+        id: comment.id ?? null,
+        url: comment.html_url ?? null,
+        at,
+        stale
+      };
       continue;
     }
-    return { status: "reviewed", kind: "comment", state: "COMMENTED", id: comment.id ?? null, url: comment.html_url ?? null, at, stale };
+    return {
+      status: "reviewed",
+      kind: "comment",
+      state: "COMMENTED",
+      id: comment.id ?? null,
+      url: comment.html_url ?? null,
+      at,
+      stale
+    };
   }
-  return inProgress ?? { status: "pending", kind: null, state: null, id: null, url: null, at: null, stale };
+  return (
+    inProgress ?? {
+      status: "pending",
+      kind: null,
+      state: null,
+      id: null,
+      url: null,
+      at: null,
+      stale
+    }
+  );
 }
 
 /** True when a comment posting `trigger` already exists for the head (created at or after the head commit). */
@@ -169,7 +231,13 @@ export function triggerPosted(trigger, snapshot) {
   if (!trigger) return false;
   const wanted = trigger.trim().toLowerCase();
   return (snapshot.comments ?? []).some((c) => {
-    if (!String(c.body ?? "").trim().toLowerCase().startsWith(wanted)) return false;
+    if (
+      !String(c.body ?? "")
+        .trim()
+        .toLowerCase()
+        .startsWith(wanted)
+    )
+      return false;
     if (!snapshot.headDate) return true;
     return Date.parse(c.created_at ?? 0) >= Date.parse(snapshot.headDate);
   });
@@ -180,8 +248,14 @@ export function triggerPosted(trigger, snapshot) {
 // ---------------------------------------------------------------------------
 
 function exec(cmd, args, cwd) {
-  const res = spawnSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, windowsHide: true });
-  if (res.error) throw new WaitError(`${cmd} could not run: ${res.error.message}`);
+  const res = spawnSync(cmd, args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    windowsHide: true
+  });
+  if (res.error)
+    throw new WaitError(`${cmd} could not run: ${res.error.message}`);
   return res;
 }
 
@@ -195,7 +269,10 @@ function parseJsonLines(text) {
 /** Parse `owner/repo` from a pull request URL. */
 export function repoFromUrl(url) {
   const match = /github\.com\/([^/]+)\/([^/]+)\/pull\/\d+/i.exec(url ?? "");
-  if (!match) throw new WaitError(`Cannot read the repository from the pull request URL: ${url}`);
+  if (!match)
+    throw new WaitError(
+      `Cannot read the repository from the pull request URL: ${url}`
+    );
   return `${match[1]}/${match[2]}`;
 }
 
@@ -204,7 +281,10 @@ export function ghClient({ cwd, env = process.env } = {}) {
   const prefix = env.ESP_GH_CMD ? JSON.parse(env.ESP_GH_CMD) : ["gh"];
   const gh = (args) => {
     const res = exec(prefix[0], [...prefix.slice(1), ...args], cwd);
-    if (res.status !== 0) throw new WaitError(`gh ${args.join(" ")} failed: ${(res.stderr || res.stdout).trim()}`);
+    if (res.status !== 0)
+      throw new WaitError(
+        `gh ${args.join(" ")} failed: ${(res.stderr || res.stdout).trim()}`
+      );
     return res.stdout;
   };
   return {
@@ -213,10 +293,21 @@ export function ghClient({ cwd, env = process.env } = {}) {
       if (target) args.push(String(target));
       args.push("--json", "number,url,state,headRefOid,isDraft");
       const pr = JSON.parse(gh(args));
-      return { number: pr.number, url: pr.url, state: pr.state, head: pr.headRefOid, draft: Boolean(pr.isDraft) };
+      return {
+        number: pr.number,
+        url: pr.url,
+        state: pr.state,
+        head: pr.headRefOid,
+        draft: Boolean(pr.isDraft)
+      };
     },
     commitDate(repo, sha) {
-      const out = gh(["api", `repos/${repo}/commits/${sha}`, "--jq", ".commit.committer.date"]).trim();
+      const out = gh([
+        "api",
+        `repos/${repo}/commits/${sha}`,
+        "--jq",
+        ".commit.committer.date"
+      ]).trim();
       return out === "" || out === "null" ? null : out;
     },
     reviews(repo, number) {
@@ -282,8 +373,16 @@ function needsInput(pending, minutes) {
     id: "await-review-timeout",
     question: `No review from ${pending.join(", ")} on the head commit after ${minutes} minute${minutes === 1 ? "" : "s"}. Wait again or continue without it?`,
     options: [
-      { id: "wait", label: "Wait again", description: "Run esp-await-review again with the same reviewers" },
-      { id: "skip", label: "Continue without the review", description: "Treat the missing reviews as not coming" }
+      {
+        id: "wait",
+        label: "Wait again",
+        description: "Run esp-await-review again with the same reviewers"
+      },
+      {
+        id: "skip",
+        label: "Continue without the review",
+        description: "Treat the missing reviews as not coming"
+      }
     ],
     recommended: "wait",
     blocking: true
@@ -297,7 +396,13 @@ function needsInput(pending, minutes) {
  * Returns `{ result, state }`.
  */
 export async function waitForReview(options, deps) {
-  const { client, sleep, now = () => new Date(), log = () => {}, env = process.env } = deps;
+  const {
+    client,
+    sleep,
+    now = () => new Date(),
+    log = () => {},
+    env = process.env
+  } = deps;
   const reviewers = options.reviewers;
   const timeoutMs = options.timeoutMinutes * 60_000;
   const base = options.pollSeconds;
@@ -325,7 +430,10 @@ export async function waitForReview(options, deps) {
     errors: []
   };
   // An interrupted wait (no ended_at) on the same pull request keeps its clock.
-  const samePr = options.pr == null || String(previous?.pr) === String(options.pr) || previous?.url === options.pr;
+  const samePr =
+    options.pr == null ||
+    String(previous?.pr) === String(options.pr) ||
+    previous?.url === options.pr;
   if (previous && !previous.ended_at && previous.started_at && samePr) {
     state.started_at = previous.started_at;
   }
@@ -346,7 +454,9 @@ export async function waitForReview(options, deps) {
     state.updated_at = state.ended_at;
     writeState(options.statePath, state);
     const names = reviewers.map((r) => r.name);
-    const completed = names.filter((n) => state.reviewers[n]?.status === "reviewed");
+    const completed = names.filter(
+      (n) => state.reviewers[n]?.status === "reviewed"
+    );
     const pending = names.filter((n) => !completed.includes(n));
     const result = {
       contract_version: 1,
@@ -357,18 +467,30 @@ export async function waitForReview(options, deps) {
         pr: state.pr,
         url: state.url,
         head: state.head,
-        reviewers: Object.fromEntries(names.map((n) => [n, state.reviewers[n]?.status ?? "pending"])),
+        reviewers: Object.fromEntries(
+          names.map((n) => [n, state.reviewers[n]?.status ?? "pending"])
+        ),
         completed,
         pending,
-        triggered: state.triggered.filter((t) => t.head === state.head).map((t) => t.reviewer),
+        triggered: state.triggered
+          .filter((t) => t.head === state.head)
+          .map((t) => t.reviewer),
         polls: state.polls,
-        waited_seconds: Math.max(0, Math.round((Date.parse(state.ended_at) - Date.parse(state.started_at)) / 1000)),
+        waited_seconds: Math.max(
+          0,
+          Math.round(
+            (Date.parse(state.ended_at) - Date.parse(state.started_at)) / 1000
+          )
+        ),
         state_path: options.statePath ?? null
       },
       ...extra
     };
     const { errors } = validateArtifact("result", result);
-    if (errors.length > 0) throw new WaitError(`Internal error, invalid result block: ${errors.map((e) => `${e.path} ${e.message}`).join("; ")}`);
+    if (errors.length > 0)
+      throw new WaitError(
+        `Internal error, invalid result block: ${errors.map((e) => `${e.path} ${e.message}`).join("; ")}`
+      );
     return { result, state };
   };
 
@@ -381,9 +503,13 @@ export async function waitForReview(options, deps) {
       state.pr = pr.number;
       state.url = pr.url;
       state.repo ??= repoFromUrl(pr.url);
-      closedState = pr.state && pr.state !== "OPEN" ? pr.state.toLowerCase() : null;
+      closedState =
+        pr.state && pr.state !== "OPEN" ? pr.state.toLowerCase() : null;
       if (pr.head !== state.head) {
-        if (state.head) log(`head changed: ${state.head.slice(0, SHORT_SHA)} -> ${pr.head.slice(0, SHORT_SHA)}, waiting on the new head`);
+        if (state.head)
+          log(
+            `head changed: ${state.head.slice(0, SHORT_SHA)} -> ${pr.head.slice(0, SHORT_SHA)}, waiting on the new head`
+          );
         state.head = pr.head;
         state.head_date = client.commitDate(state.repo, pr.head);
         if (!state.heads.includes(pr.head)) state.heads.push(pr.head);
@@ -397,12 +523,19 @@ export async function waitForReview(options, deps) {
       };
       consecutiveErrors = 0;
     } catch (err) {
-      if (!(err instanceof WaitError) && !(err instanceof SyntaxError)) throw err;
+      if (!(err instanceof WaitError) && !(err instanceof SyntaxError))
+        throw err;
       consecutiveErrors += 1;
-      state.errors = [...state.errors, { at: now().toISOString(), message: err.message }].slice(-10);
+      state.errors = [
+        ...state.errors,
+        { at: now().toISOString(), message: err.message }
+      ].slice(-10);
       log(`poll ${state.polls}: ${err.message}`);
       if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS || options.once) {
-        return finish("failed", `gh failed ${consecutiveErrors} time(s) in a row: ${err.message}`);
+        return finish(
+          "failed",
+          `gh failed ${consecutiveErrors} time(s) in a row: ${err.message}`
+        );
       }
       writeState(options.statePath, state);
       await sleep(nextInterval(base, factor, idle++, cap) * 1000);
@@ -411,51 +544,95 @@ export async function waitForReview(options, deps) {
 
     for (const reviewer of reviewers) {
       const status = reviewerStatus(reviewer, snapshot);
-      state.reviewers[reviewer.name] = { login: reviewer.login, head: state.head, ...status };
+      state.reviewers[reviewer.name] = {
+        login: reviewer.login,
+        head: state.head,
+        ...status
+      };
       const key = `${reviewer.name}@${state.head}`;
       if (status.status === "reviewed" && !announced.has(key)) {
         announced.add(key);
-        log(`${reviewer.name} reviewed ${state.head.slice(0, SHORT_SHA)} (${status.kind})`);
+        log(
+          `${reviewer.name} reviewed ${state.head.slice(0, SHORT_SHA)} (${status.kind})`
+        );
         if (options.runDir) {
           appendEvent(
             options.runDir,
             "review.received",
-            { reviewer: reviewer.name, login: reviewer.login, pr: state.pr, head: state.head, kind: status.kind, state: status.state, url: status.url },
+            {
+              reviewer: reviewer.name,
+              login: reviewer.login,
+              pr: state.pr,
+              head: state.head,
+              kind: status.kind,
+              state: status.state,
+              url: status.url
+            },
             env
           );
         }
       }
     }
 
-    const pending = reviewers.filter((r) => state.reviewers[r.name].status !== "reviewed");
+    const pending = reviewers.filter(
+      (r) => state.reviewers[r.name].status !== "reviewed"
+    );
     if (pending.length === 0) {
       const names = reviewers.map((r) => r.name).join(", ");
-      return finish("done", `${names} reviewed #${state.pr} at ${state.head.slice(0, SHORT_SHA)}.`);
+      return finish(
+        "done",
+        `${names} reviewed #${state.pr} at ${state.head.slice(0, SHORT_SHA)}.`
+      );
     }
     if (closedState) {
       const missing = pending.map((r) => r.name).join(", ");
-      return finish("failed", `Pull request #${state.pr} is ${closedState} and ${missing} did not review its head, nothing to wait for.`);
+      return finish(
+        "failed",
+        `Pull request #${state.pr} is ${closedState} and ${missing} did not review its head, nothing to wait for.`
+      );
     }
 
     // Trigger comments: once per reviewer and head, never on the first poll of
     // a head (the reviewer may start on its own), never when it is in progress.
     if (options.trigger && !options.once) {
       for (const reviewer of pending) {
-        if (!reviewer.trigger || state.reviewers[reviewer.name].status === "in-progress") continue;
-        if (state.triggered.some((t) => t.reviewer === reviewer.name && t.head === state.head)) continue;
+        if (
+          !reviewer.trigger ||
+          state.reviewers[reviewer.name].status === "in-progress"
+        )
+          continue;
+        if (
+          state.triggered.some(
+            (t) => t.reviewer === reviewer.name && t.head === state.head
+          )
+        )
+          continue;
         if (triggerPosted(reviewer.trigger, snapshot)) {
-          state.triggered.push({ reviewer: reviewer.name, head: state.head, at: now().toISOString(), posted: false });
+          state.triggered.push({
+            reviewer: reviewer.name,
+            head: state.head,
+            at: now().toISOString(),
+            posted: false
+          });
           continue;
         }
         if (lastKey === null || !lastKey.startsWith(`${state.head}|`)) continue;
         try {
           client.comment(state.pr, reviewer.trigger);
-          state.triggered.push({ reviewer: reviewer.name, head: state.head, at: now().toISOString(), posted: true });
+          state.triggered.push({
+            reviewer: reviewer.name,
+            head: state.head,
+            at: now().toISOString(),
+            posted: true
+          });
           log(`posted trigger for ${reviewer.name}: ${reviewer.trigger}`);
           idle = 0;
         } catch (err) {
           if (!(err instanceof WaitError)) throw err;
-          state.errors = [...state.errors, { at: now().toISOString(), message: err.message }].slice(-10);
+          state.errors = [
+            ...state.errors,
+            { at: now().toISOString(), message: err.message }
+          ].slice(-10);
           log(`trigger for ${reviewer.name} failed: ${err.message}`);
         }
       }
@@ -463,7 +640,10 @@ export async function waitForReview(options, deps) {
 
     const pendingNames = pending.map((r) => r.name);
     if (options.once) {
-      return finish("awaiting-human", `Still waiting for ${pendingNames.join(", ")} on #${state.pr} at ${state.head.slice(0, SHORT_SHA)}.`);
+      return finish(
+        "awaiting-human",
+        `Still waiting for ${pendingNames.join(", ")} on #${state.pr} at ${state.head.slice(0, SHORT_SHA)}.`
+      );
     }
     const remaining = deadline - now().getTime();
     if (remaining <= 0) {
@@ -477,11 +657,16 @@ export async function waitForReview(options, deps) {
     const key = `${state.head}|${reviewers.map((r) => `${r.name}:${state.reviewers[r.name].status}`).join(",")}`;
     if (key !== lastKey) idle = 0;
     lastKey = key;
-    const wait = Math.min(nextInterval(base, factor, idle++, cap) * 1000, remaining);
+    const wait = Math.min(
+      nextInterval(base, factor, idle++, cap) * 1000,
+      remaining
+    );
     state.updated_at = now().toISOString();
     state.next_poll_at = new Date(now().getTime() + wait).toISOString();
     writeState(options.statePath, state);
-    log(`poll ${state.polls}: waiting for ${pendingNames.join(", ")} on ${state.head.slice(0, SHORT_SHA)}, next poll in ${Math.round(wait / 1000)}s`);
+    log(
+      `poll ${state.polls}: waiting for ${pendingNames.join(", ")} on ${state.head.slice(0, SHORT_SHA)}, next poll in ${Math.round(wait / 1000)}s`
+    );
     await sleep(wait);
   }
 }
@@ -532,7 +717,8 @@ export function parseArgs(argv) {
         continue;
       }
       const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-      if (value === undefined) throw new WaitError(`--${key} requires a value`, 2);
+      if (value === undefined)
+        throw new WaitError(`--${key} requires a value`, 2);
       options[key] = value;
     } else positional.push(arg);
   }
@@ -551,36 +737,67 @@ export function prArgument(text) {
 
 function positiveNumber(raw, name, min) {
   const value = Number(raw);
-  if (!Number.isFinite(value) || value < min) throw new WaitError(`--${name} must be a number >= ${min}`, 2);
+  if (!Number.isFinite(value) || value < min)
+    throw new WaitError(`--${name} must be a number >= ${min}`, 2);
   return value;
 }
 
 /** Build waitForReview options from CLI options and config. */
 export function resolveOptions(cli, positional, env = process.env) {
-  const projectDir = resolve(cli["project-dir"] ?? findRepoRoot(process.cwd()) ?? process.cwd());
+  const projectDir = resolve(
+    cli["project-dir"] ?? findRepoRoot(process.cwd()) ?? process.cwd()
+  );
   let config;
   try {
-    ({ config } = loadConfig({ projectDir, snapshot: cli["config-snapshot"], env }));
+    ({ config } = loadConfig({
+      projectDir,
+      snapshot: cli["config-snapshot"],
+      env
+    }));
   } catch (err) {
-    if (err instanceof ConfigError) throw new WaitError(err.message, err.exitCode ?? 1);
+    if (err instanceof ConfigError)
+      throw new WaitError(err.message, err.exitCode ?? 1);
     throw err;
   }
   const section = config["await-review"] ?? {};
   const runDir = cli["run-dir"] ? resolve(cli["run-dir"]) : null;
-  if (runDir && !existsSync(join(runDir, "run.json"))) throw new WaitError(`Not a run directory (no run.json): ${runDir}`, 2);
-  const pollSeconds = cli["poll-seconds"] !== undefined ? positiveNumber(cli["poll-seconds"], "poll-seconds", 1) : section.poll_seconds ?? 60;
+  if (runDir && !existsSync(join(runDir, "run.json")))
+    throw new WaitError(`Not a run directory (no run.json): ${runDir}`, 2);
+  const pollSeconds =
+    cli["poll-seconds"] !== undefined
+      ? positiveNumber(cli["poll-seconds"], "poll-seconds", 1)
+      : (section.poll_seconds ?? 60);
   return {
     projectDir,
     pr: prArgument(positional.join(" ")),
-    reviewers: resolveReviewers(cli.reviewers ?? config.go?.default_reviewers ?? [], section.reviewers ?? {}),
+    reviewers: resolveReviewers(
+      cli.reviewers ?? config.go?.default_reviewers ?? [],
+      section.reviewers ?? {}
+    ),
     timeoutMinutes:
-      cli["timeout-minutes"] !== undefined ? positiveNumber(cli["timeout-minutes"], "timeout-minutes", 0) : section.timeout_minutes ?? 30,
+      cli["timeout-minutes"] !== undefined
+        ? positiveNumber(cli["timeout-minutes"], "timeout-minutes", 0)
+        : (section.timeout_minutes ?? 30),
     pollSeconds,
-    maxPollSeconds: cli["max-poll-seconds"] !== undefined ? positiveNumber(cli["max-poll-seconds"], "max-poll-seconds", 1) : pollSeconds * 5,
-    backoff: cli.backoff !== undefined ? positiveNumber(cli.backoff, "backoff", 1) : 1.5,
-    trigger: cli["no-trigger"] ? false : cli.trigger ? true : Boolean(section.auto_trigger),
+    maxPollSeconds:
+      cli["max-poll-seconds"] !== undefined
+        ? positiveNumber(cli["max-poll-seconds"], "max-poll-seconds", 1)
+        : pollSeconds * 5,
+    backoff:
+      cli.backoff !== undefined
+        ? positiveNumber(cli.backoff, "backoff", 1)
+        : 1.5,
+    trigger: cli["no-trigger"]
+      ? false
+      : cli.trigger
+        ? true
+        : Boolean(section.auto_trigger),
     once: Boolean(cli.once),
-    statePath: cli.state ? resolve(cli.state) : runDir ? join(runDir, "await-review.json") : null,
+    statePath: cli.state
+      ? resolve(cli.state)
+      : runDir
+        ? join(runDir, "await-review.json")
+        : null,
     runDir
   };
 }
@@ -589,7 +806,8 @@ export async function run(argv, env = process.env, io = {}) {
   const { options: cli, positional } = parseArgs(argv);
   if (cli.help) return { output: USAGE, exitCode: 0 };
   const options = resolveOptions(cli, positional, env);
-  const log = io.log ?? ((line) => process.stderr.write(`[wait-for-review] ${line}\n`));
+  const log =
+    io.log ?? ((line) => process.stderr.write(`[wait-for-review] ${line}\n`));
   const { result } = await waitForReview(options, {
     client: io.client ?? ghClient({ cwd: options.projectDir, env }),
     sleep: io.sleep ?? ((ms) => new Promise((done) => setTimeout(done, ms))),
@@ -597,7 +815,10 @@ export async function run(argv, env = process.env, io = {}) {
     log,
     env
   });
-  return { output: JSON.stringify(result), exitCode: exitCodeFor(result.status) };
+  return {
+    output: JSON.stringify(result),
+    exitCode: exitCodeFor(result.status)
+  };
 }
 
 async function main() {
@@ -607,11 +828,16 @@ async function main() {
     process.exitCode = exitCode;
   } catch (err) {
     const known = err instanceof WaitError;
-    process.stderr.write(`wait-for-review error: ${known ? err.message : (err.stack ?? err)}\n`);
+    process.stderr.write(
+      `wait-for-review error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
     process.exitCode = known ? err.exitCode : 1;
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

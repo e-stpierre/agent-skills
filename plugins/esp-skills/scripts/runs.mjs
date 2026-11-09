@@ -36,7 +36,12 @@ import {
   validateArtifact
 } from "./lib/contract.mjs";
 import { withLock } from "./lib/lock.mjs";
-import { ATTRIBUTION, BODY_SECTIONS, collectRunArtifacts, renderPrBody } from "./lib/pr-body.mjs";
+import {
+  ATTRIBUTION,
+  BODY_SECTIONS,
+  collectRunArtifacts,
+  renderPrBody
+} from "./lib/pr-body.mjs";
 
 export class RunsError extends Error {
   constructor(message, exitCode = 1) {
@@ -80,7 +85,11 @@ export function slugify(text) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 60)
     .replace(/-+$/g, "");
-  if (!slug) throw new RunsError("A slug with at least one letter or digit is required", 2);
+  if (!slug)
+    throw new RunsError(
+      "A slug with at least one letter or digit is required",
+      2
+    );
   return slug;
 }
 
@@ -89,7 +98,9 @@ function readJsonFile(path) {
   try {
     text = readFileSync(path, "utf8");
   } catch (err) {
-    throw new RunsError(`${path}: cannot read file (${err.code ?? err.message})`);
+    throw new RunsError(
+      `${path}: cannot read file (${err.code ?? err.message})`
+    );
   }
   try {
     return JSON.parse(text.replace(/^\uFEFF/, ""));
@@ -109,7 +120,9 @@ function assertArtifact(artifact, value, source) {
   const result = validateArtifact(artifact, value);
   if (!result.valid) {
     const lines = result.errors.map((e) => `  ${e.path}: ${e.message}`);
-    throw new RunsError(`Invalid ${artifact} (${source}):\n${lines.join("\n")}`);
+    throw new RunsError(
+      `Invalid ${artifact} (${source}):\n${lines.join("\n")}`
+    );
   }
 }
 
@@ -163,7 +176,8 @@ function readStdin() {
 }
 
 function requireRunDir(options) {
-  if (!options["run-dir"]) throw new RunsError("--run-dir <path> is required", 2);
+  if (!options["run-dir"])
+    throw new RunsError("--run-dir <path> is required", 2);
   const dir = resolve(expandHome(options["run-dir"]));
   if (!existsSync(join(dir, "run.json")))
     throw new RunsError(`Not a run directory (no run.json): ${dir}`);
@@ -183,7 +197,8 @@ function configFor(options) {
 
 /** Runs root from --root, else runs.root in the config. */
 export function runsRoot(options) {
-  if (options.root) return resolve(expandHome(String([options.root].flat()[0])));
+  if (options.root)
+    return resolve(expandHome(String([options.root].flat()[0])));
   return resolve(expandHome(configFor(options).runs.root));
 }
 
@@ -247,7 +262,8 @@ export function cmdCreate(slugArg, options, env = process.env) {
   } else {
     const root = runsRoot(options);
     const base = `${options.date ?? localDate(at)}-${slugify(slugArg ?? options.title)}`;
-    if (!DATED_DIR.test(base)) throw new RunsError(`Invalid --date: ${options.date}`, 2);
+    if (!DATED_DIR.test(base))
+      throw new RunsError(`Invalid --date: ${options.date}`, 2);
     dir = join(root, base);
     for (let n = 2; existsSync(dir); n++) dir = join(root, `${base}-${n}`);
   }
@@ -256,7 +272,8 @@ export function cmdCreate(slugArg, options, env = process.env) {
     return { run_dir: dir, id: runId(dir), created: false };
   }
   const id = basename(dir);
-  if (!ID_PATTERN.test(id)) throw new RunsError(`Invalid run directory name: ${id}`, 2);
+  if (!ID_PATTERN.test(id))
+    throw new RunsError(`Invalid run directory name: ${id}`, 2);
   const run = {
     contract_version: CONTRACT_VERSION,
     id,
@@ -275,7 +292,12 @@ export function cmdCreate(slugArg, options, env = process.env) {
   assertArtifact("run", run, runPath);
   mkdirSync(dir, { recursive: true });
   writeJsonAtomic(runPath, run);
-  appendEvent(dir, "run.started", { type: run.type, workflow: run.workflow }, env);
+  appendEvent(
+    dir,
+    "run.started",
+    { type: run.type, workflow: run.workflow },
+    env
+  );
   return { run_dir: dir, id, created: true };
 }
 
@@ -287,7 +309,8 @@ function parsePairs(values, what) {
   const out = {};
   for (const pair of splitList(values)) {
     const eq = pair.indexOf("=");
-    if (eq <= 0) throw new RunsError(`${what} expects key=value, got ${pair}`, 2);
+    if (eq <= 0)
+      throw new RunsError(`${what} expects key=value, got ${pair}`, 2);
     out[pair.slice(0, eq)] = pair.slice(eq + 1);
   }
   return out;
@@ -302,24 +325,35 @@ export function cmdUpdate(options, env = process.env) {
     previous = current.status;
     const next = structuredClone(current);
     for (const field of RUN_FIELDS) {
-      if (options[field] !== undefined) next[field] = options[field] === "null" ? null : options[field];
+      if (options[field] !== undefined)
+        next[field] = options[field] === "null" ? null : options[field];
     }
     if (options.type !== undefined) next.type = options.type;
     if (options["max-risk"] !== undefined)
       next.max_risk = maxRisk(next.max_risk ?? null, options["max-risk"]);
-    for (const [role, spec] of Object.entries(parsePairs(options.model, "--model"))) {
+    for (const [role, spec] of Object.entries(
+      parsePairs(options.model, "--model")
+    )) {
       const [model, effort] = spec.split(":");
-      next.models = { ...next.models, [role]: effort ? { model, effort } : { model } };
+      next.models = {
+        ...next.models,
+        [role]: effort ? { model, effort } : { model }
+      };
     }
-    for (const [name, value] of Object.entries(parsePairs(options.budget, "--budget"))) {
+    for (const [name, value] of Object.entries(
+      parsePairs(options.budget, "--budget")
+    )) {
       const number = Number(value);
-      if (!Number.isFinite(number)) throw new RunsError(`--budget ${name} must be a number`, 2);
+      if (!Number.isFinite(number))
+        throw new RunsError(`--budget ${name} must be a number`, 2);
       next.budgets_used = { ...next.budgets_used, [name]: number };
     }
     const at = now(env).toISOString();
     if (options.status !== undefined) {
       next.status = options.status;
-      next.ended_at = TERMINAL_RUN_STATUSES.includes(options.status) ? at : null;
+      next.ended_at = TERMINAL_RUN_STATUSES.includes(options.status)
+        ? at
+        : null;
     }
     next.updated_at = at;
     assertArtifact("run", next, path);
@@ -331,7 +365,8 @@ export function cmdUpdate(options, env = process.env) {
       options.status === "running" && previous === "paused"
         ? "run.resumed"
         : RUN_STATUS_EVENTS[options.status];
-    if (type) appendEvent(dir, type, { from: previous, to: options.status }, env);
+    if (type)
+      appendEvent(dir, type, { from: previous, to: options.status }, env);
   }
   return run;
 }
@@ -358,9 +393,16 @@ export function cmdDecision(options, env = process.env) {
 }
 
 export function cmdEvent(type, options, env = process.env) {
-  if (!type) throw new RunsError("Usage: event <type> --run-dir <path> [--data <json>]", 2);
+  if (!type)
+    throw new RunsError(
+      "Usage: event <type> --run-dir <path> [--data <json>]",
+      2
+    );
   const dir = requireRunDir(options);
-  const data = options.data === undefined ? {} : parseJsonInput(options.data, "event --data");
+  const data =
+    options.data === undefined
+      ? {}
+      : parseJsonInput(options.data, "event --data");
   return appendEvent(dir, type, data, env);
 }
 
@@ -371,11 +413,14 @@ export function stepDirName(dir, step) {
   if (/^\d+-/.test(step)) return step;
   const stepsDir = join(dir, "steps");
   const existing = existsSync(stepsDir)
-    ? readdirSync(stepsDir).filter((d) => /^\d+-/.test(d)).sort()
+    ? readdirSync(stepsDir)
+        .filter((d) => /^\d+-/.test(d))
+        .sort()
     : [];
   const match = existing.filter((d) => d.replace(/^\d+-/, "") === step).at(-1);
   if (match) return match;
-  const next = existing.reduce((max, d) => Math.max(max, Number.parseInt(d, 10)), 0) + 1;
+  const next =
+    existing.reduce((max, d) => Math.max(max, Number.parseInt(d, 10)), 0) + 1;
   return `${String(next).padStart(2, "0")}-${step}`;
 }
 
@@ -397,7 +442,12 @@ export function cmdResult(step, options, env = process.env) {
   if (block.needs_input) {
     appendEvent(dir, "needs_input", { step: name, ...block.needs_input }, env);
   }
-  return { path, step: name, exit_code: exitCodeFor(block.status), line: JSON.stringify(block) };
+  return {
+    path,
+    step: name,
+    exit_code: exitCodeFor(block.status),
+    line: JSON.stringify(block)
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -408,13 +458,18 @@ export function cmdResult(step, options, env = process.env) {
 export function latestPlan(dir) {
   const versions = [];
   for (const file of existsSync(dir) ? readdirSync(dir) : []) {
-    if (file === "plan.md") versions.push({ version: 1, path: join(dir, file) });
+    if (file === "plan.md")
+      versions.push({ version: 1, path: join(dir, file) });
     const m = /^plan\.v(\d+)\.md$/.exec(file);
     if (m) versions.push({ version: Number(m[1]), path: join(dir, file) });
   }
   versions.sort((a, b) => a.version - b.version);
   const latest = versions.at(-1);
-  return { path: latest?.path ?? null, version: latest?.version ?? 0, versions };
+  return {
+    path: latest?.path ?? null,
+    version: latest?.version ?? 0,
+    versions
+  };
 }
 
 export function cmdPlan(options) {
@@ -432,7 +487,10 @@ export function readMessages(dir) {
   return readdirSync(inbox)
     .filter((f) => f.endsWith(".json"))
     .sort()
-    .map((file) => ({ file: join(inbox, file), message: readJsonFile(join(inbox, file)) }));
+    .map((file) => ({
+      file: join(inbox, file),
+      message: readJsonFile(join(inbox, file))
+    }));
 }
 
 export function cmdMessages(options) {
@@ -445,7 +503,8 @@ export function cmdMessages(options) {
 
 export function cmdSend(options, env = process.env) {
   const dir = requireRunDir(options);
-  if (!options.text || options.text === true) throw new RunsError("send requires --text <message>", 2);
+  if (!options.text || options.text === true)
+    throw new RunsError("send requires --text <message>", 2);
   if (options.target === "step" && (!options.step || options.step === true))
     throw new RunsError("send --target step requires --step <name>", 2);
   const inbox = join(dir, "inbox");
@@ -467,13 +526,19 @@ export function cmdSend(options, env = process.env) {
     writeJsonAtomic(path, msg);
     return msg;
   });
-  appendEvent(dir, "message.queued", { id: message.id, mode: message.mode }, env);
+  appendEvent(
+    dir,
+    "message.queued",
+    { id: message.id, mode: message.mode },
+    env
+  );
   return message;
 }
 
 export function cmdDeliver(ids, options, env = process.env) {
   const dir = requireRunDir(options);
-  if (ids.length === 0) throw new RunsError("Usage: deliver <message-id>... --run-dir <path>", 2);
+  if (ids.length === 0)
+    throw new RunsError("Usage: deliver <message-id>... --run-dir <path>", 2);
   const delivered = [];
   for (const id of ids) {
     const found = readMessages(dir).find(({ message }) => message.id === id);
@@ -502,7 +567,8 @@ export function cmdDeliver(ids, options, env = process.env) {
 
 export function cmdAmend(options, env = process.env) {
   const dir = requireRunDir(options);
-  if (!options.text || options.text === true) throw new RunsError("amend requires --text <amendment>", 2);
+  if (!options.text || options.text === true)
+    throw new RunsError("amend requires --text <amendment>", 2);
   const affects = splitList(options.affects);
   const version =
     options["plan-version"] !== undefined
@@ -522,7 +588,12 @@ export function cmdAmend(options, env = process.env) {
     if (options.from) amendment.from = options.from;
     return { ...amendment, text: options.text, affects, plan_version: version };
   });
-  appendEvent(dir, "amendment.applied", { id: entry.id, plan_version: version, affects }, env);
+  appendEvent(
+    dir,
+    "amendment.applied",
+    { id: entry.id, plan_version: version, affects },
+    env
+  );
   appendDecision(
     dir,
     {
@@ -546,7 +617,8 @@ const DEFAULT_FS = { existsSync, readdirSync, readFileSync, statSync };
 
 function sinceFromLast(last, at) {
   const m = /^(\d+)([dwh])$/.exec(String(last));
-  if (!m) throw new RunsError(`--last expects <N>d, <N>w or <N>h, got ${last}`, 2);
+  if (!m)
+    throw new RunsError(`--last expects <N>d, <N>w or <N>h, got ${last}`, 2);
   const hours = { h: 1, d: 24, w: 24 * 7 }[m[2]] * Number(m[1]);
   return localDate(new Date(at.getTime() - hours * 3600 * 1000));
 }
@@ -570,7 +642,10 @@ export function indexRuns(roots, filters = {}, fs = DEFAULT_FS) {
     throw new RunsError(`--risk expects one of ${RISK_ORDER.join(", ")}`, 2);
   for (const key of ["since", "until"]) {
     if (filters[key] && !/^\d{4}-\d{2}-\d{2}$/.test(filters[key]))
-      throw new RunsError(`--${key} expects YYYY-MM-DD, got ${filters[key]}`, 2);
+      throw new RunsError(
+        `--${key} expects YYYY-MM-DD, got ${filters[key]}`,
+        2
+      );
   }
   const runs = [];
   const errors = [];
@@ -671,7 +746,8 @@ export function artifactFor(file) {
   if (name === "result.json") return "result";
   if (name === "summary.md") return "summary-frontmatter";
   if (JSONL_ARTIFACTS[name]) return JSONL_ARTIFACTS[name];
-  if (basename(dirname(file)) === "inbox" && name.endsWith(".json")) return "inbox-message";
+  if (basename(dirname(file)) === "inbox" && name.endsWith(".json"))
+    return "inbox-message";
   return null;
 }
 
@@ -679,7 +755,11 @@ export function validateFile(file, schemaName) {
   const path = resolve(file);
   if (!existsSync(path)) throw new RunsError(`File not found: ${path}`);
   const artifact = schemaName ?? artifactFor(path);
-  if (!artifact) throw new RunsError(`Cannot infer the artifact of ${path}; pass --schema <name>`, 2);
+  if (!artifact)
+    throw new RunsError(
+      `Cannot infer the artifact of ${path}; pass --schema <name>`,
+      2
+    );
   const errors = [];
   const text = readFileSync(path, "utf8").replace(/^\uFEFF/, "");
   const check = (value, line) => {
@@ -695,19 +775,31 @@ export function validateFile(file, schemaName) {
     for (let i = 0; i < end; i++) {
       const line = i + 1;
       if (lines[i].trim() === "") {
-        errors.push({ line, path: "(root)", message: "blank line inside a jsonl file" });
+        errors.push({
+          line,
+          path: "(root)",
+          message: "blank line inside a jsonl file"
+        });
         continue;
       }
       let value;
       try {
         value = JSON.parse(lines[i]);
       } catch (err) {
-        errors.push({ line, path: "(root)", message: `invalid JSON (${err.message})` });
+        errors.push({
+          line,
+          path: "(root)",
+          message: `invalid JSON (${err.message})`
+        });
         continue;
       }
       check(value, line);
       if (artifact === "event" && value?.seq !== line) {
-        errors.push({ line, path: "seq", message: `expected ${line}, got ${value?.seq}` });
+        errors.push({
+          line,
+          path: "seq",
+          message: `expected ${line}, got ${value?.seq}`
+        });
       }
     }
   } else if (artifact === "summary-frontmatter" && path.endsWith(".md")) {
@@ -717,7 +809,8 @@ export function validateFile(file, schemaName) {
     } catch (err) {
       errors.push({ path: "(frontmatter)", message: err.message });
     }
-    if (data === null) errors.push({ path: "(frontmatter)", message: "is missing" });
+    if (data === null)
+      errors.push({ path: "(frontmatter)", message: "is missing" });
     else if (data) check(data);
   } else {
     try {
@@ -743,12 +836,23 @@ export function cmdPrBody(options) {
   const config = configFor(options);
   const sections = config.pr?.body_sections ?? BODY_SECTIONS;
   const attribution = config.pr?.attribution === false ? null : ATTRIBUTION;
-  const summary = options.summary && options.summary !== true ? String(options.summary) : null;
-  const body = renderPrBody(collectRunArtifacts(dir), { summary, sections, attribution });
+  const summary =
+    options.summary && options.summary !== true
+      ? String(options.summary)
+      : null;
+  const body = renderPrBody(collectRunArtifacts(dir), {
+    summary,
+    sections,
+    attribution
+  });
   if (options.out) {
     const out = resolve(expandHome(String(options.out)));
     writeFileSync(out, body, "utf8");
-    return { path: out, bytes: Buffer.byteLength(body), body_from_run: config.pr?.body_from_run !== false };
+    return {
+      path: out,
+      bytes: Buffer.byteLength(body),
+      body_from_run: config.pr?.body_from_run !== false
+    };
   }
   return body;
 }
@@ -802,7 +906,8 @@ export function parseArgs(argv) {
       else if (eq !== -1) value = arg.slice(eq + 1);
       else {
         value = argv[++i];
-        if (value === undefined) throw new RunsError(`--${key} requires a value`, 2);
+        if (value === undefined)
+          throw new RunsError(`--${key} requires a value`, 2);
       }
       if (REPEATABLE.has(key) && options[key] !== undefined)
         options[key] = [options[key]].flat().concat(value);
@@ -816,7 +921,8 @@ export function parseArgs(argv) {
 
 export function run(argv, env = process.env) {
   const { command, args, options } = parseArgs(argv);
-  if (options.help || !command) return { output: USAGE, exitCode: command ? 0 : 2 };
+  if (options.help || !command)
+    return { output: USAGE, exitCode: command ? 0 : 2 };
   switch (command) {
     case "create":
       return { output: cmdCreate(args[0], options, env) };
@@ -847,7 +953,8 @@ export function run(argv, env = process.env) {
     case "pr-body":
       return { output: cmdPrBody(options) };
     case "validate": {
-      if (!args[0]) throw new RunsError("Usage: validate <file> [--schema <artifact>]", 2);
+      if (!args[0])
+        throw new RunsError("Usage: validate <file> [--schema <artifact>]", 2);
       const out = validateFile(args[0], options.schema);
       return { output: out, exitCode: out.valid ? 0 : 1 };
     }
@@ -862,16 +969,25 @@ export function run(argv, env = process.env) {
 function main() {
   try {
     const { output, exitCode = 0 } = run(process.argv.slice(2));
-    const text = typeof output === "string" ? output : JSON.stringify(output, null, 2);
-    (exitCode === 0 || typeof output !== "string" ? process.stdout : process.stderr).write(`${text}\n`);
+    const text =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    (exitCode === 0 || typeof output !== "string"
+      ? process.stdout
+      : process.stderr
+    ).write(`${text}\n`);
     process.exitCode = exitCode;
   } catch (err) {
     const known = err instanceof RunsError || err.name === "ConfigError";
-    process.stderr.write(`runs error: ${known ? err.message : (err.stack ?? err)}\n`);
+    process.stderr.write(
+      `runs error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
     process.exitCode = known ? (err.exitCode ?? 1) : 1;
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

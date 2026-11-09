@@ -8,8 +8,15 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-export const BODY_SECTIONS = ["summary", "milestones", "decisions", "review-resolution", "follow-ups"];
-export const ATTRIBUTION = "\u{1F916} Generated with [Claude Code](https://claude.com/product/claude-code)";
+export const BODY_SECTIONS = [
+  "summary",
+  "milestones",
+  "decisions",
+  "review-resolution",
+  "follow-ups"
+];
+export const ATTRIBUTION =
+  "\u{1F916} Generated with [Claude Code](https://claude.com/product/claude-code)";
 const RISK_RANK = { high: 0, medium: 1, low: 2 };
 const SKIPPED_DECISION_PHASES = new Set(["fix-review", "merge"]);
 
@@ -73,7 +80,11 @@ function decisionsSection({ decisions }) {
   const shown = decisions
     .filter((d) => !SKIPPED_DECISION_PHASES.has(d.phase))
     .map((d, index) => ({ d, index }))
-    .sort((a, b) => (RISK_RANK[a.d.risk] ?? 3) - (RISK_RANK[b.d.risk] ?? 3) || a.index - b.index)
+    .sort(
+      (a, b) =>
+        (RISK_RANK[a.d.risk] ?? 3) - (RISK_RANK[b.d.risk] ?? 3) ||
+        a.index - b.index
+    )
     .map(({ d }) => {
       const tags = [d["x-esp-class"], d.risk].filter(Boolean).join(", ");
       return `- ${d.id}${tags ? ` (${tags})` : ""}: ${d.decision}`;
@@ -86,15 +97,23 @@ function reviewResolutionSection({ steps, decisions }) {
   for (const { name, result } of steps) {
     if (!/^fix-review(-\d+)?$/.test(name)) continue;
     const o = result.outputs ?? {};
-    const where = o.mode === "internal" ? "Internal review" : `PR review${o.pr ? ` #${o.pr}` : ""}`;
+    const where =
+      o.mode === "internal"
+        ? "Internal review"
+        : `PR review${o.pr ? ` #${o.pr}` : ""}`;
     const counts = ["fixed", "rejected", "deferred", "open"]
       .filter((k) => Number.isInteger(o[k]) && o[k] > 0)
       .map((k) => `${o[k]} ${k}`);
-    const rounds = Number.isInteger(o.rounds) ? `, ${o.rounds} round${o.rounds === 1 ? "" : "s"}` : "";
-    lines.push(`- ${where}: ${counts.length > 0 ? counts.join(", ") : "nothing to fix"}${rounds}`);
+    const rounds = Number.isInteger(o.rounds)
+      ? `, ${o.rounds} round${o.rounds === 1 ? "" : "s"}`
+      : "";
+    lines.push(
+      `- ${where}: ${counts.length > 0 ? counts.join(", ") : "nothing to fix"}${rounds}`
+    );
   }
   for (const d of decisions) {
-    if (d.phase === "fix-review" && d["x-esp-class"] === "Reject") lines.push(`  - Rejected (${d.id}): ${d.decision}`);
+    if (d.phase === "fix-review" && d["x-esp-class"] === "Reject")
+      lines.push(`  - Rejected (${d.id}): ${d.decision}`);
   }
   return lines.length > 0 ? lines.join("\n") : null;
 }
@@ -124,7 +143,10 @@ const RENDERERS = {
  * Render the body. `summary` is the only free text (written by the caller).
  * Sections other than the summary are left out when they have nothing to show.
  */
-export function renderPrBody(artifacts, { summary, sections = BODY_SECTIONS, attribution = ATTRIBUTION } = {}) {
+export function renderPrBody(
+  artifacts,
+  { summary, sections = BODY_SECTIONS, attribution = ATTRIBUTION } = {}
+) {
   const parts = [];
   for (const section of sections) {
     if (section === "summary") {

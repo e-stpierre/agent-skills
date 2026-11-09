@@ -19,7 +19,14 @@ import { fileURLToPath } from "node:url";
 import { expandHome, loadConfig } from "./config.mjs";
 import { RISK_ORDER, parseFrontmatter } from "./lib/contract.mjs";
 import { readStepResults } from "./lib/pr-body.mjs";
-import { RunsError, indexRuns, latestPlan, localDate, now, parseArgs } from "./runs.mjs";
+import {
+  RunsError,
+  indexRuns,
+  latestPlan,
+  localDate,
+  now,
+  parseArgs
+} from "./runs.mjs";
 
 export class RecapError extends Error {
   constructor(message, exitCode = 1) {
@@ -100,7 +107,8 @@ export function readSummary(dir) {
       sections[current].push(line);
     }
   }
-  for (const key of Object.keys(sections)) sections[key] = sections[key].join("\n").trim();
+  for (const key of Object.keys(sections))
+    sections[key] = sections[key].join("\n").trim();
   return { frontmatter, sections };
 }
 
@@ -109,7 +117,10 @@ const isNone = (text) => !text || /^none\.?$/i.test(text.trim());
 /** First paragraph of a section, or null. */
 function firstParagraph(text) {
   if (isNone(text)) return null;
-  return text.split(/\r?\n\s*\r?\n/)[0].replace(/\s*\r?\n\s*/g, " ").trim();
+  return text
+    .split(/\r?\n\s*\r?\n/)[0]
+    .replace(/\s*\r?\n\s*/g, " ")
+    .trim();
 }
 
 /** Critical findings from the review-<N>.json files of a run. */
@@ -161,7 +172,10 @@ function countByRisk(decisions) {
 // ---------------------------------------------------------------------------
 
 function configFor(options) {
-  return loadConfig({ snapshot: options["config-snapshot"], projectDir: options["project-dir"] }).config;
+  return loadConfig({
+    snapshot: options["config-snapshot"],
+    projectDir: options["project-dir"]
+  }).config;
 }
 
 function splitList(value) {
@@ -176,13 +190,15 @@ function splitList(value) {
 /** Roots to read: --root, else every recap.roots entry plus runs.root. */
 export function resolveRoots(options, config) {
   let roots = splitList(options.root);
-  if (roots.length === 0) roots = [...(config.recap?.roots ?? []), config.runs?.root].filter(Boolean);
+  if (roots.length === 0)
+    roots = [...(config.recap?.roots ?? []), config.runs?.root].filter(Boolean);
   return [...new Set(roots.map((r) => resolve(expandHome(r))))];
 }
 
 function sinceFromLast(last, at) {
   const m = /^(\d+)([dwh])$/.exec(String(last));
-  if (!m) throw new RecapError(`--last expects <N>d, <N>w or <N>h, got ${last}`, 2);
+  if (!m)
+    throw new RecapError(`--last expects <N>d, <N>w or <N>h, got ${last}`, 2);
   const hours = { h: 1, d: 24, w: 24 * 7 }[m[2]] * Number(m[1]);
   return localDate(new Date(at.getTime() - hours * 3600 * 1000));
 }
@@ -196,7 +212,9 @@ export function resolveRange(options, config, at) {
   if (options.last) range.since = sinceFromLast(options.last, at);
   if (!range.since && !range.until && !options.all) {
     const days = config.recap?.default_range_days ?? 7;
-    range.since = localDate(new Date(at.getTime() - (days - 1) * 24 * 3600 * 1000));
+    range.since = localDate(
+      new Date(at.getTime() - (days - 1) * 24 * 3600 * 1000)
+    );
     range.default = true;
   }
   return range;
@@ -217,7 +235,8 @@ export function selectRuns(options, env = process.env) {
       risk: options.risk
     });
   } catch (err) {
-    if (err instanceof RunsError) throw new RecapError(err.message, err.exitCode);
+    if (err instanceof RunsError)
+      throw new RecapError(err.message, err.exitCode);
     throw err;
   }
   let runs = listed.runs;
@@ -256,7 +275,10 @@ export function digestRun(entry) {
     duration_minutes: fm.duration_minutes ?? null,
     outcome: firstParagraph(summary?.sections?.Outcome),
     decisions: { count: decisions.length, by_risk: countByRisk(decisions) },
-    critical_findings: Math.max(Number(fm.critical_findings ?? 0) || 0, critical.length),
+    critical_findings: Math.max(
+      Number(fm.critical_findings ?? 0) || 0,
+      critical.length
+    ),
     steps: steps.map((s) => ({ step: s.step, status: s.result.status })),
     commits: runCommits(dir, steps).length,
     sources: {
@@ -270,7 +292,8 @@ export function digestRun(entry) {
 /** Everything about one run, for a detailed recap or a fan-out subagent. */
 export function showRun(dir) {
   const run = readJson(join(dir, "run.json"));
-  if (!run) throw new RecapError(`Not a run directory (no readable run.json): ${dir}`);
+  if (!run)
+    throw new RecapError(`Not a run directory (no readable run.json): ${dir}`);
   const summary = readSummary(dir);
   const steps = readStepResults(dir);
   let plan = null;
@@ -284,10 +307,17 @@ export function showRun(dir) {
     path: dir,
     run,
     summary: summary
-      ? { path: join(dir, "summary.md"), frontmatter: summary.frontmatter, sections: summary.sections }
+      ? {
+          path: join(dir, "summary.md"),
+          frontmatter: summary.frontmatter,
+          sections: summary.sections
+        }
       : null,
     plan,
-    decisions: readDecisions(dir).map((d) => ({ ...d, source: `${join(dir, "decisions.jsonl")}:${d.line}` })),
+    decisions: readDecisions(dir).map((d) => ({
+      ...d,
+      source: `${join(dir, "decisions.jsonl")}:${d.line}`
+    })),
     steps: steps.map((s) => ({
       step: s.step,
       status: s.result.status,
@@ -306,7 +336,8 @@ export function showRun(dir) {
 
 function chunk(items, size) {
   const out = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += size)
+    out.push(items.slice(i, i + size));
   return out;
 }
 
@@ -325,7 +356,12 @@ export function cmdCollect(options, env = process.env) {
     count: runs.length,
     fan_out: fanOut,
     fan_out_threshold: threshold,
-    batches: fanOut ? chunk(runs.map((r) => r.path), threshold) : [],
+    batches: fanOut
+      ? chunk(
+          runs.map((r) => r.path),
+          threshold
+        )
+      : [],
     runs: runs.map(digestRun),
     errors
   };
@@ -334,13 +370,15 @@ export function cmdCollect(options, env = process.env) {
 /** Resolve `show <run-id|path>` against the roots. */
 export function findRun(target, options) {
   if (options["run-dir"]) target = options["run-dir"];
-  if (!target) throw new RecapError("Usage: show <run-id|path> (or --run-dir <path>)", 2);
+  if (!target)
+    throw new RecapError("Usage: show <run-id|path> (or --run-dir <path>)", 2);
   const direct = resolve(expandHome(String(target)));
   if (existsSync(join(direct, "run.json"))) return direct;
   const roots = resolveRoots(options, configFor(options));
   const { runs } = indexRuns(roots, {});
   const hit = runs.find((r) => r.id === target || basename(r.path) === target);
-  if (!hit) throw new RecapError(`No run named ${target} under ${roots.join(", ")}`);
+  if (!hit)
+    throw new RecapError(`No run named ${target} under ${roots.join(", ")}`);
   return hit.path;
 }
 
@@ -356,7 +394,11 @@ export function cmdShow(target, options) {
 export function cmdRisks(options, env = process.env) {
   const minRisk = options["min-risk"] ?? "high";
   const floor = RISK_ORDER.indexOf(minRisk);
-  if (floor === -1) throw new RecapError(`--min-risk expects one of ${RISK_ORDER.join(", ")}`, 2);
+  if (floor === -1)
+    throw new RecapError(
+      `--min-risk expects one of ${RISK_ORDER.join(", ")}`,
+      2
+    );
   const { roots, range, runs, errors } = selectRuns(options, env);
   const decisions = [];
   const findings = [];
@@ -388,15 +430,39 @@ export function cmdRisks(options, env = process.env) {
     for (const f of critical) findings.push({ ...ref, ...f });
     const section = summary?.sections?.["Critical Findings"];
     if (critical.length === 0 && !isNone(section)) {
-      findings.push({ ...ref, round: null, id: null, title: firstParagraph(section), source: join(dir, "summary.md") });
+      findings.push({
+        ...ref,
+        round: null,
+        id: null,
+        title: firstParagraph(section),
+        source: join(dir, "summary.md")
+      });
     }
-    if (["halted", "awaiting-human", "blocked", "failed"].includes(entry.status)) {
-      stopped.push({ ...ref, status: entry.status, max_risk: entry.max_risk, source: join(dir, "run.json") });
+    if (
+      ["halted", "awaiting-human", "blocked", "failed"].includes(entry.status)
+    ) {
+      stopped.push({
+        ...ref,
+        status: entry.status,
+        max_risk: entry.max_risk,
+        source: join(dir, "run.json")
+      });
     }
   }
   const rank = (d) => -RISK_ORDER.indexOf(d.risk);
-  decisions.sort((a, b) => rank(a) - rank(b) || String(a.at).localeCompare(String(b.at)));
-  return { roots, range, min_risk: minRisk, runs: runs.length, decisions, critical_findings: findings, stopped_runs: stopped, errors };
+  decisions.sort(
+    (a, b) => rank(a) - rank(b) || String(a.at).localeCompare(String(b.at))
+  );
+  return {
+    roots,
+    range,
+    min_risk: minRisk,
+    runs: runs.length,
+    decisions,
+    critical_findings: findings,
+    stopped_runs: stopped,
+    errors
+  };
 }
 
 /** Strip a common English suffix, so "rotated" and "tokens" match "rotate" and "token". */
@@ -431,11 +497,16 @@ function score(text, words) {
  */
 export function cmdSources(options, env = process.env) {
   const question = options.question ?? options.q;
-  if (!question || question === true) throw new RecapError("sources requires --question <text>", 2);
+  if (!question || question === true)
+    throw new RecapError("sources requires --question <text>", 2);
   const words = keywords(question);
-  if (words.length === 0) throw new RecapError("--question has no searchable keywords", 2);
+  if (words.length === 0)
+    throw new RecapError("--question has no searchable keywords", 2);
   const limit = Number(options.limit ?? DEFAULT_LIMIT);
-  const { roots, range, runs, errors } = selectRuns({ ...options, limit: undefined }, env);
+  const { roots, range, runs, errors } = selectRuns(
+    { ...options, limit: undefined },
+    env
+  );
   const decisions = [];
   const summaries = [];
   const git = [];
@@ -445,7 +516,16 @@ export function cmdSources(options, env = process.env) {
     let hits = 0;
     const files = new Set();
     for (const d of readDecisions(dir)) {
-      const s = score([d.decision, d.rationale, ...(d.alternatives ?? []), ...(d.files ?? []), ...(d.refs ?? [])].join(" "), words);
+      const s = score(
+        [
+          d.decision,
+          d.rationale,
+          ...(d.alternatives ?? []),
+          ...(d.files ?? []),
+          ...(d.refs ?? [])
+        ].join(" "),
+        words
+      );
       if (s === 0) continue;
       hits += s;
       for (const f of d.files ?? []) files.add(f);
@@ -469,13 +549,20 @@ export function cmdSources(options, env = process.env) {
       const s = score(text, words);
       if (s === 0) continue;
       hits += s;
-      summaries.push({ score: s, run: entry.id, section: heading, text, source: `${join(dir, "summary.md")}#${heading}` });
+      summaries.push({
+        score: s,
+        run: entry.id,
+        section: heading,
+        text,
+        source: `${join(dir, "summary.md")}#${heading}`
+      });
     }
     const title = summary?.frontmatter?.title ?? entry.title ?? entry.id;
     hits += score(title, words);
     if (hits === 0) continue;
     const steps = readStepResults(dir);
-    for (const s of steps) for (const f of s.result.files_changed ?? []) files.add(f);
+    for (const s of steps)
+      for (const f of s.result.files_changed ?? []) files.add(f);
     git.push({
       run: entry.id,
       title,
@@ -486,7 +573,8 @@ export function cmdSources(options, env = process.env) {
     });
     if (entry.pr) prs.push({ run: entry.id, title, pr: entry.pr });
   }
-  const byScore = (a, b) => b.score - a.score || String(a.run).localeCompare(String(b.run));
+  const byScore = (a, b) =>
+    b.score - a.score || String(a.run).localeCompare(String(b.run));
   return {
     question,
     keywords: words,
@@ -538,7 +626,8 @@ Options:
 
 export function run(argv, env = process.env) {
   const { command, args, options } = parseArgs(argv);
-  if (options.help || !command) return { output: USAGE, exitCode: command ? 0 : 2 };
+  if (options.help || !command)
+    return { output: USAGE, exitCode: command ? 0 : 2 };
   if (options.all === true || options.all === "true") options.all = true;
   switch (command) {
     case "collect":
@@ -557,16 +646,28 @@ export function run(argv, env = process.env) {
 function main() {
   try {
     const { output, exitCode = 0 } = run(process.argv.slice(2));
-    const text = typeof output === "string" ? output : JSON.stringify(output, null, 2);
-    (exitCode === 0 || typeof output !== "string" ? process.stdout : process.stderr).write(`${text}\n`);
+    const text =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    (exitCode === 0 || typeof output !== "string"
+      ? process.stdout
+      : process.stderr
+    ).write(`${text}\n`);
     process.exitCode = exitCode;
   } catch (err) {
-    const known = err instanceof RecapError || err instanceof RunsError || err.name === "ConfigError";
-    process.stderr.write(`recap error: ${known ? err.message : (err.stack ?? err)}\n`);
+    const known =
+      err instanceof RecapError ||
+      err instanceof RunsError ||
+      err.name === "ConfigError";
+    process.stderr.write(
+      `recap error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
     process.exitCode = known ? (err.exitCode ?? 1) : 1;
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

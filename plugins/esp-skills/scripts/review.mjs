@@ -10,7 +10,14 @@
 // Exit codes: 0 success, 1 failure (bad review, git or gh error), 2 usage error.
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -35,7 +42,12 @@ export const DIMENSIONS = [
 ];
 export const SEVERITIES = ["low", "medium", "high", "critical"];
 export const CLASSES = ["A", "B-Decide", "B-Scope"];
-const CLASS_ALIASES = { a: "A", "a-fix": "A", "b-decide": "B-Decide", "b-scope": "B-Scope" };
+const CLASS_ALIASES = {
+  a: "A",
+  "a-fix": "A",
+  "b-decide": "B-Decide",
+  "b-scope": "B-Scope"
+};
 const FINDING_HEADING = /^####\s+(F\d+)\s+-\s+(.+)$/;
 const SUBHEADING = /^####\s+(.+?)\s*$/;
 const LOCATION = /^\s*`([^`]+)`\s*:?\s*(.*)$/;
@@ -54,17 +66,31 @@ export function classifyTarget(target) {
   if (/^staged$/i.test(text)) return { kind: "staged" };
   if (/^unstaged$/i.test(text)) return { kind: "unstaged" };
   const pr =
-    /^(?:pr\s*#?|#)(\d+)$/i.exec(text) ?? /^https?:\/\/[^\s]+\/pull\/(\d+)(?:[/?#].*)?$/i.exec(text);
-  if (pr) return { kind: "pr", number: Number(pr[1]), url: text.startsWith("http") ? text : null };
+    /^(?:pr\s*#?|#)(\d+)$/i.exec(text) ??
+    /^https?:\/\/[^\s]+\/pull\/(\d+)(?:[/?#].*)?$/i.exec(text);
+  if (pr)
+    return {
+      kind: "pr",
+      number: Number(pr[1]),
+      url: text.startsWith("http") ? text : null
+    };
   const range = /^(\S+?)(\.\.\.?)(\S+)$/.exec(text);
-  if (range) return { kind: "range", base: range[1], head: range[3], dots: range[2] };
-  if (/\s/.test(text)) throw new ReviewError(`Unrecognized review target: ${text}`, 2);
+  if (range)
+    return { kind: "range", base: range[1], head: range[3], dots: range[2] };
+  if (/\s/.test(text))
+    throw new ReviewError(`Unrecognized review target: ${text}`, 2);
   return { kind: "ref", ref: text };
 }
 
 function exec(cmd, args, cwd) {
-  const res = spawnSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: 256 * 1024 * 1024, windowsHide: true });
-  if (res.error) throw new ReviewError(`${cmd} could not run: ${res.error.message}`);
+  const res = spawnSync(cmd, args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 256 * 1024 * 1024,
+    windowsHide: true
+  });
+  if (res.error)
+    throw new ReviewError(`${cmd} could not run: ${res.error.message}`);
   return res;
 }
 
@@ -72,7 +98,9 @@ function git(cwd, args, { allowFail = false } = {}) {
   const res = exec("git", ["-c", "core.quotepath=off", ...args], cwd);
   if (res.status !== 0) {
     if (allowFail) return null;
-    throw new ReviewError(`git ${args.join(" ")} failed: ${(res.stderr || res.stdout).trim()}`);
+    throw new ReviewError(
+      `git ${args.join(" ")} failed: ${(res.stderr || res.stdout).trim()}`
+    );
   }
   return res.stdout;
 }
@@ -81,23 +109,36 @@ function git(cwd, args, { allowFail = false } = {}) {
 function gh(cwd, args, env) {
   const prefix = env.ESP_GH_CMD ? JSON.parse(env.ESP_GH_CMD) : ["gh"];
   const res = exec(prefix[0], [...prefix.slice(1), ...args], cwd);
-  if (res.status !== 0) throw new ReviewError(`gh ${args.join(" ")} failed: ${(res.stderr || res.stdout).trim()}`);
+  if (res.status !== 0)
+    throw new ReviewError(
+      `gh ${args.join(" ")} failed: ${(res.stderr || res.stdout).trim()}`
+    );
   return res.stdout;
 }
 
 function revParse(cwd, ref) {
-  const out = git(cwd, ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`], { allowFail: true });
+  const out = git(
+    cwd,
+    ["rev-parse", "--verify", "--quiet", `${ref}^{commit}`],
+    { allowFail: true }
+  );
   return out ? out.trim() : null;
 }
 
 /** The default branch: origin/HEAD, else main, else master. */
 export function defaultBranch(cwd) {
-  const head = git(cwd, ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"], { allowFail: true });
+  const head = git(
+    cwd,
+    ["symbolic-ref", "--quiet", "refs/remotes/origin/HEAD"],
+    { allowFail: true }
+  );
   if (head) return head.trim().replace(/^refs\/remotes\//, "");
   for (const name of ["main", "master", "origin/main", "origin/master"]) {
     if (revParse(cwd, name)) return name;
   }
-  throw new ReviewError("Cannot find the default branch (no origin/HEAD, main or master)");
+  throw new ReviewError(
+    "Cannot find the default branch (no origin/HEAD, main or master)"
+  );
 }
 
 /** Changed files listed in a unified diff, in order, without duplicates. */
@@ -134,21 +175,50 @@ export function nextRound(runDir) {
 const DIFF_ARGS = ["diff", "--no-color", "--no-ext-diff"];
 
 /** Resolve a target to `{ kind, base, head, diff, untracked, pr }`. */
-export function resolveTarget(target, { cwd = process.cwd(), env = process.env } = {}) {
+export function resolveTarget(
+  target,
+  { cwd = process.cwd(), env = process.env } = {}
+) {
   const t = classifyTarget(target);
-  const out = { kind: t.kind, target: (target ?? "").trim() || null, base: null, head: null, pr: null, untracked: [] };
+  const out = {
+    kind: t.kind,
+    target: (target ?? "").trim() || null,
+    base: null,
+    head: null,
+    pr: null,
+    untracked: []
+  };
   if (t.kind === "pr") {
     const ref = t.url ?? String(t.number);
     const view = JSON.parse(
-      gh(cwd, ["pr", "view", ref, "--json", "number,title,url,baseRefName,headRefName,headRefOid"], env)
+      gh(
+        cwd,
+        [
+          "pr",
+          "view",
+          ref,
+          "--json",
+          "number,title,url,baseRefName,headRefName,headRefOid"
+        ],
+        env
+      )
     );
-    out.pr = { number: view.number, title: view.title, url: view.url, base: view.baseRefName, head: view.headRefName };
+    out.pr = {
+      number: view.number,
+      title: view.title,
+      url: view.url,
+      base: view.baseRefName,
+      head: view.headRefName
+    };
     out.base = view.baseRefName;
     out.head = view.headRefOid ?? view.headRefName;
     out.diff = gh(cwd, ["pr", "diff", ref], env);
     return out;
   }
-  if (git(cwd, ["rev-parse", "--is-inside-work-tree"], { allowFail: true }) === null) {
+  if (
+    git(cwd, ["rev-parse", "--is-inside-work-tree"], { allowFail: true }) ===
+    null
+  ) {
     throw new ReviewError(`Not a git repository: ${cwd}`);
   }
   switch (t.kind) {
@@ -165,7 +235,8 @@ export function resolveTarget(target, { cwd = process.cwd(), env = process.env }
       return out;
     case "range": {
       for (const ref of [t.base, t.head]) {
-        if (!revParse(cwd, ref)) throw new ReviewError(`Unknown ref in range: ${ref}`, 2);
+        if (!revParse(cwd, ref))
+          throw new ReviewError(`Unknown ref in range: ${ref}`, 2);
       }
       out.base = revParse(cwd, t.base);
       out.head = revParse(cwd, t.head);
@@ -173,7 +244,8 @@ export function resolveTarget(target, { cwd = process.cwd(), env = process.env }
       return out;
     }
     case "ref": {
-      if (!revParse(cwd, t.ref)) throw new ReviewError(`Unknown ref: ${t.ref}`, 2);
+      if (!revParse(cwd, t.ref))
+        throw new ReviewError(`Unknown ref: ${t.ref}`, 2);
       return branchDiff(cwd, t.ref, out);
     }
     default: {
@@ -182,7 +254,9 @@ export function resolveTarget(target, { cwd = process.cwd(), env = process.env }
         out.kind = "local";
         out.base = revParse(cwd, "HEAD");
         out.head = "working-tree";
-        out.diff = out.base ? git(cwd, [...DIFF_ARGS, "HEAD"]) : git(cwd, [...DIFF_ARGS, "--staged"]);
+        out.diff = out.base
+          ? git(cwd, [...DIFF_ARGS, "HEAD"])
+          : git(cwd, [...DIFF_ARGS, "--staged"]);
         out.untracked = untrackedFiles(cwd);
         return out;
       }
@@ -194,7 +268,8 @@ export function resolveTarget(target, { cwd = process.cwd(), env = process.env }
 
 function branchDiff(cwd, ref, out) {
   const mergeBase = git(cwd, ["merge-base", ref, "HEAD"], { allowFail: true });
-  if (!mergeBase) throw new ReviewError(`No merge base between ${ref} and HEAD`);
+  if (!mergeBase)
+    throw new ReviewError(`No merge base between ${ref} and HEAD`);
   out.base = mergeBase.trim();
   out.head = revParse(cwd, "HEAD");
   out.base_ref = ref;
@@ -217,12 +292,17 @@ export function cmdTarget(target, options = {}, env = process.env) {
     throw new ReviewError(`Not a run directory (no run.json): ${runDir}`);
   }
   const round = Number(options.round ?? nextRound(runDir));
-  if (!Number.isInteger(round) || round < 1) throw new ReviewError("--round must be a positive integer", 2);
+  if (!Number.isInteger(round) || round < 1)
+    throw new ReviewError("--round must be a positive integer", 2);
   const dir = runDir ?? mkdtempSync(join(tmpdir(), "esp-review-"));
-  const diffPath = options.out ? resolve(options.out) : join(dir, `review-${round}.diff`);
+  const diffPath = options.out
+    ? resolve(options.out)
+    : join(dir, `review-${round}.diff`);
   mkdirSync(dirname(diffPath), { recursive: true });
   writeFileSync(diffPath, resolved.diff);
-  const files = [...new Set([...diffFiles(resolved.diff), ...resolved.untracked])];
+  const files = [
+    ...new Set([...diffFiles(resolved.diff), ...resolved.untracked])
+  ];
   return {
     kind: resolved.kind,
     target: resolved.target,
@@ -258,7 +338,8 @@ function stripResultLine(lines) {
   if (last.startsWith("{") && last.endsWith("}")) {
     try {
       const block = JSON.parse(last);
-      if (block && typeof block === "object" && "status" in block) return { lines: lines.slice(0, end - 1), block };
+      if (block && typeof block === "object" && "status" in block)
+        return { lines: lines.slice(0, end - 1), block };
     } catch {
       // Not a result block: keep the line.
     }
@@ -270,28 +351,49 @@ function parseFinding(id, meta, body, line, errors) {
   const parts = meta.split(/\s+-\s+/).map((p) => p.trim());
   const where = `line ${line} (${id})`;
   if (parts.length !== 3) {
-    errors.push(`${where}: heading must be "#### ${id} - <severity> - <dimension> - <class>"`);
+    errors.push(
+      `${where}: heading must be "#### ${id} - <severity> - <dimension> - <class>"`
+    );
     return null;
   }
-  const [severity, dimension, rawClass] = [parts[0].toLowerCase(), parts[1].toLowerCase(), parts[2]];
+  const [severity, dimension, rawClass] = [
+    parts[0].toLowerCase(),
+    parts[1].toLowerCase(),
+    parts[2]
+  ];
   const cls = normalizeClass(rawClass);
-  if (!SEVERITIES.includes(severity)) errors.push(`${where}: unknown severity "${parts[0]}" (${SEVERITIES.join(", ")})`);
+  if (!SEVERITIES.includes(severity))
+    errors.push(
+      `${where}: unknown severity "${parts[0]}" (${SEVERITIES.join(", ")})`
+    );
   if (!DIMENSIONS.includes(dimension)) {
-    errors.push(`${where}: unknown dimension "${parts[1]}" (${DIMENSIONS.join(", ")})`);
+    errors.push(
+      `${where}: unknown dimension "${parts[1]}" (${DIMENSIONS.join(", ")})`
+    );
   }
-  if (!cls) errors.push(`${where}: unknown class "${rawClass}" (A, B-Decide, B-Scope)`);
+  if (!cls)
+    errors.push(`${where}: unknown class "${rawClass}" (A, B-Decide, B-Scope)`);
   const text = body.join("\n").trim();
   const first = text.split(/\r?\n/).find((l) => l.trim() !== "") ?? "";
   const loc = LOCATION.exec(first);
   const fields = {};
   for (const l of body) {
-    const m = /^\s*[-*]\s+(Evidence|Fix|Options|Recommended|Decision)\s*:\s*(.*)$/i.exec(l);
+    const m =
+      /^\s*[-*]\s+(Evidence|Fix|Options|Recommended|Decision)\s*:\s*(.*)$/i.exec(
+        l
+      );
     if (m) fields[m[1].toLowerCase()] = m[2].trim();
   }
-  if (!loc) errors.push(`${where}: the first line must start with the backticked location (\`path:line\`)`);
-  if (!fields.fix && cls !== "B-Decide") errors.push(`${where}: missing "- Fix:" line`);
+  if (!loc)
+    errors.push(
+      `${where}: the first line must start with the backticked location (\`path:line\`)`
+    );
+  if (!fields.fix && cls !== "B-Decide")
+    errors.push(`${where}: missing "- Fix:" line`);
   if (cls === "B-Decide" && !fields.recommended && !fields.fix) {
-    errors.push(`${where}: B-Decide findings need "- Options:" and "- Recommended:" lines`);
+    errors.push(
+      `${where}: B-Decide findings need "- Options:" and "- Recommended:" lines`
+    );
   }
   return {
     id,
@@ -321,16 +423,29 @@ export function parseReview(text) {
   const findings = [];
   const rejected = [];
   const spans = [];
-  const header = { base: null, head: null, dimensions: null, candidates: null, rejected: null };
+  const header = {
+    base: null,
+    head: null,
+    dimensions: null,
+    candidates: null,
+    rejected: null
+  };
   let current = null;
   let fence = false;
   const seen = new Set();
   const close = (end) => {
     if (!current) return;
     if (current.kind === "finding") {
-      if (seen.has(current.id)) errors.push(`duplicate finding ID ${current.id}`);
+      if (seen.has(current.id))
+        errors.push(`duplicate finding ID ${current.id}`);
       seen.add(current.id);
-      const f = parseFinding(current.id, current.meta, current.body, current.line, errors);
+      const f = parseFinding(
+        current.id,
+        current.meta,
+        current.body,
+        current.line,
+        errors
+      );
       if (f) {
         findings.push(f);
         spans.push({ id: f.id, start: current.start, end });
@@ -340,7 +455,8 @@ export function parseReview(text) {
   };
   lines.forEach((text, index) => {
     if (/^\s*(```|~~~)/.test(text)) fence = !fence;
-    const review = !fence && /^###\s+Review:\s*(\S+?)\.\.\.?(\S+)\s*$/.exec(text);
+    const review =
+      !fence && /^###\s+Review:\s*(\S+?)\.\.\.?(\S+)\s*$/.exec(text);
     if (review) {
       header.base = review[1];
       header.head = review[2];
@@ -357,12 +473,20 @@ export function parseReview(text) {
     const sub = !fence && (SUBHEADING.exec(text) || /^#{1,3}\s/.test(text));
     if (finding) {
       close(index);
-      current = { kind: "finding", id: finding[1], meta: finding[2], body: [], line: index + 1, start: index };
+      current = {
+        kind: "finding",
+        id: finding[1],
+        meta: finding[2],
+        body: [],
+        line: index + 1,
+        start: index
+      };
       return;
     }
     if (sub) {
       close(index);
-      if (Array.isArray(sub) && /^rejected candidates$/i.test(sub[1])) current = { kind: "rejected" };
+      if (Array.isArray(sub) && /^rejected candidates$/i.test(sub[1]))
+        current = { kind: "rejected" };
       return;
     }
     if (!current) return;
@@ -376,7 +500,12 @@ export function parseReview(text) {
   return { header, findings, rejected, spans, lines, block, errors };
 }
 
-const RISK_BY_SEVERITY = { critical: "high", high: "high", medium: "medium", low: "low" };
+const RISK_BY_SEVERITY = {
+  critical: "high",
+  high: "high",
+  medium: "medium",
+  low: "low"
+};
 
 function countBy(findings, key, values) {
   const counts = Object.fromEntries(values.map((v) => [v, 0]));
@@ -385,13 +514,23 @@ function countBy(findings, key, values) {
 }
 
 /** Build the report and the contract result block from parsed review markdown. */
-export function buildReport(parsed, { minSeverity = "low", verified = true, paths = {} } = {}) {
+export function buildReport(
+  parsed,
+  { minSeverity = "low", verified = true, paths = {} } = {}
+) {
   if (!SEVERITIES.includes(minSeverity)) {
-    throw new ReviewError(`--min-severity must be one of ${SEVERITIES.join(", ")}`, 2);
+    throw new ReviewError(
+      `--min-severity must be one of ${SEVERITIES.join(", ")}`,
+      2
+    );
   }
   const floor = SEVERITIES.indexOf(minSeverity);
-  const kept = parsed.findings.filter((f) => SEVERITIES.indexOf(f.severity) >= floor);
-  const dropped = parsed.findings.filter((f) => !kept.includes(f)).map((f) => f.id);
+  const kept = parsed.findings.filter(
+    (f) => SEVERITIES.indexOf(f.severity) >= floor
+  );
+  const dropped = parsed.findings
+    .filter((f) => !kept.includes(f))
+    .map((f) => f.id);
   const order = (f) => -SEVERITIES.indexOf(f.severity);
   kept.sort((a, b) => order(a) - order(b));
   const bySeverity = countBy(kept, "severity", [...SEVERITIES].reverse());
@@ -400,7 +539,11 @@ export function buildReport(parsed, { minSeverity = "low", verified = true, path
   let maxRisk = "low";
   for (const f of kept) {
     const risk = RISK_BY_SEVERITY[f.severity];
-    if (["low", "medium", "high"].indexOf(risk) > ["low", "medium", "high"].indexOf(maxRisk)) maxRisk = risk;
+    if (
+      ["low", "medium", "high"].indexOf(risk) >
+      ["low", "medium", "high"].indexOf(maxRisk)
+    )
+      maxRisk = risk;
   }
   const parts = SEVERITIES.slice()
     .reverse()
@@ -424,21 +567,37 @@ export function buildReport(parsed, { minSeverity = "low", verified = true, path
   };
   if (paths.review) outputs.review_path = paths.review;
   if (paths.findings) outputs.findings_path = paths.findings;
-  const result = { contract_version: 1, status: "done", summary, max_risk: maxRisk, outputs };
+  const result = {
+    contract_version: 1,
+    status: "done",
+    summary,
+    max_risk: maxRisk,
+    outputs
+  };
   const discovered = parsed.block?.discovered_items;
-  if (Array.isArray(discovered) && discovered.length > 0) result.discovered_items = discovered;
+  if (Array.isArray(discovered) && discovered.length > 0)
+    result.discovered_items = discovered;
   const check = validateArtifact("result", result);
   if (!check.valid) {
-    throw new ReviewError(`Result block is invalid: ${check.errors.map((e) => `${e.path} ${e.message}`).join("; ")}`);
+    throw new ReviewError(
+      `Result block is invalid: ${check.errors.map((e) => `${e.path} ${e.message}`).join("; ")}`
+    );
   }
-  return { valid: true, findings: kept, rejected: parsed.rejected, dropped, result };
+  return {
+    valid: true,
+    findings: kept,
+    rejected: parsed.rejected,
+    dropped,
+    result
+  };
 }
 
 /** Review markdown with dropped findings removed and the result line stripped. */
 export function renderReview(parsed, dropped) {
   const remove = new Set();
   for (const span of parsed.spans) {
-    if (dropped.includes(span.id)) for (let i = span.start; i < span.end; i++) remove.add(i);
+    if (dropped.includes(span.id))
+      for (let i = span.start; i < span.end; i++) remove.add(i);
   }
   const lines = parsed.lines.filter((_, i) => !remove.has(i));
   while (lines.length > 0 && lines.at(-1).trim() === "") lines.pop();
@@ -459,7 +618,10 @@ export function cmdParse(file, options = {}) {
   if (!existsSync(path)) throw new ReviewError(`No such file: ${path}`);
   const parsed = parseReview(readFileSync(path, "utf8"));
   if (parsed.errors.length > 0) {
-    return { output: { valid: false, file: path, errors: parsed.errors }, exitCode: 1 };
+    return {
+      output: { valid: false, file: path, errors: parsed.errors },
+      exitCode: 1
+    };
   }
   const mdOut = options["md-out"] ? resolve(options["md-out"]) : null;
   const findingsOut = options.out ? resolve(options.out) : null;
@@ -539,7 +701,8 @@ export function parseArgs(argv) {
         continue;
       }
       const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-      if (value === undefined) throw new ReviewError(`--${key} requires a value`, 2);
+      if (value === undefined)
+        throw new ReviewError(`--${key} requires a value`, 2);
       options[key] = value;
     } else positional.push(arg);
   }
@@ -548,7 +711,8 @@ export function parseArgs(argv) {
 
 export function run(argv, env = process.env) {
   const { command, args, options } = parseArgs(argv);
-  if (options.help || !command) return { output: USAGE, exitCode: command ? 0 : 2 };
+  if (options.help || !command)
+    return { output: USAGE, exitCode: command ? 0 : 2 };
   switch (command) {
     case "target":
       return { output: cmdTarget(args.join(" "), options, env) };
@@ -562,16 +726,25 @@ export function run(argv, env = process.env) {
 function main() {
   try {
     const { output, exitCode = 0 } = run(process.argv.slice(2));
-    const text = typeof output === "string" ? output : JSON.stringify(output, null, 2);
-    (exitCode === 0 || typeof output !== "string" ? process.stdout : process.stderr).write(`${text}\n`);
+    const text =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    (exitCode === 0 || typeof output !== "string"
+      ? process.stdout
+      : process.stderr
+    ).write(`${text}\n`);
     process.exitCode = exitCode;
   } catch (err) {
     const known = err instanceof ReviewError;
-    process.stderr.write(`review error: ${known ? err.message : (err.stack ?? err)}\n`);
+    process.stderr.write(
+      `review error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
     process.exitCode = known ? err.exitCode : 1;
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

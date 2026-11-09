@@ -61,31 +61,31 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                            | Default     | Effect                                                                                    |
-| ------------------------------ | ----------- | ----------------------------------------------------------------------------------------- |
-| `fix-review.max_rounds`        | `3`         | Round limit when `--rounds` is not given                                                  |
-| `fix-review.fix_ci`            | `true`      | Diagnose and fix failing CI checks of the pull request head                               |
-| `fix-review.reply_to_rejected` | `true`      | Reply with the reason to rejected comments                                                |
-| `fix-review.deferred_items`    | `follow-up` | `follow-up`: reply, resolve, return a discovered item. `block`: leave open, end `awaiting-human` |
-| `commit.review_fixes`          | `separate`  | `separate`: `fix(review): ...` commits. `fixup`: `fixup!` commits of the milestone commit |
-| `go.default_reviewers`         | `["claude"]` | Reviewers waited for between rounds when `--reviewers` is not given                      |
-| `go.halt_on`                   | all keys    | With `budget`, rounds exhausted with items left halts the task                            |
-| `defaults.interactive`         | `off`       | Interactive mode when `--interactive` is not given                                        |
+| Key                            | Default      | Effect                                                                                           |
+| ------------------------------ | ------------ | ------------------------------------------------------------------------------------------------ |
+| `fix-review.max_rounds`        | `3`          | Round limit when `--rounds` is not given                                                         |
+| `fix-review.fix_ci`            | `true`       | Diagnose and fix failing CI checks of the pull request head                                      |
+| `fix-review.reply_to_rejected` | `true`       | Reply with the reason to rejected comments                                                       |
+| `fix-review.deferred_items`    | `follow-up`  | `follow-up`: reply, resolve, return a discovered item. `block`: leave open, end `awaiting-human` |
+| `commit.review_fixes`          | `separate`   | `separate`: `fix(review): ...` commits. `fixup`: `fixup!` commits of the milestone commit        |
+| `go.default_reviewers`         | `["claude"]` | Reviewers waited for between rounds when `--reviewers` is not given                              |
+| `go.halt_on`                   | all keys     | With `budget`, rounds exhausted with items left halts the task                                   |
+| `defaults.interactive`         | `off`        | Interactive mode when `--interactive` is not given                                               |
 
 ### Scripts
 
 `scripts/fix-review.mjs` keeps the state. Every call takes `--run-dir <path>`, or `--state <file>` without a run (a file in a new `mktemp -d` directory, the same for the whole invocation), plus `--config-snapshot <path>` when given:
 
-| Moment              | Command                                                                                      |
-| ------------------- | -------------------------------------------------------------------------------------------- |
-| Start a round       | `fix-review.mjs round [--max-rounds <n>]` (`{ round, exhausted, last }`)                     |
-| Pull request items  | `fix-review.mjs fetch [pr] [--reviewers <names>]`                                            |
-| Internal items      | `fix-review.mjs internal [findings]`                                                         |
-| CI checks           | `fix-review.mjs checks [pr]` (`{ failing, pending, passing }`)                               |
-| Record a resolution | `fix-review.mjs record --json '<resolution>'`                                                |
-| Replies and threads | `fix-review.mjs respond`                                                                     |
-| Result block        | `fix-review.mjs result [--remaining <n>]`                                                    |
-| Operator messages   | `runs.mjs messages --run-dir <path>`, then `runs.mjs deliver <id>...` once applied          |
+| Moment              | Command                                                                            |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| Start a round       | `fix-review.mjs round [--max-rounds <n>]` (`{ round, exhausted, last }`)           |
+| Pull request items  | `fix-review.mjs fetch [pr] [--reviewers <names>]`                                  |
+| Internal items      | `fix-review.mjs internal [findings]`                                               |
+| CI checks           | `fix-review.mjs checks [pr]` (`{ failing, pending, passing }`)                     |
+| Record a resolution | `fix-review.mjs record --json '<resolution>'`                                      |
+| Replies and threads | `fix-review.mjs respond`                                                           |
+| Result block        | `fix-review.mjs result [--remaining <n>]`                                          |
+| Operator messages   | `runs.mjs messages --run-dir <path>`, then `runs.mjs deliver <id>...` once applied |
 
 `fetch` returns `{ pr, url, head, branch, items, skipped, reviewers_seen, pending_github }`. Each item has an `id` (`inline:<id>`, `review:<id>`, `comment:<id>`), its `author`, `bot`, `body`, `path` and `line` for inline comments, `outdated`, and `url`. Your own comments, resolved threads and handled items are left out. `internal` returns items with `id` `finding:review-<N>:F<n>` and the finding's `class`, `severity`, `location`, `fix`, `options` and `recommended`. Failing checks have the `id` `check:<name>@<sha>`.
 
@@ -117,12 +117,12 @@ With `--run-dir`, `record` logs the decision (`phase: fix-review`, `x-esp-class`
 
 Follow the decision policy. For pull request comments:
 
-| Class    | Typical comment                                                                         | Action                                         |
-| -------- | --------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| A-Fix    | A real bug, a missing check, a convention the repo documents, one clear fix             | Fix                                            |
-| B-Decide | A real issue with several fixes, none changing scope                                    | Apply the best fit, record `alternatives`      |
-| B-Scope  | A new feature, a public API or schema change, a behavior change users would notice      | Defer per `fix-review.deferred_items`          |
-| Reject   | Wrong, outdated (`outdated: true` and no longer true), already handled, a preference the repo does not enforce | Reply with the reason        |
+| Class    | Typical comment                                                                                                | Action                                    |
+| -------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| A-Fix    | A real bug, a missing check, a convention the repo documents, one clear fix                                    | Fix                                       |
+| B-Decide | A real issue with several fixes, none changing scope                                                           | Apply the best fit, record `alternatives` |
+| B-Scope  | A new feature, a public API or schema change, a behavior change users would notice                             | Defer per `fix-review.deferred_items`     |
+| Reject   | Wrong, outdated (`outdated: true` and no longer true), already handled, a preference the repo does not enforce | Reply with the reason                     |
 
 In internal mode, the finding's class is the reviewer's verified proposal: A becomes A-Fix, a B-Decide applies its `decision` line when it has one, else its `recommended` option. Re-check each finding against the code first: reject one you can prove wrong, with the reason.
 

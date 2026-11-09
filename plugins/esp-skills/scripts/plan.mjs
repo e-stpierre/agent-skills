@@ -30,14 +30,33 @@ const LIST_ITEM = /^\s{0,1}(?:[-*+]|\d+[.)])\s+(.*)$/;
 const NONE = /^(none|n\/a)\.?$/i;
 
 // Required top-level sections, in the order they must appear.
-const REQUIRED_SECTIONS = ["Overview", "Milestones", "Risks", "Open Questions", "Out of Scope"];
-const MILESTONE_FIELDS = { Goal: "goal", Complexity: "complexity", Depends: "depends", Files: "files" };
+const REQUIRED_SECTIONS = [
+  "Overview",
+  "Milestones",
+  "Risks",
+  "Open Questions",
+  "Out of Scope"
+];
+const MILESTONE_FIELDS = {
+  Goal: "goal",
+  Complexity: "complexity",
+  Depends: "depends",
+  Files: "files"
+};
 const MILESTONE_LISTS = {
   Tasks: "tasks",
   "Acceptance Criteria": "acceptance",
   Validation: "validation"
 };
-const FRONTMATTER_KEYS = ["plan_format", "title", "type", "version", "task", "source", "created"];
+const FRONTMATTER_KEYS = [
+  "plan_format",
+  "title",
+  "type",
+  "version",
+  "task",
+  "source",
+  "created"
+];
 
 // ---------------------------------------------------------------------------
 // Parsing
@@ -71,7 +90,8 @@ function listItems(lines) {
     if (/^\s*(```|~~~)/.test(text)) fence = !fence;
     const m = fence ? null : LIST_ITEM.exec(text);
     if (m) items.push(m[1].trim());
-    else if (text.trim() !== "" && items.length > 0) items[items.length - 1] += `\n${text.trimEnd()}`;
+    else if (text.trim() !== "" && items.length > 0)
+      items[items.length - 1] += `\n${text.trimEnd()}`;
   }
   return items;
 }
@@ -126,7 +146,8 @@ function parseMilestone(block, errors) {
         errors.push(`${where}: unknown field "${m[1].trim()}"`);
         continue;
       }
-      if (seen.has(key)) errors.push(`${where}: duplicate field "${m[1].trim()}"`);
+      if (seen.has(key))
+        errors.push(`${where}: duplicate field "${m[1].trim()}"`);
       seen.add(key);
       current = { key, value: m[2].trim() };
       milestone[key] = current.value;
@@ -140,14 +161,25 @@ function parseMilestone(block, errors) {
   for (const [label, key] of Object.entries(MILESTONE_FIELDS)) {
     if (!seen.has(key)) errors.push(`${where}: missing field "**${label}**"`);
   }
-  milestone.complexity = seen.has("complexity") ? milestone.complexity.toLowerCase() : null;
-  if (milestone.complexity !== null && !COMPLEXITIES.includes(milestone.complexity)) {
-    errors.push(`${where}: complexity must be one of ${COMPLEXITIES.join(", ")}, got "${milestone.complexity}"`);
+  milestone.complexity = seen.has("complexity")
+    ? milestone.complexity.toLowerCase()
+    : null;
+  if (
+    milestone.complexity !== null &&
+    !COMPLEXITIES.includes(milestone.complexity)
+  ) {
+    errors.push(
+      `${where}: complexity must be one of ${COMPLEXITIES.join(", ")}, got "${milestone.complexity}"`
+    );
   }
-  milestone.depends = NONE.test(String(milestone.depends).trim()) ? [] : splitRefs(milestone.depends);
+  milestone.depends = NONE.test(String(milestone.depends).trim())
+    ? []
+    : splitRefs(milestone.depends);
   milestone.files = splitRefs(milestone.files);
-  if (seen.has("goal") && !milestone.goal) errors.push(`${where}: goal is empty`);
-  if (seen.has("files") && milestone.files.length === 0) errors.push(`${where}: files is empty`);
+  if (seen.has("goal") && !milestone.goal)
+    errors.push(`${where}: goal is empty`);
+  if (seen.has("files") && milestone.files.length === 0)
+    errors.push(`${where}: files is empty`);
 
   const seenLists = new Set();
   for (const sub of subs) {
@@ -160,12 +192,17 @@ function parseMilestone(block, errors) {
     milestone[key] = listItems(sub.lines);
   }
   for (const [label, key] of Object.entries(MILESTONE_LISTS)) {
-    if (!seenLists.has(key)) errors.push(`${where}: missing subsection "#### ${label}"`);
-    else if (milestone[key].length === 0) errors.push(`${where}: "#### ${label}" has no list items`);
+    if (!seenLists.has(key))
+      errors.push(`${where}: missing subsection "#### ${label}"`);
+    else if (milestone[key].length === 0)
+      errors.push(`${where}: "#### ${label}" has no list items`);
   }
   milestone.validation = milestone.validation.map((item) => {
     const m = /^`([^`]+)`/.exec(item);
-    if (!m) errors.push(`${where}: validation item must start with a command in backticks: ${item}`);
+    if (!m)
+      errors.push(
+        `${where}: validation item must start with a command in backticks: ${item}`
+      );
     return m ? m[1] : item;
   });
   return milestone;
@@ -184,7 +221,8 @@ export function parsePlan(text, { file } = {}) {
   } catch (err) {
     errors.push(`frontmatter: ${err.message}`);
   }
-  if (front === null && errors.length === 0) errors.push("frontmatter: missing");
+  if (front === null && errors.length === 0)
+    errors.push("frontmatter: missing");
   front ??= {};
 
   for (const key of Object.keys(front)) {
@@ -192,30 +230,46 @@ export function parsePlan(text, { file } = {}) {
       errors.push(`frontmatter: unknown key "${key}"`);
   }
   if (front.plan_format !== PLAN_FORMAT)
-    errors.push(`frontmatter: plan_format must be ${PLAN_FORMAT}, got ${JSON.stringify(front.plan_format ?? null)}`);
+    errors.push(
+      `frontmatter: plan_format must be ${PLAN_FORMAT}, got ${JSON.stringify(front.plan_format ?? null)}`
+    );
   if (typeof front.title !== "string" || front.title.trim() === "")
     errors.push("frontmatter: title is required");
   if (!PLAN_TYPES.includes(front.type))
-    errors.push(`frontmatter: type must be one of ${PLAN_TYPES.join(", ")}, got ${JSON.stringify(front.type ?? null)}`);
+    errors.push(
+      `frontmatter: type must be one of ${PLAN_TYPES.join(", ")}, got ${JSON.stringify(front.type ?? null)}`
+    );
   if (!Number.isInteger(front.version) || front.version < 1)
-    errors.push(`frontmatter: version must be an integer >= 1, got ${JSON.stringify(front.version ?? null)}`);
+    errors.push(
+      `frontmatter: version must be an integer >= 1, got ${JSON.stringify(front.version ?? null)}`
+    );
 
   if (file) {
     const name = basename(file);
     const m = /^plan(?:\.v(\d+))?\.md$/.exec(name);
     const expected = m ? Number(m[1] ?? 1) : null;
-    if (expected !== null && Number.isInteger(front.version) && front.version !== expected)
-      errors.push(`frontmatter: version ${front.version} does not match the file name ${name} (version ${expected})`);
+    if (
+      expected !== null &&
+      Number.isInteger(front.version) &&
+      front.version !== expected
+    )
+      errors.push(
+        `frontmatter: version ${front.version} does not match the file name ${name} (version ${expected})`
+      );
   }
 
-  const body = stripComments(text.replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---\r?(?:\n|$)/, ""));
+  const body = stripComments(
+    text.replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---\r?(?:\n|$)/, "")
+  );
   const lines = body.split(/\r?\n/).map((t, i) => ({ text: t, line: i + 1 }));
   const [preamble, ...sections] = splitHeadings(lines, 2);
-  if (!preamble.lines.some((l) => /^#\s+\S/.test(l.text))) warnings.push("no '# <title>' heading before the first section");
+  if (!preamble.lines.some((l) => /^#\s+\S/.test(l.text)))
+    warnings.push("no '# <title>' heading before the first section");
 
   const byTitle = new Map();
   for (const section of sections) {
-    if (byTitle.has(section.title)) errors.push(`section "## ${section.title}" appears more than once`);
+    if (byTitle.has(section.title))
+      errors.push(`section "## ${section.title}" appears more than once`);
     byTitle.set(section.title, section);
   }
   let lastIndex = -1;
@@ -225,33 +279,52 @@ export function parsePlan(text, { file } = {}) {
       errors.push(`missing section "## ${title}"`);
       continue;
     }
-    if (index < lastIndex) errors.push(`section "## ${title}" is out of order (expected: ${REQUIRED_SECTIONS.join(", ")})`);
+    if (index < lastIndex)
+      errors.push(
+        `section "## ${title}" is out of order (expected: ${REQUIRED_SECTIONS.join(", ")})`
+      );
     lastIndex = Math.max(lastIndex, index);
   }
   if (sections.length > 0 && sections[0].title !== "Overview")
     errors.push('the first section must be "## Overview"');
   const tailStart = sections.findIndex((s) => s.title === "Milestones");
   sections.forEach((s, i) => {
-    if (!REQUIRED_SECTIONS.includes(s.title) && tailStart !== -1 && i > tailStart)
-      errors.push(`context section "## ${s.title}" must come before "## Milestones"`);
+    if (
+      !REQUIRED_SECTIONS.includes(s.title) &&
+      tailStart !== -1 &&
+      i > tailStart
+    )
+      errors.push(
+        `context section "## ${s.title}" must come before "## Milestones"`
+      );
   });
 
-  const overview = byTitle.has("Overview") ? bodyText(byTitle.get("Overview").lines) : "";
-  if (byTitle.has("Overview") && !overview) errors.push('section "## Overview" is empty');
+  const overview = byTitle.has("Overview")
+    ? bodyText(byTitle.get("Overview").lines)
+    : "";
+  if (byTitle.has("Overview") && !overview)
+    errors.push('section "## Overview" is empty');
 
   const listSection = (title) => {
     if (!byTitle.has(title)) return [];
     const items = listItems(byTitle.get(title).lines);
-    if (items.length === 0) errors.push(`section "## ${title}" needs list items, or "- None"`);
+    if (items.length === 0)
+      errors.push(`section "## ${title}" needs list items, or "- None"`);
     return noneOr(items);
   };
 
   const milestones = [];
   if (byTitle.has("Milestones")) {
-    const [intro, ...blocks] = splitHeadings(byTitle.get("Milestones").lines, 3);
+    const [intro, ...blocks] = splitHeadings(
+      byTitle.get("Milestones").lines,
+      3
+    );
     void intro;
     for (const block of blocks) milestones.push(parseMilestone(block, errors));
-    if (milestones.length === 0) errors.push('section "## Milestones" has no "### M<n>: <title>" milestone');
+    if (milestones.length === 0)
+      errors.push(
+        'section "## Milestones" has no "### M<n>: <title>" milestone'
+      );
   }
 
   const ids = new Set();
@@ -269,8 +342,14 @@ export function parsePlan(text, { file } = {}) {
       }
     }
     ids.add(m.id);
-    if (m.tasks.length > 12) warnings.push(`milestone ${m.id}: ${m.tasks.length} tasks; consider splitting it`);
-    if (m.files.length > 20) warnings.push(`milestone ${m.id}: touches ${m.files.length} files; consider splitting it`);
+    if (m.tasks.length > 12)
+      warnings.push(
+        `milestone ${m.id}: ${m.tasks.length} tasks; consider splitting it`
+      );
+    if (m.files.length > 20)
+      warnings.push(
+        `milestone ${m.id}: touches ${m.files.length} files; consider splitting it`
+      );
   }
 
   const plan = {
@@ -291,7 +370,9 @@ export function parsePlan(text, { file } = {}) {
     out_of_scope: listSection("Out of Scope")
   };
   if (plan.open_questions.length > 0)
-    warnings.push(`${plan.open_questions.length} open question(s): an autonomous build proceeds without answers`);
+    warnings.push(
+      `${plan.open_questions.length} open question(s): an autonomous build proceeds without answers`
+    );
   return { plan, errors, warnings };
 }
 
@@ -347,11 +428,18 @@ export function diffPlans(previous, next, completed = []) {
   const errors = [];
   const before = new Map(previous.milestones.map((m) => [m.id, m]));
   const after = new Map(next.milestones.map((m) => [m.id, m]));
-  if (Number.isInteger(previous.version) && next.version !== previous.version + 1)
-    errors.push(`new plan version must be ${previous.version + 1}, got ${next.version}`);
+  if (
+    Number.isInteger(previous.version) &&
+    next.version !== previous.version + 1
+  )
+    errors.push(
+      `new plan version must be ${previous.version + 1}, got ${next.version}`
+    );
   for (const id of completed) {
-    if (!before.has(id)) errors.push(`completed milestone ${id} is not in the previous plan`);
-    else if (!after.has(id)) errors.push(`completed milestone ${id} was removed`);
+    if (!before.has(id))
+      errors.push(`completed milestone ${id} is not in the previous plan`);
+    else if (!after.has(id))
+      errors.push(`completed milestone ${id} was removed`);
     else if (comparable(before.get(id)) !== comparable(after.get(id)))
       errors.push(`completed milestone ${id} was changed`);
   }
@@ -359,7 +447,9 @@ export function diffPlans(previous, next, completed = []) {
   const changed = [];
   for (const [id, m] of after) {
     if (!before.has(id)) continue;
-    (comparable(before.get(id)) === comparable(m) ? unchanged : changed).push(id);
+    (comparable(before.get(id)) === comparable(m) ? unchanged : changed).push(
+      id
+    );
   }
   const added = [...after.keys()].filter((id) => !before.has(id));
   const removed = [...before.keys()].filter((id) => !after.has(id));
@@ -404,7 +494,8 @@ function parseArgs(argv) {
       const eq = arg.indexOf("=");
       const key = eq === -1 ? arg.slice(2) : arg.slice(2, eq);
       const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-      if (value === undefined) throw new PlanError(`--${key} requires a value`, 2);
+      if (value === undefined)
+        throw new PlanError(`--${key} requires a value`, 2);
       options[key] = value;
     } else positional.push(arg);
   }
@@ -413,12 +504,14 @@ function parseArgs(argv) {
 
 export function run(argv) {
   const { command, args, options } = parseArgs(argv);
-  if (options.help || !command) return { output: USAGE, exitCode: command ? 0 : 2 };
+  if (options.help || !command)
+    return { output: USAGE, exitCode: command ? 0 : 2 };
   switch (command) {
     case "parse": {
       if (!args[0]) throw new PlanError("Usage: parse <file>", 2);
       const { plan, errors, warnings } = readPlan(args[0]);
-      if (errors.length > 0) return { output: { valid: false, errors, warnings }, exitCode: 1 };
+      if (errors.length > 0)
+        return { output: { valid: false, errors, warnings }, exitCode: 1 };
       return { output: plan };
     }
     case "lint": {
@@ -427,7 +520,11 @@ export function run(argv) {
       return { output: report, exitCode: report.valid ? 0 : 1 };
     }
     case "diff": {
-      if (!args[0] || !args[1]) throw new PlanError("Usage: diff <previous> <next> [--completed M1,M2] [--run-dir <path>]", 2);
+      if (!args[0] || !args[1])
+        throw new PlanError(
+          "Usage: diff <previous> <next> [--completed M1,M2] [--run-dir <path>]",
+          2
+        );
       const previous = readPlan(args[0]);
       const next = readPlan(args[1]);
       const completed = new Set(
@@ -436,11 +533,15 @@ export function run(argv) {
           .map((v) => v.trim())
           .filter(Boolean)
       );
-      if (options["run-dir"]) for (const id of completedFromState(options["run-dir"])) completed.add(id);
+      if (options["run-dir"])
+        for (const id of completedFromState(options["run-dir"]))
+          completed.add(id);
       const report = diffPlans(previous.plan, next.plan, [...completed]);
       if (next.errors.length > 0) {
         report.valid = false;
-        report.errors.push(...next.errors.map((e) => `${basename(next.path)}: ${e}`));
+        report.errors.push(
+          ...next.errors.map((e) => `${basename(next.path)}: ${e}`)
+        );
       }
       return { output: report, exitCode: report.valid ? 0 : 1 };
     }
@@ -452,16 +553,25 @@ export function run(argv) {
 function main() {
   try {
     const { output, exitCode = 0 } = run(process.argv.slice(2));
-    const text = typeof output === "string" ? output : JSON.stringify(output, null, 2);
-    (exitCode === 0 || typeof output !== "string" ? process.stdout : process.stderr).write(`${text}\n`);
+    const text =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    (exitCode === 0 || typeof output !== "string"
+      ? process.stdout
+      : process.stderr
+    ).write(`${text}\n`);
     process.exitCode = exitCode;
   } catch (err) {
     const known = err instanceof PlanError;
-    process.stderr.write(`plan error: ${known ? err.message : (err.stack ?? err)}\n`);
+    process.stderr.write(
+      `plan error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
     process.exitCode = known ? err.exitCode : 1;
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

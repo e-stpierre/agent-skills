@@ -17,11 +17,25 @@
 // 10 awaiting-human, 20 halted, 1 failed). 2 is a usage error everywhere.
 
 import { spawnSync } from "node:child_process";
-import { closeSync, existsSync, openSync, readFileSync, rmSync, statSync, utimesSync, writeSync } from "node:fs";
+import {
+  closeSync,
+  existsSync,
+  openSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  utimesSync,
+  writeSync
+} from "node:fs";
 import { hostname } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ConfigError, expandHome, findRepoRoot, loadConfig } from "./config.mjs";
+import {
+  ConfigError,
+  expandHome,
+  findRepoRoot,
+  loadConfig
+} from "./config.mjs";
 import { exitCodeFor, validateArtifact } from "./lib/contract.mjs";
 import { appendDecision, appendEvent } from "./runs.mjs";
 import { prArgument, repoFromUrl } from "./wait-for-review.mjs";
@@ -35,7 +49,16 @@ export class MergeError extends Error {
 }
 
 export const METHODS = ["squash", "rebase", "merge"];
-export const CONDITIONS = ["open", "halt", "draft", "changes-requested", "threads", "checks", "up-to-date", "branch-protection"];
+export const CONDITIONS = [
+  "open",
+  "halt",
+  "draft",
+  "changes-requested",
+  "threads",
+  "checks",
+  "up-to-date",
+  "branch-protection"
+];
 const SHORT_SHA = 7;
 const STALE_LOCK_MS = 30_000;
 const HEARTBEAT_MS = 10_000;
@@ -102,18 +125,22 @@ export function ghClient({ cwd, env = process.env } = {}) {
       maxBuffer: 64 * 1024 * 1024,
       windowsHide: true
     });
-    if (res.error) throw new MergeError(`gh could not run: ${res.error.message}`);
+    if (res.error)
+      throw new MergeError(`gh could not run: ${res.error.message}`);
     return res;
   };
   const gh = (args, { okStatuses = [0] } = {}) => {
     const res = call(args);
     if (!okStatuses.includes(res.status))
-      throw new MergeError(`gh ${args.slice(0, 3).join(" ")} failed: ${(res.stderr || res.stdout).trim()}`);
+      throw new MergeError(
+        `gh ${args.slice(0, 3).join(" ")} failed: ${(res.stderr || res.stdout).trim()}`
+      );
     return res.stdout;
   };
   const graphql = (query, vars, jq) => {
     const args = ["api", "graphql", "-f", `query=${query}`];
-    for (const [key, value] of Object.entries(vars)) args.push(typeof value === "number" ? "-F" : "-f", `${key}=${value}`);
+    for (const [key, value] of Object.entries(vars))
+      args.push(typeof value === "number" ? "-F" : "-f", `${key}=${value}`);
     if (jq) args.push("--jq", jq);
     return gh(args);
   };
@@ -135,13 +162,22 @@ export function ghClient({ cwd, env = process.env } = {}) {
         mergeable: pr.mergeable ?? "UNKNOWN",
         merge_state: pr.mergeStateStatus ?? "UNKNOWN",
         review_decision: pr.reviewDecision || null,
-        latest_reviews: (pr.latestReviews ?? []).map((r) => ({ login: r.author?.login ?? null, state: r.state })),
+        latest_reviews: (pr.latestReviews ?? []).map((r) => ({
+          login: r.author?.login ?? null,
+          state: r.state
+        })),
         auto_merge: Boolean(pr.autoMergeRequest)
       };
     },
     checks(number, { required = false } = {}) {
       // gh pr checks exits 8 while checks are pending and 1 when one failed.
-      const args = ["pr", "checks", String(number), "--json", "name,state,bucket,link,workflow"];
+      const args = [
+        "pr",
+        "checks",
+        String(number),
+        "--json",
+        "name,state,bucket,link,workflow"
+      ];
       if (required) args.push("--required");
       const res = call(args);
       const out = res.stdout.trim();
@@ -181,7 +217,11 @@ export function ghClient({ cwd, env = process.env } = {}) {
     },
     settings(repo, number) {
       const [owner, name] = repo.split("/");
-      const out = graphql(SETTINGS_QUERY, { owner, name, number: Number(number) }, ".data.repository");
+      const out = graphql(
+        SETTINGS_QUERY,
+        { owner, name, number: Number(number) },
+        ".data.repository"
+      );
       const data = JSON.parse(out);
       return {
         squash: Boolean(data.squashMergeAllowed),
@@ -193,10 +233,18 @@ export function ghClient({ cwd, env = process.env } = {}) {
       };
     },
     rules(repo, branch) {
-      const res = call(["api", "--paginate", `repos/${repo}/rules/branches/${encodeURIComponent(branch)}`, "--jq", ".[] | {type, parameters}"]);
+      const res = call([
+        "api",
+        "--paginate",
+        `repos/${repo}/rules/branches/${encodeURIComponent(branch)}`,
+        "--jq",
+        ".[] | {type, parameters}"
+      ]);
       if (res.status !== 0) {
         if (/HTTP 404|Not Found/i.test(`${res.stderr}${res.stdout}`)) return [];
-        throw new MergeError(`gh api rules failed: ${(res.stderr || res.stdout).trim()}`);
+        throw new MergeError(
+          `gh api rules failed: ${(res.stderr || res.stdout).trim()}`
+        );
       }
       return parseJsonLines(res.stdout);
     },
@@ -204,9 +252,16 @@ export function ghClient({ cwd, env = process.env } = {}) {
       // Classic branch protection is only readable with enough permission: null when unknown.
       const [owner, name] = repo.split("/");
       try {
-        const out = graphql(PROTECTION_QUERY, { owner, name, ref: `refs/heads/${branch}` }, ".data.repository.ref.branchProtectionRule");
-        const rule = out.trim() === "" || out.trim() === "null" ? null : JSON.parse(out);
-        return rule ? { linear_history: Boolean(rule.requiresLinearHistory) } : { linear_history: false };
+        const out = graphql(
+          PROTECTION_QUERY,
+          { owner, name, ref: `refs/heads/${branch}` },
+          ".data.repository.ref.branchProtectionRule"
+        );
+        const rule =
+          out.trim() === "" || out.trim() === "null" ? null : JSON.parse(out);
+        return rule
+          ? { linear_history: Boolean(rule.requiresLinearHistory) }
+          : { linear_history: false };
       } catch {
         return null;
       }
@@ -218,10 +273,22 @@ export function ghClient({ cwd, env = process.env } = {}) {
       return gh(args).trim();
     },
     deleteBranch(repo, branch) {
-      const res = call(["api", "-X", "DELETE", `repos/${repo}/git/refs/heads/${branch}`]);
+      const res = call([
+        "api",
+        "-X",
+        "DELETE",
+        `repos/${repo}/git/refs/heads/${branch}`
+      ]);
       if (res.status === 0) return "deleted";
-      if (/Reference does not exist|HTTP 422|HTTP 404/i.test(`${res.stderr}${res.stdout}`)) return "already-deleted";
-      throw new MergeError(`Deleting branch ${branch} failed: ${(res.stderr || res.stdout).trim()}`);
+      if (
+        /Reference does not exist|HTTP 422|HTTP 404/i.test(
+          `${res.stderr}${res.stdout}`
+        )
+      )
+        return "already-deleted";
+      throw new MergeError(
+        `Deleting branch ${branch} failed: ${(res.stderr || res.stdout).trim()}`
+      );
     }
   };
 }
@@ -236,15 +303,26 @@ const QUEUE_METHODS = { MERGE: "merge", SQUASH: "squash", REBASE: "rebase" };
 export function mergePolicy(settings, rules = [], protection = null) {
   let allowed = METHODS.filter((m) => settings[m]);
   const rulesetMethods = rules
-    .filter((r) => r.type === "pull_request" && Array.isArray(r.parameters?.allowed_merge_methods))
-    .map((r) => r.parameters.allowed_merge_methods.map((m) => String(m).toLowerCase()));
-  for (const methods of rulesetMethods) allowed = allowed.filter((m) => methods.includes(m));
+    .filter(
+      (r) =>
+        r.type === "pull_request" &&
+        Array.isArray(r.parameters?.allowed_merge_methods)
+    )
+    .map((r) =>
+      r.parameters.allowed_merge_methods.map((m) => String(m).toLowerCase())
+    );
+  for (const methods of rulesetMethods)
+    allowed = allowed.filter((m) => methods.includes(m));
   const queueRule = rules.find((r) => r.type === "merge_queue");
-  const linearHistory = rules.some((r) => r.type === "required_linear_history") || Boolean(protection?.linear_history);
+  const linearHistory =
+    rules.some((r) => r.type === "required_linear_history") ||
+    Boolean(protection?.linear_history);
   return {
     allowed,
     linear_history: linearHistory,
-    linear_history_known: protection !== null || rules.some((r) => r.type === "required_linear_history"),
+    linear_history_known:
+      protection !== null ||
+      rules.some((r) => r.type === "required_linear_history"),
     merge_queue: Boolean(settings.merge_queue || queueRule),
     queue_method: QUEUE_METHODS[queueRule?.parameters?.merge_method] ?? null,
     delete_branch_on_merge: Boolean(settings.delete_branch_on_merge)
@@ -256,26 +334,47 @@ export function mergePolicy(settings, rules = [], protection = null) {
  * method. Returns `{ method, queue, allowed, reason, alternatives }`. An explicit
  * method the repository does not allow is an error, never a silent fallback.
  */
-export function resolveMethod(policy, { method = "repo", preference = METHODS } = {}) {
-  const usable = policy.allowed.filter((m) => !(policy.linear_history && m === "merge"));
-  const excluded = policy.linear_history && policy.allowed.includes("merge") ? " (merge commits excluded: linear history required)" : "";
+export function resolveMethod(
+  policy,
+  { method = "repo", preference = METHODS } = {}
+) {
+  const usable = policy.allowed.filter(
+    (m) => !(policy.linear_history && m === "merge")
+  );
+  const excluded =
+    policy.linear_history && policy.allowed.includes("merge")
+      ? " (merge commits excluded: linear history required)"
+      : "";
   if (method && method !== "repo") {
-    if (!METHODS.includes(method)) throw new MergeError(`Unknown merge method: ${method}`, 2);
+    if (!METHODS.includes(method))
+      throw new MergeError(`Unknown merge method: ${method}`, 2);
     if (!usable.includes(method)) {
-      const why = policy.allowed.includes(method) ? "linear history is required" : "the repository does not allow it";
-      throw new MergeError(`Merge method ${method} is not allowed: ${why}. Allowed: ${usable.join(", ") || "none"}`);
+      const why = policy.allowed.includes(method)
+        ? "linear history is required"
+        : "the repository does not allow it";
+      throw new MergeError(
+        `Merge method ${method} is not allowed: ${why}. Allowed: ${usable.join(", ") || "none"}`
+      );
     }
     return {
       method,
       queue: policy.merge_queue,
       allowed: usable,
-      reason: policy.merge_queue ? `explicit method ${method}, then the merge queue decides` : `explicit method ${method} (merge.method or --method)`,
+      reason: policy.merge_queue
+        ? `explicit method ${method}, then the merge queue decides`
+        : `explicit method ${method} (merge.method or --method)`,
       alternatives: usable.filter((m) => m !== method)
     };
   }
-  if (usable.length === 0) throw new MergeError(`No merge method is allowed on this repository${excluded}`);
+  if (usable.length === 0)
+    throw new MergeError(
+      `No merge method is allowed on this repository${excluded}`
+    );
   if (policy.merge_queue) {
-    const chosen = policy.queue_method && usable.includes(policy.queue_method) ? policy.queue_method : firstPreferred(usable, preference);
+    const chosen =
+      policy.queue_method && usable.includes(policy.queue_method)
+        ? policy.queue_method
+        : firstPreferred(usable, preference);
     return {
       method: chosen,
       queue: true,
@@ -285,7 +384,13 @@ export function resolveMethod(policy, { method = "repo", preference = METHODS } 
     };
   }
   if (usable.length === 1) {
-    return { method: usable[0], queue: false, allowed: usable, reason: `only method allowed${excluded}`, alternatives: [] };
+    return {
+      method: usable[0],
+      queue: false,
+      allowed: usable,
+      reason: `only method allowed${excluded}`,
+      alternatives: []
+    };
   }
   const chosen = firstPreferred(usable, preference);
   return {
@@ -316,14 +421,20 @@ export function haltSignals(runDir) {
   const runPath = join(runDir, "run.json");
   if (existsSync(runPath)) {
     const run = JSON.parse(readFileSync(runPath, "utf8"));
-    if (HALTED_RUN_STATUSES.has(run.status)) reasons.push(`run status is ${run.status}`);
+    if (HALTED_RUN_STATUSES.has(run.status))
+      reasons.push(`run status is ${run.status}`);
   }
   const decisionsPath = join(runDir, "decisions.jsonl");
   if (existsSync(decisionsPath)) {
     const decisions = parseJsonLines(readFileSync(decisionsPath, "utf8"));
-    const lifted = new Set(decisions.filter((d) => d.source === "operator").flatMap((d) => d.refs ?? []));
+    const lifted = new Set(
+      decisions
+        .filter((d) => d.source === "operator")
+        .flatMap((d) => d.refs ?? [])
+    );
     for (const d of decisions) {
-      if (d["x-esp-class"] === "Halt" && !lifted.has(d.id)) reasons.push(`${d.id}: ${d.decision}`);
+      if (d["x-esp-class"] === "Halt" && !lifted.has(d.id))
+        reasons.push(`${d.id}: ${d.decision}`);
     }
   }
   return { known: true, reasons };
@@ -334,10 +445,21 @@ function condition(name, status, reason, extra = {}) {
 }
 
 /** Classify checks: `{ failing, pending, passing }` names within the scope. */
-export function classifyChecks(all = [], required = null, { requireGreen = true } = {}) {
+export function classifyChecks(
+  all = [],
+  required = null,
+  { requireGreen = true } = {}
+) {
   const requiredNames = new Set((required ?? []).map((c) => c.name));
-  const scope = requireGreen ? all : all.filter((c) => requiredNames.has(c.name));
-  const out = { failing: [], pending: [], passing: [], scope: requireGreen ? "all" : "required" };
+  const scope = requireGreen
+    ? all
+    : all.filter((c) => requiredNames.has(c.name));
+  const out = {
+    failing: [],
+    pending: [],
+    passing: [],
+    scope: requireGreen ? "all" : "required"
+  };
   for (const check of scope) {
     const bucket = String(check.bucket ?? "").toLowerCase();
     if (bucket === "fail" || bucket === "cancel") out.failing.push(check.name);
@@ -347,7 +469,8 @@ export function classifyChecks(all = [], required = null, { requireGreen = true 
   // Required checks that have not reported yet are pending.
   if (required) {
     const seen = new Set(scope.map((c) => c.name));
-    for (const check of required) if (!seen.has(check.name)) out.pending.push(check.name);
+    for (const check of required)
+      if (!seen.has(check.name)) out.pending.push(check.name);
   }
   return out;
 }
@@ -365,60 +488,180 @@ export function evaluate(facts, config = {}) {
   const { pr, checks, threads, compare, halt, policy } = facts;
   const conditions = [];
 
-  if (pr.state === "MERGED") conditions.push(condition("open", "fail", "already merged"));
-  else if (pr.state !== "OPEN") conditions.push(condition("open", "fail", `pull request is ${String(pr.state).toLowerCase()}`));
+  if (pr.state === "MERGED")
+    conditions.push(condition("open", "fail", "already merged"));
+  else if (pr.state !== "OPEN")
+    conditions.push(
+      condition(
+        "open",
+        "fail",
+        `pull request is ${String(pr.state).toLowerCase()}`
+      )
+    );
   else conditions.push(condition("open", "pass", "open"));
 
-  if (!halt?.known) conditions.push(condition("halt", "pass", "no run directory, no halt recorded"));
-  else if (halt.reasons.length > 0) conditions.push(condition("halt", "fail", `halt recorded: ${halt.reasons.join("; ")}`));
+  if (!halt?.known)
+    conditions.push(
+      condition("halt", "pass", "no run directory, no halt recorded")
+    );
+  else if (halt.reasons.length > 0)
+    conditions.push(
+      condition("halt", "fail", `halt recorded: ${halt.reasons.join("; ")}`)
+    );
   else conditions.push(condition("halt", "pass", "no halt in the run"));
 
-  conditions.push(pr.draft ? condition("draft", "fail", "pull request is a draft") : condition("draft", "pass", "ready for review"));
+  conditions.push(
+    pr.draft
+      ? condition("draft", "fail", "pull request is a draft")
+      : condition("draft", "pass", "ready for review")
+  );
 
-  const requesting = (pr.latest_reviews ?? []).filter((r) => r.state === "CHANGES_REQUESTED").map((r) => r.login);
+  const requesting = (pr.latest_reviews ?? [])
+    .filter((r) => r.state === "CHANGES_REQUESTED")
+    .map((r) => r.login);
   if (requesting.length > 0 || pr.review_decision === "CHANGES_REQUESTED") {
     conditions.push(
-      condition("changes-requested", "fail", `changes requested${requesting.length ? ` by ${requesting.join(", ")}` : ""}`, { reviewers: requesting })
+      condition(
+        "changes-requested",
+        "fail",
+        `changes requested${requesting.length ? ` by ${requesting.join(", ")}` : ""}`,
+        { reviewers: requesting }
+      )
     );
-  } else conditions.push(condition("changes-requested", "pass", "no changes requested"));
+  } else
+    conditions.push(
+      condition("changes-requested", "pass", "no changes requested")
+    );
 
-  if (config.require_resolved_threads === false) conditions.push(condition("threads", "pass", "not required (merge.require_resolved_threads)"));
-  else if (threads.length > 0) conditions.push(condition("threads", "fail", `${threads.length} unresolved review thread(s)`, { threads }));
-  else conditions.push(condition("threads", "pass", "all review threads resolved"));
+  if (config.require_resolved_threads === false)
+    conditions.push(
+      condition(
+        "threads",
+        "pass",
+        "not required (merge.require_resolved_threads)"
+      )
+    );
+  else if (threads.length > 0)
+    conditions.push(
+      condition(
+        "threads",
+        "fail",
+        `${threads.length} unresolved review thread(s)`,
+        { threads }
+      )
+    );
+  else
+    conditions.push(
+      condition("threads", "pass", "all review threads resolved")
+    );
 
   const scopeLabel = checks.scope === "all" ? "checks" : "required checks";
   if (checks.failing.length > 0) {
-    conditions.push(condition("checks", "fail", `failing ${scopeLabel}: ${checks.failing.join(", ")}`, { failing: checks.failing, pending: checks.pending }));
+    conditions.push(
+      condition(
+        "checks",
+        "fail",
+        `failing ${scopeLabel}: ${checks.failing.join(", ")}`,
+        { failing: checks.failing, pending: checks.pending }
+      )
+    );
   } else if (checks.pending.length > 0) {
-    conditions.push(condition("checks", "pending", `pending ${scopeLabel}: ${checks.pending.join(", ")}`, { pending: checks.pending }));
+    conditions.push(
+      condition(
+        "checks",
+        "pending",
+        `pending ${scopeLabel}: ${checks.pending.join(", ")}`,
+        { pending: checks.pending }
+      )
+    );
   } else {
-    conditions.push(condition("checks", "pass", checks.passing.length ? `${checks.passing.length} ${scopeLabel} green` : `no ${scopeLabel}`));
+    conditions.push(
+      condition(
+        "checks",
+        "pass",
+        checks.passing.length
+          ? `${checks.passing.length} ${scopeLabel} green`
+          : `no ${scopeLabel}`
+      )
+    );
   }
 
-  if (policy.merge_queue) conditions.push(condition("up-to-date", "pass", "merge queue keeps the branch up to date"));
+  if (policy.merge_queue)
+    conditions.push(
+      condition("up-to-date", "pass", "merge queue keeps the branch up to date")
+    );
   else if (pr.mergeable === "CONFLICTING" || pr.merge_state === "DIRTY") {
-    conditions.push(condition("up-to-date", "fail", `conflicts with ${pr.base}: rebase needed`, { conflict: true, behind_by: compare?.behind_by ?? null }));
+    conditions.push(
+      condition(
+        "up-to-date",
+        "fail",
+        `conflicts with ${pr.base}: rebase needed`,
+        { conflict: true, behind_by: compare?.behind_by ?? null }
+      )
+    );
   } else if ((compare?.behind_by ?? 0) > 0 || pr.merge_state === "BEHIND") {
-    conditions.push(condition("up-to-date", "fail", `behind ${pr.base} by ${compare?.behind_by ?? "some"} commit(s): rebase and re-check`, { conflict: false, behind_by: compare?.behind_by ?? null }));
-  } else conditions.push(condition("up-to-date", "pass", `up to date with ${pr.base}`));
+    conditions.push(
+      condition(
+        "up-to-date",
+        "fail",
+        `behind ${pr.base} by ${compare?.behind_by ?? "some"} commit(s): rebase and re-check`,
+        { conflict: false, behind_by: compare?.behind_by ?? null }
+      )
+    );
+  } else
+    conditions.push(
+      condition("up-to-date", "pass", `up to date with ${pr.base}`)
+    );
 
   const others = conditions.filter((c) => c.name !== "branch-protection");
   const clean = others.every((c) => c.status === "pass");
   if (pr.state !== "OPEN") {
-    conditions.push(condition("branch-protection", "pass", "not evaluated: the pull request is not open"));
+    conditions.push(
+      condition(
+        "branch-protection",
+        "pass",
+        "not evaluated: the pull request is not open"
+      )
+    );
   } else if (pr.review_decision === "REVIEW_REQUIRED") {
-    conditions.push(condition("branch-protection", "fail", "an approving review is required by branch protection"));
+    conditions.push(
+      condition(
+        "branch-protection",
+        "fail",
+        "an approving review is required by branch protection"
+      )
+    );
   } else if (clean && pr.merge_state === "BLOCKED" && !policy.merge_queue) {
-    conditions.push(condition("branch-protection", "fail", "branch protection or rulesets block the merge (mergeStateStatus BLOCKED)"));
-  } else conditions.push(condition("branch-protection", "pass", clean ? "no unmet protection rule reported" : "re-checked once the other conditions pass"));
+    conditions.push(
+      condition(
+        "branch-protection",
+        "fail",
+        "branch protection or rulesets block the merge (mergeStateStatus BLOCKED)"
+      )
+    );
+  } else
+    conditions.push(
+      condition(
+        "branch-protection",
+        "pass",
+        clean
+          ? "no unmet protection rule reported"
+          : "re-checked once the other conditions pass"
+      )
+    );
 
-  const failed = (name) => conditions.find((c) => c.name === name)?.status === "fail";
+  const failed = (name) =>
+    conditions.find((c) => c.name === name)?.status === "fail";
   let outcome;
   if (pr.state === "MERGED") outcome = "merged";
   else if (pr.state !== "OPEN") outcome = "closed";
   else if (failed("halt")) outcome = "halted";
-  else if (["draft", "changes-requested", "threads", "checks"].some(failed)) outcome = "blocked";
-  else if (failed("up-to-date")) outcome = conditions.find((c) => c.name === "up-to-date").conflict ? "conflict" : "behind";
+  else if (["draft", "changes-requested", "threads", "checks"].some(failed))
+    outcome = "blocked";
+  else if (failed("up-to-date"))
+    outcome = conditions.find((c) => c.name === "up-to-date").conflict
+      ? "conflict"
+      : "behind";
   else if (conditions.some((c) => c.status === "pending")) outcome = "pending";
   else if (failed("branch-protection")) outcome = "protected";
   else if (policy.in_merge_queue || pr.auto_merge) outcome = "queued";
@@ -439,13 +682,22 @@ export function gather(ctx, target) {
   const settings = client.settings(repo, pr.number);
   const rules = client.rules(repo, pr.base);
   const protection = client.protection(repo, pr.base);
-  const policy = { ...mergePolicy(settings, rules, protection), in_merge_queue: settings.in_merge_queue };
+  const policy = {
+    ...mergePolicy(settings, rules, protection),
+    in_merge_queue: settings.in_merge_queue
+  };
   const open = pr.state === "OPEN";
   const all = open ? client.checks(pr.number) : [];
   const required = open ? client.checks(pr.number, { required: true }) : [];
-  const checks = classifyChecks(all, required, { requireGreen: merge.require_green_checks !== false });
-  const threads = open && merge.require_resolved_threads !== false ? client.unresolvedThreads(repo, pr.number) : [];
-  const compare = open && !policy.merge_queue ? client.compare(repo, pr.base, pr.head) : null;
+  const checks = classifyChecks(all, required, {
+    requireGreen: merge.require_green_checks !== false
+  });
+  const threads =
+    open && merge.require_resolved_threads !== false
+      ? client.unresolvedThreads(repo, pr.number)
+      : [];
+  const compare =
+    open && !policy.merge_queue ? client.compare(repo, pr.base, pr.head) : null;
   const halt = haltSignals(runDir);
   return { repo, pr, policy, checks, threads, compare, halt };
 }
@@ -461,7 +713,10 @@ export function report(ctx, target) {
   const evaluation = evaluate(facts, merge);
   let method;
   try {
-    method = resolveMethod(facts.policy, { method: ctx.method ?? merge.method ?? "repo", preference: merge.preference ?? METHODS });
+    method = resolveMethod(facts.policy, {
+      method: ctx.method ?? merge.method ?? "repo",
+      preference: merge.preference ?? METHODS
+    });
   } catch (err) {
     if (!(err instanceof MergeError) || err.exitCode === 2) throw err;
     method = { method: null, error: err.message };
@@ -475,7 +730,8 @@ export function report(ctx, target) {
     base: facts.pr.base,
     cross_repository: facts.pr.cross_repository,
     ready: evaluation.ready && Boolean(method.method),
-    outcome: evaluation.ready && !method.method ? "blocked" : evaluation.outcome,
+    outcome:
+      evaluation.ready && !method.method ? "blocked" : evaluation.outcome,
     conditions: evaluation.conditions,
     method,
     policy: facts.policy,
@@ -485,7 +741,11 @@ export function report(ctx, target) {
 }
 
 /** `check --wait`: poll while the only obstacle is pending checks. */
-export async function waitForChecks(ctx, target, { timeoutMinutes, pollSeconds = 30 }) {
+export async function waitForChecks(
+  ctx,
+  target,
+  { timeoutMinutes, pollSeconds = 30 }
+) {
   const { sleep, now = () => new Date(), log = () => {} } = ctx;
   const deadline = now().getTime() + timeoutMinutes * 60_000;
   let polls = 0;
@@ -499,8 +759,11 @@ export async function waitForChecks(ctx, target, { timeoutMinutes, pollSeconds =
       out.timed_out = true;
       return out;
     }
-    const pending = out.conditions.find((c) => c.name === "checks")?.pending ?? [];
-    log(`poll ${polls}: waiting for ${pending.join(", ") || "checks"} on ${shortHead(out.head)}`);
+    const pending =
+      out.conditions.find((c) => c.name === "checks")?.pending ?? [];
+    log(
+      `poll ${polls}: waiting for ${pending.join(", ") || "checks"} on ${shortHead(out.head)}`
+    );
     await sleep(Math.min(pollSeconds * 1000, remaining));
   }
 }
@@ -515,16 +778,36 @@ export async function waitForChecks(ctx, target, { timeoutMinutes, pollSeconds =
  * mtime every 10 s and before each GitHub call, so a long merge never looks
  * stale. Returns `{ path, refresh(), release() }`.
  */
-export async function acquireMergeLock(lockPath, { timeoutMs, sleep, now = () => new Date(), staleMs = STALE_LOCK_MS, holder = {} }) {
+export async function acquireMergeLock(
+  lockPath,
+  {
+    timeoutMs,
+    sleep,
+    now = () => new Date(),
+    staleMs = STALE_LOCK_MS,
+    holder = {}
+  }
+) {
   const deadline = now().getTime() + timeoutMs;
   for (;;) {
     try {
       const fd = openSync(lockPath, "wx");
-      writeSync(fd, JSON.stringify({ pid: process.pid, host: hostname(), at: now().toISOString(), ...holder }));
+      writeSync(
+        fd,
+        JSON.stringify({
+          pid: process.pid,
+          host: hostname(),
+          at: now().toISOString(),
+          ...holder
+        })
+      );
       closeSync(fd);
       break;
     } catch (err) {
-      if (err.code !== "EEXIST" && err.code !== "EPERM") throw new MergeError(`Cannot create merge lock ${lockPath}: ${err.message}`);
+      if (err.code !== "EEXIST" && err.code !== "EPERM")
+        throw new MergeError(
+          `Cannot create merge lock ${lockPath}: ${err.message}`
+        );
       try {
         if (now().getTime() - statSync(lockPath).mtimeMs > staleMs) {
           rmSync(lockPath, { force: true });
@@ -562,27 +845,55 @@ export async function acquireMergeLock(lockPath, { timeoutMs, sleep, now = () =>
 // ---------------------------------------------------------------------------
 
 function git(args, cwd) {
-  const res = spawnSync("git", args, { cwd, encoding: "utf8", windowsHide: true });
+  const res = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    windowsHide: true
+  });
   return res.status === 0 ? res.stdout.trim() : null;
 }
 
 function isInside(child, parent) {
   const rel = relative(resolve(parent), resolve(child));
-  return rel === "" || (!rel.startsWith("..") && !rel.startsWith(sep) && !/^[a-z]:/i.test(rel));
+  return (
+    rel === "" ||
+    (!rel.startsWith("..") && !rel.startsWith(sep) && !/^[a-z]:/i.test(rel))
+  );
 }
 
 /** Worktree cleanup advice: remove a linked worktree under worktrees.root when cleanup allows it. */
 export function worktreeCleanup(projectDir, worktrees = {}) {
   const top = git(["rev-parse", "--show-toplevel"], projectDir);
   const gitDir = git(["rev-parse", "--absolute-git-dir"], projectDir);
-  const common = git(["rev-parse", "--path-format=absolute", "--git-common-dir"], projectDir);
-  if (!top || !gitDir || !common || resolve(gitDir) === resolve(common)) return { path: null, remove: false, reason: "not a linked worktree" };
+  const common = git(
+    ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+    projectDir
+  );
+  if (!top || !gitDir || !common || resolve(gitDir) === resolve(common))
+    return { path: null, remove: false, reason: "not a linked worktree" };
   const main = resolve(common, "..");
   const root = worktrees.root ? resolve(expandHome(worktrees.root)) : null;
   const policy = worktrees.cleanup ?? "on-merge";
-  if (!root || !isInside(top, root)) return { path: top, main, remove: false, reason: "worktree is not under worktrees.root" };
-  if (policy === "never") return { path: top, main, remove: false, reason: "worktrees.cleanup is never" };
-  return { path: top, main, remove: true, reason: `worktrees.cleanup is ${policy}` };
+  if (!root || !isInside(top, root))
+    return {
+      path: top,
+      main,
+      remove: false,
+      reason: "worktree is not under worktrees.root"
+    };
+  if (policy === "never")
+    return {
+      path: top,
+      main,
+      remove: false,
+      reason: "worktrees.cleanup is never"
+    };
+  return {
+    path: top,
+    main,
+    remove: true,
+    reason: `worktrees.cleanup is ${policy}`
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -605,8 +916,16 @@ function needsInput(outcome, reasons) {
     id: `merge-${outcome}`,
     question: `The pull request cannot merge yet: ${reasons.join("; ")}. Check again after fixing it, or leave it open?`,
     options: [
-      { id: "retry", label: "Check again", description: "Run esp-merge again once the condition is met" },
-      { id: "leave-open", label: "Leave the pull request open", description: "Stop here and merge by hand later" }
+      {
+        id: "retry",
+        label: "Check again",
+        description: "Run esp-merge again once the condition is met"
+      },
+      {
+        id: "leave-open",
+        label: "Leave the pull request open",
+        description: "Stop here and merge by hand later"
+      }
     ],
     recommended: "retry",
     blocking: true
@@ -614,13 +933,26 @@ function needsInput(outcome, reasons) {
 }
 
 function failingReasons(rep) {
-  const reasons = rep.conditions.filter((c) => c.status !== "pass").map((c) => c.reason);
+  const reasons = rep.conditions
+    .filter((c) => c.status !== "pass")
+    .map((c) => c.reason);
   if (rep.method?.error) reasons.push(rep.method.error);
   return reasons;
 }
 
 /** Build and validate the merge result block. */
-export function buildResult(rep, { outcome, summary, extra = {}, runDir = null, decision = null, cleanup = null, blockers = [] }) {
+export function buildResult(
+  rep,
+  {
+    outcome,
+    summary,
+    extra = {},
+    runDir = null,
+    decision = null,
+    cleanup = null,
+    blockers = []
+  }
+) {
   const status = STATUS_BY_OUTCOME[outcome] ?? "awaiting-human";
   const reasons = [...(rep ? failingReasons(rep) : []), ...blockers];
   const block = {
@@ -638,23 +970,34 @@ export function buildResult(rep, { outcome, summary, extra = {}, runDir = null, 
       queue: Boolean(rep?.method?.queue),
       head: rep?.head ?? null,
       base: rep?.base ?? null,
-      conditions: Object.fromEntries((rep?.conditions ?? []).map((c) => [c.name, c.status])),
+      conditions: Object.fromEntries(
+        (rep?.conditions ?? []).map((c) => [c.name, c.status])
+      ),
       failing: reasons,
       decision: decision?.id ?? null,
       cleanup,
       ...extra
     }
   };
-  if (status === "awaiting-human" && reasons.length > 0 && runDir) block.needs_input = needsInput(outcome, reasons);
-  if (status !== "done" && status !== "merged" && reasons.length > 0) block.blockers = reasons;
+  if (status === "awaiting-human" && reasons.length > 0 && runDir)
+    block.needs_input = needsInput(outcome, reasons);
+  if (status !== "done" && status !== "merged" && reasons.length > 0)
+    block.blockers = reasons;
   const check = validateArtifact("result", block);
-  if (!check.valid) throw new MergeError(`Invalid result block:\n${check.errors.map((e) => `  ${e.path}: ${e.message}`).join("\n")}`);
+  if (!check.valid)
+    throw new MergeError(
+      `Invalid result block:\n${check.errors.map((e) => `  ${e.path}: ${e.message}`).join("\n")}`
+    );
   return block;
 }
 
 function logDecision(ctx, entry) {
   if (!ctx.runDir) return null;
-  return appendDecision(ctx.runDir, { phase: "merge", source: "policy", ...entry }, ctx.env);
+  return appendDecision(
+    ctx.runDir,
+    { phase: "merge", source: "policy", ...entry },
+    ctx.env
+  );
 }
 
 function summaryFor(rep, outcome) {
@@ -704,14 +1047,20 @@ export async function cmdMerge(ctx, target, options = {}) {
 
   if (merge.enabled === false && !options.dryRun) {
     const rep = safeReport(ctx, target);
-    return buildResult(rep, { outcome: "disabled", summary: summaryFor(rep, "disabled"), runDir: ctx.runDir });
+    return buildResult(rep, {
+      outcome: "disabled",
+      summary: summaryFor(rep, "disabled"),
+      runDir: ctx.runDir
+    });
   }
 
   const lockPath = options.lock ?? ctx.env.AF_MERGE_LOCK ?? null;
   let lock = null;
   if (lockPath && !options.dryRun) {
     lock = await acquireMergeLock(resolve(lockPath), {
-      timeoutMs: (options.lockTimeoutMinutes ?? merge.checks_timeout_minutes ?? 30) * 60_000,
+      timeoutMs:
+        (options.lockTimeoutMinutes ?? merge.checks_timeout_minutes ?? 30) *
+        60_000,
       sleep: ctx.sleep,
       now: ctx.now,
       holder: { run: ctx.runDir ?? null }
@@ -726,7 +1075,8 @@ export async function cmdMerge(ctx, target, options = {}) {
         blockers: [`merge lock ${lockPath} busy`]
       });
     }
-    if (ctx.runDir) appendEvent(ctx.runDir, "merge.locked", { lock: lock.path }, ctx.env);
+    if (ctx.runDir)
+      appendEvent(ctx.runDir, "merge.locked", { lock: lock.path }, ctx.env);
   }
 
   try {
@@ -735,11 +1085,17 @@ export async function cmdMerge(ctx, target, options = {}) {
     lock?.refresh();
     let outcome = rep.outcome;
     if (options.dryRun) outcome = "dry-run";
-    else if (outcome === "pending" && merge.use_auto_merge && rep.method.method) outcome = "auto-merge";
+    else if (outcome === "pending" && merge.use_auto_merge && rep.method.method)
+      outcome = "auto-merge";
     else if (outcome === "ready" && rep.method.queue) outcome = "queued";
 
     if (rep.outcome === "merged" && !options.dryRun) {
-      return buildResult(rep, { outcome, summary: `#${rep.pr} was already merged.`, runDir: ctx.runDir, extra: { already_merged: true } });
+      return buildResult(rep, {
+        outcome,
+        summary: `#${rep.pr} was already merged.`,
+        runDir: ctx.runDir,
+        extra: { already_merged: true }
+      });
     }
     if (rep.outcome === "queued" && !options.dryRun) {
       return buildResult(rep, {
@@ -756,16 +1112,30 @@ export async function cmdMerge(ctx, target, options = {}) {
           : logDecision(ctx, {
               risk: outcome === "halted" ? "high" : "medium",
               decision: `Did not merge #${rep.pr}: ${outcome}`,
-              rationale: failingReasons(rep).join("; ") || rep.method.error || outcome,
-              refs: [rep.url, ...(rep.conditions.find((c) => c.name === "threads")?.threads ?? [])].filter(Boolean),
+              rationale:
+                failingReasons(rep).join("; ") || rep.method.error || outcome,
+              refs: [
+                rep.url,
+                ...(rep.conditions.find((c) => c.name === "threads")?.threads ??
+                  [])
+              ].filter(Boolean),
               ...(outcome === "halted" ? { "x-esp-class": "Halt" } : {})
             });
-      return buildResult(rep, { outcome, summary: summaryFor(rep, outcome), runDir: ctx.runDir, decision });
+      return buildResult(rep, {
+        outcome,
+        summary: summaryFor(rep, outcome),
+        runDir: ctx.runDir,
+        decision
+      });
     }
 
     const auto = outcome !== "ready";
     lock?.refresh();
-    ctx.client.merge(rep.pr, { method: rep.method.method, head: rep.head, auto });
+    ctx.client.merge(rep.pr, {
+      method: rep.method.method,
+      head: rep.head,
+      auto
+    });
     lock?.refresh();
     if (outcome === "ready") outcome = "merged";
 
@@ -785,9 +1155,12 @@ export async function cmdMerge(ctx, target, options = {}) {
 
     const cleanup = { remote_branch: "kept", worktree: null };
     if (outcome === "merged") {
-      if (merge.delete_branch === false) cleanup.remote_branch = "kept (merge.delete_branch false)";
-      else if (rep.cross_repository) cleanup.remote_branch = "kept (fork branch)";
-      else if (rep.policy.delete_branch_on_merge) cleanup.remote_branch = "deleted by GitHub (delete_branch_on_merge)";
+      if (merge.delete_branch === false)
+        cleanup.remote_branch = "kept (merge.delete_branch false)";
+      else if (rep.cross_repository)
+        cleanup.remote_branch = "kept (fork branch)";
+      else if (rep.policy.delete_branch_on_merge)
+        cleanup.remote_branch = "deleted by GitHub (delete_branch_on_merge)";
       else {
         try {
           cleanup.remote_branch = ctx.client.deleteBranch(rep.repo, rep.branch);
@@ -804,11 +1177,24 @@ export async function cmdMerge(ctx, target, options = {}) {
       appendEvent(
         ctx.runDir,
         "merge.completed",
-        { pr: rep.pr, url: rep.url, outcome, method: rep.method.method, head: rep.head, branch_cleanup: cleanup.remote_branch },
+        {
+          pr: rep.pr,
+          url: rep.url,
+          outcome,
+          method: rep.method.method,
+          head: rep.head,
+          branch_cleanup: cleanup.remote_branch
+        },
         ctx.env
       );
     }
-    return buildResult(rep, { outcome, summary: summaryFor(rep, outcome), runDir: ctx.runDir, decision, cleanup });
+    return buildResult(rep, {
+      outcome,
+      summary: summaryFor(rep, outcome),
+      runDir: ctx.runDir,
+      decision,
+      cleanup
+    });
   } finally {
     lock?.release();
   }
@@ -873,7 +1259,8 @@ export function parseArgs(argv) {
         continue;
       }
       const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-      if (value === undefined) throw new MergeError(`--${key} requires a value`, 2);
+      if (value === undefined)
+        throw new MergeError(`--${key} requires a value`, 2);
       options[key] = value;
     } else positional.push(arg);
   }
@@ -882,23 +1269,38 @@ export function parseArgs(argv) {
 
 function positiveNumber(raw, name, min) {
   const value = Number(raw);
-  if (!Number.isFinite(value) || value < min) throw new MergeError(`--${name} must be a number >= ${min}`, 2);
+  if (!Number.isFinite(value) || value < min)
+    throw new MergeError(`--${name} must be a number >= ${min}`, 2);
   return value;
 }
 
 /** Shared context: config, run dir, client, clock. */
 export function buildContext(options, env = process.env, io = {}) {
-  const projectDir = resolve(options["project-dir"] ?? findRepoRoot(process.cwd()) ?? process.cwd());
+  const projectDir = resolve(
+    options["project-dir"] ?? findRepoRoot(process.cwd()) ?? process.cwd()
+  );
   let config;
   try {
-    ({ config } = loadConfig({ projectDir, snapshot: options["config-snapshot"], env }));
+    ({ config } = loadConfig({
+      projectDir,
+      snapshot: options["config-snapshot"],
+      env
+    }));
   } catch (err) {
-    if (err instanceof ConfigError) throw new MergeError(err.message, err.exitCode ?? 1);
+    if (err instanceof ConfigError)
+      throw new MergeError(err.message, err.exitCode ?? 1);
     throw err;
   }
-  const runDir = options["run-dir"] ? resolve(expandHome(options["run-dir"])) : null;
-  if (runDir && !existsSync(join(runDir, "run.json"))) throw new MergeError(`Not a run directory (no run.json): ${runDir}`, 2);
-  if (options.method && options.method !== "repo" && !METHODS.includes(options.method)) {
+  const runDir = options["run-dir"]
+    ? resolve(expandHome(options["run-dir"]))
+    : null;
+  if (runDir && !existsSync(join(runDir, "run.json")))
+    throw new MergeError(`Not a run directory (no run.json): ${runDir}`, 2);
+  if (
+    options.method &&
+    options.method !== "repo" &&
+    !METHODS.includes(options.method)
+  ) {
     throw new MergeError(`--method must be repo, ${METHODS.join(", ")}`, 2);
   }
   return {
@@ -910,7 +1312,9 @@ export function buildContext(options, env = process.env, io = {}) {
     sleep: io.sleep ?? ((ms) => new Promise((done) => setTimeout(done, ms))),
     now: io.now ?? (() => new Date()),
     log: io.log ?? ((line) => process.stderr.write(`[merge-ready] ${line}\n`)),
-    inspectWorktree: io.inspectWorktree ?? (() => worktreeCleanup(projectDir, config.worktrees ?? {})),
+    inspectWorktree:
+      io.inspectWorktree ??
+      (() => worktreeCleanup(projectDir, config.worktrees ?? {})),
     get client() {
       return io.client ?? ghClient({ cwd: projectDir, env });
     }
@@ -919,7 +1323,8 @@ export function buildContext(options, env = process.env, io = {}) {
 
 export async function run(argv, env = process.env, io = {}) {
   const { command, args, options } = parseArgs(argv);
-  if (options.help || !command) return { output: USAGE, exitCode: command ? 0 : 2 };
+  if (options.help || !command)
+    return { output: USAGE, exitCode: command ? 0 : 2 };
   const ctx = buildContext(options, env, io);
   const target = prArgument(args.join(" "));
   const merge = ctx.config.merge ?? {};
@@ -927,9 +1332,19 @@ export async function run(argv, env = process.env, io = {}) {
     case "check": {
       if (!options.wait) return { output: report(ctx, target) };
       const timeoutMinutes =
-        options["wait-minutes"] !== undefined ? positiveNumber(options["wait-minutes"], "wait-minutes", 0) : merge.checks_timeout_minutes ?? 30;
-      const pollSeconds = options["poll-seconds"] !== undefined ? positiveNumber(options["poll-seconds"], "poll-seconds", 1) : 30;
-      return { output: await waitForChecks(ctx, target, { timeoutMinutes, pollSeconds }) };
+        options["wait-minutes"] !== undefined
+          ? positiveNumber(options["wait-minutes"], "wait-minutes", 0)
+          : (merge.checks_timeout_minutes ?? 30);
+      const pollSeconds =
+        options["poll-seconds"] !== undefined
+          ? positiveNumber(options["poll-seconds"], "poll-seconds", 1)
+          : 30;
+      return {
+        output: await waitForChecks(ctx, target, {
+          timeoutMinutes,
+          pollSeconds
+        })
+      };
     }
     case "method": {
       const facts = gather(ctx, target);
@@ -937,7 +1352,10 @@ export async function run(argv, env = process.env, io = {}) {
         output: {
           pr: facts.pr.number,
           policy: facts.policy,
-          ...resolveMethod(facts.policy, { method: ctx.method ?? merge.method ?? "repo", preference: merge.preference ?? METHODS })
+          ...resolveMethod(facts.policy, {
+            method: ctx.method ?? merge.method ?? "repo",
+            preference: merge.preference ?? METHODS
+          })
         }
       };
     }
@@ -947,9 +1365,18 @@ export async function run(argv, env = process.env, io = {}) {
         halt: options.halt,
         lock: options.lock,
         lockTimeoutMinutes:
-          options["lock-timeout-minutes"] !== undefined ? positiveNumber(options["lock-timeout-minutes"], "lock-timeout-minutes", 0) : undefined
+          options["lock-timeout-minutes"] !== undefined
+            ? positiveNumber(
+                options["lock-timeout-minutes"],
+                "lock-timeout-minutes",
+                0
+              )
+            : undefined
       });
-      return { output: JSON.stringify(block), exitCode: exitCodeFor(block.status) };
+      return {
+        output: JSON.stringify(block),
+        exitCode: exitCodeFor(block.status)
+      };
     }
     default:
       throw new MergeError(`Unknown command: ${command}\n\n${USAGE}`, 2);
@@ -959,16 +1386,25 @@ export async function run(argv, env = process.env, io = {}) {
 async function main() {
   try {
     const { output, exitCode = 0 } = await run(process.argv.slice(2));
-    const text = typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    const text =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
     process.stdout.write(`${text}\n`);
     process.exitCode = exitCode;
   } catch (err) {
-    const known = err instanceof MergeError || err.name === "WaitError" || err.name === "RunsError";
-    process.stderr.write(`merge-ready error: ${known ? err.message : (err.stack ?? err)}\n`);
+    const known =
+      err instanceof MergeError ||
+      err.name === "WaitError" ||
+      err.name === "RunsError";
+    process.stderr.write(
+      `merge-ready error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
     process.exitCode = known ? (err.exitCode ?? 1) : 1;
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

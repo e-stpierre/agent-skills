@@ -15,14 +15,31 @@
 // contract code of its status (0 done, 10 awaiting-human, 20 halted).
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  renameSync,
+  writeFileSync
+} from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ConfigError, expandHome, findRepoRoot, loadConfig } from "./config.mjs";
+import {
+  ConfigError,
+  expandHome,
+  findRepoRoot,
+  loadConfig
+} from "./config.mjs";
 import { exitCodeFor, maxRisk, validateArtifact } from "./lib/contract.mjs";
 import { withLock } from "./lib/lock.mjs";
 import { appendDecision, now } from "./runs.mjs";
-import { prArgument, repoFromUrl, resolveReviewers, sameLogin } from "./wait-for-review.mjs";
+import {
+  prArgument,
+  repoFromUrl,
+  resolveReviewers,
+  sameLogin
+} from "./wait-for-review.mjs";
 
 export class FixReviewError extends Error {
   constructor(message, exitCode = 1) {
@@ -35,7 +52,13 @@ export class FixReviewError extends Error {
 export const STATE_FORMAT = 1;
 export const RESOLUTIONS = ["fixed", "rejected", "deferred", "skipped", "open"];
 export const CLASSES = ["A-Fix", "B-Decide", "B-Scope", "Reject", "Halt"];
-const DEFAULT_RISK = { fixed: "low", rejected: "low", deferred: "medium", skipped: "low", open: "high" };
+const DEFAULT_RISK = {
+  fixed: "low",
+  rejected: "low",
+  deferred: "medium",
+  skipped: "low",
+  open: "high"
+};
 const RESOLUTION_CLASSES = {
   fixed: ["A-Fix", "B-Decide"],
   rejected: ["Reject"],
@@ -77,17 +100,26 @@ export function ghClient({ cwd, env = process.env } = {}) {
       maxBuffer: 64 * 1024 * 1024,
       windowsHide: true
     });
-    if (res.error) throw new FixReviewError(`gh could not run: ${res.error.message}`);
+    if (res.error)
+      throw new FixReviewError(`gh could not run: ${res.error.message}`);
     if (!okStatuses.includes(res.status))
-      throw new FixReviewError(`gh ${args.slice(0, 3).join(" ")} failed: ${(res.stderr || res.stdout).trim()}`);
+      throw new FixReviewError(
+        `gh ${args.slice(0, 3).join(" ")} failed: ${(res.stderr || res.stdout).trim()}`
+      );
     return res.stdout;
   };
-  const list = (path, jq) => parseJsonLines(gh(["api", "--paginate", `${path}?per_page=100`, "--jq", jq]));
+  const list = (path, jq) =>
+    parseJsonLines(
+      gh(["api", "--paginate", `${path}?per_page=100`, "--jq", jq])
+    );
   return {
     pr(target) {
       const args = ["pr", "view"];
       if (target) args.push(String(target));
-      args.push("--json", "number,url,state,headRefOid,headRefName,baseRefName,isDraft");
+      args.push(
+        "--json",
+        "number,url,state,headRefOid,headRefName,baseRefName,isDraft"
+      );
       const pr = JSON.parse(gh(args));
       return {
         number: pr.number,
@@ -146,9 +178,18 @@ export function ghClient({ cwd, env = process.env } = {}) {
     },
     checks(number) {
       // gh pr checks exits 8 while checks are pending and 1 when one failed.
-      const out = gh(["pr", "checks", String(number), "--json", "name,state,bucket,link,workflow"], {
-        okStatuses: [0, 1, 8]
-      });
+      const out = gh(
+        [
+          "pr",
+          "checks",
+          String(number),
+          "--json",
+          "name,state,bucket,link,workflow"
+        ],
+        {
+          okStatuses: [0, 1, 8]
+        }
+      );
       return out.trim() === "" ? [] : JSON.parse(out);
     },
     replyInline(repo, number, commentId, body) {
@@ -165,7 +206,14 @@ export function ghClient({ cwd, env = process.env } = {}) {
       return out.trim() || null;
     },
     comment(repo, number, body) {
-      const out = gh(["api", `repos/${repo}/issues/${number}/comments`, "-f", `body=${body}`, "--jq", ".html_url"]);
+      const out = gh([
+        "api",
+        `repos/${repo}/issues/${number}/comments`,
+        "-f",
+        `body=${body}`,
+        "--jq",
+        ".html_url"
+      ]);
       return out.trim() || null;
     },
     resolveThread(threadId) {
@@ -216,10 +264,13 @@ export function readState(path, env = process.env) {
   if (!path || !existsSync(path)) return emptyState(now(env).toISOString());
   try {
     const state = JSON.parse(readFileSync(path, "utf8"));
-    if (state.state_format !== STATE_FORMAT) throw new Error(`unsupported state_format ${state.state_format}`);
+    if (state.state_format !== STATE_FORMAT)
+      throw new Error(`unsupported state_format ${state.state_format}`);
     return state;
   } catch (err) {
-    throw new FixReviewError(`${path}: unreadable fix-review state (${err.message})`);
+    throw new FixReviewError(
+      `${path}: unreadable fix-review state (${err.message})`
+    );
   }
 }
 
@@ -256,14 +307,20 @@ function isBot(login, type) {
 }
 
 function matchesReviewers(login, reviewers) {
-  return reviewers.length === 0 || reviewers.some((r) => sameLogin(r.login, login) || sameLogin(r.name, login));
+  return (
+    reviewers.length === 0 ||
+    reviewers.some((r) => sameLogin(r.login, login) || sameLogin(r.name, login))
+  );
 }
 
 /**
  * Turn raw PR data into review items. `data`: `{ inline, reviews, comments,
  * threads }` as returned by the client. Returns `{ items, skipped, authors }`.
  */
-export function collectItems(data, { reviewers = [], ownLogin = null, handled = {}, includeHandled = false } = {}) {
+export function collectItems(
+  data,
+  { reviewers = [], ownLogin = null, handled = {}, includeHandled = false } = {}
+) {
   const threadOf = new Map();
   for (const thread of data.threads ?? []) {
     for (const id of thread.comments ?? []) threadOf.set(String(id), thread);
@@ -342,15 +399,27 @@ export function collectItems(data, { reviewers = [], ownLogin = null, handled = 
       authors.add(item.author);
     }
   }
-  items.sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")));
+  items.sort((a, b) =>
+    String(a.created_at ?? "").localeCompare(String(b.created_at ?? ""))
+  );
   return { items, skipped, authors: [...authors] };
 }
 
 /** Turn an esp-review findings file (`review_format: 1`) into items. */
-export function findingItems(findings, source, { handled = {}, includeHandled = false } = {}) {
+export function findingItems(
+  findings,
+  source,
+  { handled = {}, includeHandled = false } = {}
+) {
   if (findings?.review_format !== 1 || !Array.isArray(findings.findings))
-    throw new FixReviewError(`${source}: not an esp-review findings file (review_format 1)`);
-  const tag = source.replace(/\\/g, "/").split("/").pop().replace(/\.json$/, "");
+    throw new FixReviewError(
+      `${source}: not an esp-review findings file (review_format 1)`
+    );
+  const tag = source
+    .replace(/\\/g, "/")
+    .split("/")
+    .pop()
+    .replace(/\.json$/, "");
   const items = [];
   let skippedHandled = 0;
   for (const f of findings.findings) {
@@ -377,7 +446,9 @@ export function findingItems(findings, source, { handled = {}, includeHandled = 
 
 /** Latest `review-<N>.json` in a run directory. */
 export function latestFindings(runDir) {
-  const files = existsSync(runDir) ? readdirSync(runDir).filter((f) => /^review-\d+\.json$/.test(f)) : [];
+  const files = existsSync(runDir)
+    ? readdirSync(runDir).filter((f) => /^review-\d+\.json$/.test(f))
+    : [];
   if (files.length === 0) return null;
   files.sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
   return join(runDir, files.at(-1));
@@ -443,8 +514,17 @@ export function cmdFetch(ctx, target) {
   };
   return updateState(statePath, env, (state) => {
     if (state.pr != null && state.pr !== pr.number)
-      throw new FixReviewError(`State file belongs to pull request ${state.pr}, not ${pr.number}`, 2);
-    Object.assign(state, { mode: "pr", pr: pr.number, url: pr.url, repo, head: pr.head });
+      throw new FixReviewError(
+        `State file belongs to pull request ${state.pr}, not ${pr.number}`,
+        2
+      );
+    Object.assign(state, {
+      mode: "pr",
+      pr: pr.number,
+      url: pr.url,
+      repo,
+      head: pr.head
+    });
     const { items, skipped, authors } = collectItems(data, {
       reviewers,
       ownLogin,
@@ -452,7 +532,9 @@ export function cmdFetch(ctx, target) {
       includeHandled: ctx.includeHandled
     });
     storeItems(state, items);
-    const seen = reviewers.filter((r) => authors.some((a) => sameLogin(a, r.login))).map((r) => r.name);
+    const seen = reviewers
+      .filter((r) => authors.some((a) => sameLogin(a, r.login)))
+      .map((r) => r.name);
     return {
       mode: "pr",
       pr: pr.number,
@@ -477,9 +559,18 @@ export function cmdFetch(ctx, target) {
 
 export function cmdInternal(ctx, file) {
   const { statePath, env, runDir } = ctx;
-  const path = file ? resolve(expandHome(file)) : runDir ? latestFindings(runDir) : null;
-  if (!path) throw new FixReviewError("internal needs a findings file, or --run-dir holding review-<N>.json", 2);
-  if (!existsSync(path)) throw new FixReviewError(`Findings file not found: ${path}`, 2);
+  const path = file
+    ? resolve(expandHome(file))
+    : runDir
+      ? latestFindings(runDir)
+      : null;
+  if (!path)
+    throw new FixReviewError(
+      "internal needs a findings file, or --run-dir holding review-<N>.json",
+      2
+    );
+  if (!existsSync(path))
+    throw new FixReviewError(`Findings file not found: ${path}`, 2);
   let findings;
   try {
     findings = JSON.parse(readFileSync(path, "utf8"));
@@ -487,9 +578,16 @@ export function cmdInternal(ctx, file) {
     throw new FixReviewError(`${path}: invalid JSON (${err.message})`);
   }
   return updateState(statePath, env, (state) => {
-    if (state.mode === "pr") throw new FixReviewError("State file belongs to a pull request fix-review", 2);
+    if (state.mode === "pr")
+      throw new FixReviewError(
+        "State file belongs to a pull request fix-review",
+        2
+      );
     Object.assign(state, { mode: "internal", head: findings.head ?? null });
-    const { items, skipped } = findingItems(findings, path, { handled: state.handled, includeHandled: ctx.includeHandled });
+    const { items, skipped } = findingItems(findings, path, {
+      handled: state.handled,
+      includeHandled: ctx.includeHandled
+    });
     storeItems(state, items);
     return {
       mode: "internal",
@@ -507,7 +605,11 @@ export function cmdInternal(ctx, file) {
 export function cmdChecks(ctx, target) {
   const { client, statePath, env } = ctx;
   const pr = client.pr(target);
-  const summary = summarizeChecks(client.checks(pr.number), pr.head, statePath ? readState(statePath, env).handled : {});
+  const summary = summarizeChecks(
+    client.checks(pr.number),
+    pr.head,
+    statePath ? readState(statePath, env).handled : {}
+  );
   if (statePath) {
     updateState(statePath, env, (state) => {
       storeItems(state, summary.failing);
@@ -521,15 +623,35 @@ export function cmdRound(ctx) {
   return updateState(statePath, env, (state) => {
     state.max_rounds = maxRounds;
     const done = state.rounds.length;
-    if (done >= maxRounds) return { round: null, exhausted: true, rounds: done, max_rounds: maxRounds };
-    const round = { n: done + 1, started_at: now(env).toISOString(), head: state.head ?? null };
+    if (done >= maxRounds)
+      return {
+        round: null,
+        exhausted: true,
+        rounds: done,
+        max_rounds: maxRounds
+      };
+    const round = {
+      n: done + 1,
+      started_at: now(env).toISOString(),
+      head: state.head ?? null
+    };
     state.rounds.push(round);
-    return { round: round.n, exhausted: false, rounds: round.n, max_rounds: maxRounds, last: round.n === maxRounds };
+    return {
+      round: round.n,
+      exhausted: false,
+      rounds: round.n,
+      max_rounds: maxRounds,
+      last: round.n === maxRounds
+    };
   });
 }
 
 /** GitHub actions owed for a handled item, from its resolution and kind. */
-export function githubActions(item, resolution, { reply, replyToRejected = true, deferredItems = "follow-up" } = {}) {
+export function githubActions(
+  item,
+  resolution,
+  { reply, replyToRejected = true, deferredItems = "follow-up" } = {}
+) {
   const actions = { reply: false, resolve: false, minimize: false };
   if (!item || item.kind === "finding" || item.kind === "check") return actions;
   const hasReply = typeof reply === "string" && reply.trim() !== "";
@@ -537,7 +659,8 @@ export function githubActions(item, resolution, { reply, replyToRejected = true,
   const resolvable = item.kind === "inline" && Boolean(item.thread_id);
   if (resolution === "fixed") {
     actions.resolve = resolvable;
-    actions.minimize = item.kind === "comment" && item.bot && Boolean(item.node_id);
+    actions.minimize =
+      item.kind === "comment" && item.bot && Boolean(item.node_id);
   } else if (resolution === "deferred") {
     actions.resolve = resolvable && deferredItems !== "block";
   } else if (resolution === "rejected") {
@@ -560,36 +683,68 @@ function pendingGithub(state) {
 export function cmdRecord(ctx, input) {
   const { statePath, env, runDir, config } = ctx;
   const ids = [input.items ?? input.item].flat().filter(Boolean).map(String);
-  if (ids.length === 0) throw new FixReviewError("record: `items` must list at least one item ID", 2);
+  if (ids.length === 0)
+    throw new FixReviewError(
+      "record: `items` must list at least one item ID",
+      2
+    );
   if (!RESOLUTIONS.includes(input.resolution))
-    throw new FixReviewError(`record: resolution must be one of ${RESOLUTIONS.join(", ")}`, 2);
-  if (!CLASSES.includes(input.class)) throw new FixReviewError(`record: class must be one of ${CLASSES.join(", ")}`, 2);
+    throw new FixReviewError(
+      `record: resolution must be one of ${RESOLUTIONS.join(", ")}`,
+      2
+    );
+  if (!CLASSES.includes(input.class))
+    throw new FixReviewError(
+      `record: class must be one of ${CLASSES.join(", ")}`,
+      2
+    );
   if (!RESOLUTION_CLASSES[input.resolution].includes(input.class))
-    throw new FixReviewError(`record: class ${input.class} cannot be resolved as ${input.resolution}`, 2);
+    throw new FixReviewError(
+      `record: class ${input.class} cannot be resolved as ${input.resolution}`,
+      2
+    );
   if (!input.decision || !input.rationale)
-    throw new FixReviewError("record: `decision` and `rationale` are required", 2);
+    throw new FixReviewError(
+      "record: `decision` and `rationale` are required",
+      2
+    );
   const fr = config["fix-review"] ?? {};
-  const risk = input.risk ?? (input.class === "B-Decide" ? "medium" : DEFAULT_RISK[input.resolution]);
+  const risk =
+    input.risk ??
+    (input.class === "B-Decide" ? "medium" : DEFAULT_RISK[input.resolution]);
   return updateState(statePath, env, (state) => {
     const unknown = ids.filter((id) => !state.items[id]);
     if (unknown.length > 0 && statePath)
-      throw new FixReviewError(`record: unknown item ${unknown.join(", ")} (run fetch, internal or checks first)`, 2);
+      throw new FixReviewError(
+        `record: unknown item ${unknown.join(", ")} (run fetch, internal or checks first)`,
+        2
+      );
     const refs = [
-      ...new Set([...ids.map((id) => state.items[id]?.url ?? id), ...(input.refs ?? [])].filter(Boolean))
+      ...new Set(
+        [
+          ...ids.map((id) => state.items[id]?.url ?? id),
+          ...(input.refs ?? [])
+        ].filter(Boolean)
+      )
     ];
     let decision = null;
     if (runDir) {
-      const rationale = input.rationale.startsWith(input.class) ? input.rationale : `${input.class}: ${input.rationale}`;
+      const rationale = input.rationale.startsWith(input.class)
+        ? input.rationale
+        : `${input.class}: ${input.rationale}`;
       const entry = {
         phase: "fix-review",
-        source: input.source ?? (input.resolution === "deferred" ? "policy" : "agent"),
+        source:
+          input.source ??
+          (input.resolution === "deferred" ? "policy" : "agent"),
         risk,
         decision: input.decision,
         rationale,
         refs,
         "x-esp-class": input.class
       };
-      for (const key of ["alternatives", "files"]) if (input[key]?.length) entry[key] = input[key];
+      for (const key of ["alternatives", "files"])
+        if (input[key]?.length) entry[key] = input[key];
       if (input.commit) entry.commit = input.commit;
       decision = appendDecision(runDir, entry, env);
     }
@@ -613,19 +768,32 @@ export function cmdRecord(ctx, input) {
         commit: input.commit ?? null,
         reply: actions.reply ? input.reply : null,
         discovered_item: input.discovered_item ?? null,
-        github: owed ? { ...actions, done: false, reply_url: null, errors: [] } : null
+        github: owed
+          ? { ...actions, done: false, reply_url: null, errors: [] }
+          : null
       };
     }
-    return { recorded: ids, resolution: input.resolution, decision_id: decision?.id ?? null, risk };
+    return {
+      recorded: ids,
+      resolution: input.resolution,
+      decision_id: decision?.id ?? null,
+      risk
+    };
   });
 }
 
 /** Post the replies and resolve the threads owed by recorded items. */
 export function cmdRespond(ctx) {
   const { statePath, env, client } = ctx;
-  if (!statePath) throw new FixReviewError("respond needs --run-dir or --state", 2);
+  if (!statePath)
+    throw new FixReviewError("respond needs --run-dir or --state", 2);
   return updateState(statePath, env, (state) => {
-    if (state.mode !== "pr") return { responded: [], failed: [], note: "not a pull request fix-review" };
+    if (state.mode !== "pr")
+      return {
+        responded: [],
+        failed: [],
+        note: "not a pull request fix-review"
+      };
     const responded = [];
     const failed = [];
     for (const h of pendingGithub(state)) {
@@ -637,8 +805,17 @@ export function cmdRespond(ctx) {
         if (g.reply && !g.reply_url) {
           g.reply_url =
             item.kind === "inline"
-              ? client.replyInline(state.repo, state.pr, item.in_reply_to ?? item.comment_id, entry.reply)
-              : client.comment(state.repo, state.pr, quoteReply(item, entry.reply));
+              ? client.replyInline(
+                  state.repo,
+                  state.pr,
+                  item.in_reply_to ?? item.comment_id,
+                  entry.reply
+                )
+              : client.comment(
+                  state.repo,
+                  state.pr,
+                  quoteReply(item, entry.reply)
+                );
           g.reply_url = g.reply_url ?? "posted";
         }
         if (g.resolve && !g.resolved) {
@@ -650,7 +827,12 @@ export function cmdRespond(ctx) {
           g.minimized = true;
         }
         g.done = true;
-        responded.push({ id: h.id, reply_url: g.reply_url, resolved: Boolean(g.resolved), minimized: Boolean(g.minimized) });
+        responded.push({
+          id: h.id,
+          reply_url: g.reply_url,
+          resolved: Boolean(g.resolved),
+          minimized: Boolean(g.minimized)
+        });
       } catch (err) {
         g.errors.push(err.message);
         failed.push({ id: h.id, error: err.message });
@@ -678,19 +860,36 @@ function countResolutions(handled) {
  * Build the result block from the state. Options: `remaining` (unhandled
  * items left when the loop stopped), `status`, `summary`, `pr`, `haltOn`.
  */
-export function buildResult(state, { remaining = 0, status, summary, haltOn = [], statePath = null, runDir = null } = {}) {
-  const entries = Object.entries(state.handled).map(([id, h]) => ({ id, ...h }));
+export function buildResult(
+  state,
+  {
+    remaining = 0,
+    status,
+    summary,
+    haltOn = [],
+    statePath = null,
+    runDir = null
+  } = {}
+) {
+  const entries = Object.entries(state.handled).map(([id, h]) => ({
+    id,
+    ...h
+  }));
   const items = entries.filter((h) => !h.id.startsWith("check:"));
   const checks = entries.filter((h) => h.id.startsWith("check:"));
   const counts = countResolutions(items);
   const commits = [...new Set(entries.map((h) => h.commit).filter(Boolean))];
-  const exhausted = state.max_rounds != null && state.rounds.length >= state.max_rounds;
+  const exhausted =
+    state.max_rounds != null && state.rounds.length >= state.max_rounds;
   let risk = "low";
   for (const h of entries) risk = maxRisk(risk, h.risk ?? "low");
   const discovered = entries
     .filter((h) => h.resolution === "deferred")
     .map((h) => {
-      const base = h.discovered_item ?? { type: "follow-up", title: h.decision };
+      const base = h.discovered_item ?? {
+        type: "follow-up",
+        title: h.decision
+      };
       const meta = state.items[h.id] ?? {};
       return {
         type: base.type ?? "follow-up",
@@ -725,7 +924,9 @@ export function buildResult(state, { remaining = 0, status, summary, haltOn = []
     `${counts.rejected} rejected`,
     `${counts.deferred} deferred`,
     ...(counts.open ? [`${counts.open} open`] : []),
-    ...(checks.length ? [`${checks.filter((c) => c.resolution === "fixed").length} CI fixes`] : [])
+    ...(checks.length
+      ? [`${checks.filter((c) => c.resolution === "fixed").length} CI fixes`]
+      : [])
   ];
   const where = state.mode === "pr" ? `PR ${state.pr}` : "the internal review";
   const text =
@@ -759,9 +960,10 @@ export function buildResult(state, { remaining = 0, status, summary, haltOn = []
     const open = items.filter((h) => h.resolution === "open");
     block.needs_input = {
       id: "fix-review-open",
-      question: `${open.length} review item${open.length === 1 ? "" : "s"} need${open.length === 1 ? "s" : ""} a decision: ${open
-        .map((h) => h.decision)
-        .join("; ")}`.slice(0, 1000),
+      question:
+        `${open.length} review item${open.length === 1 ? "" : "s"} need${open.length === 1 ? "s" : ""} a decision: ${open
+          .map((h) => h.decision)
+          .join("; ")}`.slice(0, 1000),
       options: [],
       recommended: null,
       context: open.map((h) => state.items[h.id]?.url ?? h.id).join(", "),
@@ -770,33 +972,38 @@ export function buildResult(state, { remaining = 0, status, summary, haltOn = []
   }
   const check = validateArtifact("result", block);
   if (!check.valid)
-    throw new FixReviewError(`Invalid result block:\n${check.errors.map((e) => `  ${e.path}: ${e.message}`).join("\n")}`);
+    throw new FixReviewError(
+      `Invalid result block:\n${check.errors.map((e) => `  ${e.path}: ${e.message}`).join("\n")}`
+    );
   return block;
 }
 
 /** Log the budget halt that buildResult decided. */
 function logBudgetHalt(runDir, state, remaining, env) {
   appendDecision(
-      runDir,
-      {
-        phase: "fix-review",
-        source: "policy",
-        risk: "high",
-        decision: `Stopped fix-review with ${remaining} items left`,
-        rationale: `Halt: budget, ${state.max_rounds} fix rounds used`,
-        refs: state.url ? [state.url] : [],
-        "x-esp-class": "Halt"
-      },
-      env
-    );
+    runDir,
+    {
+      phase: "fix-review",
+      source: "policy",
+      risk: "high",
+      decision: `Stopped fix-review with ${remaining} items left`,
+      rationale: `Halt: budget, ${state.max_rounds} fix rounds used`,
+      refs: state.url ? [state.url] : [],
+      "x-esp-class": "Halt"
+    },
+    env
+  );
 }
 
 export function cmdResult(ctx, options) {
   const { statePath, env, runDir, config } = ctx;
-  if (!statePath) throw new FixReviewError("result needs --run-dir or --state", 2);
+  if (!statePath)
+    throw new FixReviewError("result needs --run-dir or --state", 2);
   const state = readState(statePath, env);
-  const remaining = options.remaining !== undefined ? Number(options.remaining) : 0;
-  if (!Number.isInteger(remaining) || remaining < 0) throw new FixReviewError("--remaining must be an integer >= 0", 2);
+  const remaining =
+    options.remaining !== undefined ? Number(options.remaining) : 0;
+  if (!Number.isInteger(remaining) || remaining < 0)
+    throw new FixReviewError("--remaining must be an integer >= 0", 2);
   const block = buildResult(state, {
     remaining,
     status: options.status,
@@ -805,7 +1012,8 @@ export function cmdResult(ctx, options) {
     statePath,
     runDir
   });
-  if (runDir && !options.status && block.status === "halted") logBudgetHalt(runDir, state, remaining, env);
+  if (runDir && !options.status && block.status === "halted")
+    logBudgetHalt(runDir, state, remaining, env);
   return block;
 }
 
@@ -857,7 +1065,8 @@ export function parseArgs(argv) {
         continue;
       }
       const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-      if (value === undefined) throw new FixReviewError(`--${key} requires a value`, 2);
+      if (value === undefined)
+        throw new FixReviewError(`--${key} requires a value`, 2);
       options[key] = value;
     } else positional.push(arg);
   }
@@ -873,10 +1082,15 @@ function readInput(options) {
       raw = undefined;
     }
   }
-  if (raw === undefined || String(raw).trim() === "") throw new FixReviewError("record requires --json <object> or JSON on stdin", 2);
+  if (raw === undefined || String(raw).trim() === "")
+    throw new FixReviewError(
+      "record requires --json <object> or JSON on stdin",
+      2
+    );
   try {
     const value = JSON.parse(raw);
-    if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error("expected a JSON object");
+    if (typeof value !== "object" || value === null || Array.isArray(value))
+      throw new Error("expected a JSON object");
     return value;
   } catch (err) {
     throw new FixReviewError(`record: invalid JSON input (${err.message})`, 2);
@@ -885,22 +1099,43 @@ function readInput(options) {
 
 /** Shared context: config, state path, reviewers, client. */
 export function buildContext(options, env = process.env, io = {}) {
-  const projectDir = resolve(options["project-dir"] ?? findRepoRoot(process.cwd()) ?? process.cwd());
+  const projectDir = resolve(
+    options["project-dir"] ?? findRepoRoot(process.cwd()) ?? process.cwd()
+  );
   let config;
   try {
-    ({ config } = loadConfig({ projectDir, snapshot: options["config-snapshot"], env }));
+    ({ config } = loadConfig({
+      projectDir,
+      snapshot: options["config-snapshot"],
+      env
+    }));
   } catch (err) {
-    if (err instanceof ConfigError) throw new FixReviewError(err.message, err.exitCode ?? 1);
+    if (err instanceof ConfigError)
+      throw new FixReviewError(err.message, err.exitCode ?? 1);
     throw err;
   }
-  const runDir = options["run-dir"] ? resolve(expandHome(options["run-dir"])) : null;
-  if (runDir && !existsSync(join(runDir, "run.json"))) throw new FixReviewError(`Not a run directory (no run.json): ${runDir}`, 2);
-  const statePath = options.state ? resolve(expandHome(options.state)) : runDir ? join(runDir, "fix-review.json") : null;
+  const runDir = options["run-dir"]
+    ? resolve(expandHome(options["run-dir"]))
+    : null;
+  if (runDir && !existsSync(join(runDir, "run.json")))
+    throw new FixReviewError(`Not a run directory (no run.json): ${runDir}`, 2);
+  const statePath = options.state
+    ? resolve(expandHome(options.state))
+    : runDir
+      ? join(runDir, "fix-review.json")
+      : null;
   const fr = config["fix-review"] ?? {};
-  const maxRounds = options["max-rounds"] !== undefined ? Number(options["max-rounds"]) : fr.max_rounds ?? 3;
-  if (!Number.isInteger(maxRounds) || maxRounds < 1) throw new FixReviewError("--max-rounds must be an integer >= 1", 2);
+  const maxRounds =
+    options["max-rounds"] !== undefined
+      ? Number(options["max-rounds"])
+      : (fr.max_rounds ?? 3);
+  if (!Number.isInteger(maxRounds) || maxRounds < 1)
+    throw new FixReviewError("--max-rounds must be an integer >= 1", 2);
   const reviewers = options.reviewers
-    ? resolveReviewers(options.reviewers, config["await-review"]?.reviewers ?? {})
+    ? resolveReviewers(
+        options.reviewers,
+        config["await-review"]?.reviewers ?? {}
+      )
     : [];
   return {
     config,
@@ -919,7 +1154,8 @@ export function buildContext(options, env = process.env, io = {}) {
 
 export function run(argv, env = process.env, io = {}) {
   const { command, args, options } = parseArgs(argv);
-  if (options.help || !command) return { output: USAGE, exitCode: command ? 0 : 2 };
+  if (options.help || !command)
+    return { output: USAGE, exitCode: command ? 0 : 2 };
   const ctx = buildContext(options, env, io);
   const target = () => prArgument(args.join(" "));
   switch (command) {
@@ -930,7 +1166,8 @@ export function run(argv, env = process.env, io = {}) {
     case "checks":
       return { output: cmdChecks(ctx, target()) };
     case "round":
-      if (!ctx.statePath) throw new FixReviewError("round needs --run-dir or --state", 2);
+      if (!ctx.statePath)
+        throw new FixReviewError("round needs --run-dir or --state", 2);
       return { output: cmdRound(ctx) };
     case "record":
       return { output: cmdRecord(ctx, readInput(options)) };
@@ -940,7 +1177,10 @@ export function run(argv, env = process.env, io = {}) {
     }
     case "result": {
       const block = cmdResult(ctx, options);
-      return { output: JSON.stringify(block), exitCode: exitCodeFor(block.status) };
+      return {
+        output: JSON.stringify(block),
+        exitCode: exitCodeFor(block.status)
+      };
     }
     default:
       throw new FixReviewError(`Unknown command: ${command}\n\n${USAGE}`, 2);
@@ -950,16 +1190,25 @@ export function run(argv, env = process.env, io = {}) {
 function main() {
   try {
     const { output, exitCode = 0 } = run(process.argv.slice(2));
-    const text = typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    const text =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
     process.stdout.write(`${text}\n`);
     process.exitCode = exitCode;
   } catch (err) {
-    const known = err instanceof FixReviewError || err.name === "WaitError" || err.name === "RunsError";
-    process.stderr.write(`fix-review error: ${known ? err.message : (err.stack ?? err)}\n`);
+    const known =
+      err instanceof FixReviewError ||
+      err.name === "WaitError" ||
+      err.name === "RunsError";
+    process.stderr.write(
+      `fix-review error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
     process.exitCode = known ? (err.exitCode ?? 1) : 1;
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }

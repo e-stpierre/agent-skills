@@ -57,44 +57,44 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), stop: the merge conditions need the script.
 
-| Key                              | Default                         | Effect                                                                         |
-| -------------------------------- | ------------------------------- | ------------------------------------------------------------------------------ |
-| `merge.enabled`                  | `true`                          | `false`: report and leave the pull request open                                |
-| `merge.method`                   | `repo`                          | `repo` resolves the method from the repository, else force one method          |
-| `merge.preference`               | `["squash", "rebase", "merge"]` | Order used when the repository allows several methods                          |
-| `merge.delete_branch`            | `true`                          | Delete the remote head branch after the merge (never a fork branch)            |
-| `merge.require_resolved_threads` | `true`                          | Unresolved review threads block the merge                                      |
-| `merge.require_green_checks`     | `true`                          | Every check must pass. `false`: only the required checks                       |
-| `merge.use_auto_merge`           | `false`                         | With checks pending, enable GitHub auto-merge instead of waiting               |
-| `merge.checks_timeout_minutes`   | `30`                            | Wait for pending checks, and for a busy merge lock                             |
-| `worktrees.root`, `worktrees.cleanup` | `~/.esp-skills/worktrees`, `on-merge` | Remove the task worktree after the merge, unless cleanup is `never` |
-| `defaults.interactive`           | `off`                           | Interactive mode when `--interactive` is not given                             |
+| Key                                   | Default                               | Effect                                                                |
+| ------------------------------------- | ------------------------------------- | --------------------------------------------------------------------- |
+| `merge.enabled`                       | `true`                                | `false`: report and leave the pull request open                       |
+| `merge.method`                        | `repo`                                | `repo` resolves the method from the repository, else force one method |
+| `merge.preference`                    | `["squash", "rebase", "merge"]`       | Order used when the repository allows several methods                 |
+| `merge.delete_branch`                 | `true`                                | Delete the remote head branch after the merge (never a fork branch)   |
+| `merge.require_resolved_threads`      | `true`                                | Unresolved review threads block the merge                             |
+| `merge.require_green_checks`          | `true`                                | Every check must pass. `false`: only the required checks              |
+| `merge.use_auto_merge`                | `false`                               | With checks pending, enable GitHub auto-merge instead of waiting      |
+| `merge.checks_timeout_minutes`        | `30`                                  | Wait for pending checks, and for a busy merge lock                    |
+| `worktrees.root`, `worktrees.cleanup` | `~/.esp-skills/worktrees`, `on-merge` | Remove the task worktree after the merge, unless cleanup is `never`   |
+| `defaults.interactive`                | `off`                                 | Interactive mode when `--interactive` is not given                    |
 
 ### Scripts
 
 Every call takes `[pr]`, plus `--run-dir <path>` and `--config-snapshot <path>` when given:
 
-| Moment              | Command                                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| Check               | `merge-ready.mjs check [pr] [--method <m>]` (report: `ready`, `outcome`, `conditions`, `method`) |
-| Wait for checks     | `merge-ready.mjs check [pr] --wait` (polls every 30 s up to `checks_timeout_minutes`)            |
-| Merge               | `merge-ready.mjs merge [pr] [--method <m>] [--dry-run]` (result block)                          |
-| Halt                | `merge-ready.mjs merge [pr] --halt "<reason>"` (logs a Halt decision, never merges)              |
-| Gates after rebase  | `build.mjs gates --project-dir <repo>` (configured or detected gate commands)                    |
+| Moment             | Command                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| Check              | `merge-ready.mjs check [pr] [--method <m>]` (report: `ready`, `outcome`, `conditions`, `method`) |
+| Wait for checks    | `merge-ready.mjs check [pr] --wait` (polls every 30 s up to `checks_timeout_minutes`)            |
+| Merge              | `merge-ready.mjs merge [pr] [--method <m>] [--dry-run]` (result block)                           |
+| Halt               | `merge-ready.mjs merge [pr] --halt "<reason>"` (logs a Halt decision, never merges)              |
+| Gates after rebase | `build.mjs gates --project-dir <repo>` (configured or detected gate commands)                    |
 
 Each condition in the report is `pass`, `fail` or `pending`, with a reason. The outcomes:
 
-| Outcome     | Meaning                                                                    | Action                                     |
-| ----------- | -------------------------------------------------------------------------- | ------------------------------------------ |
-| `ready`     | Every condition passes and a method is allowed                              | Merge                                      |
-| `pending`   | Only checks are still running                                               | Wait for checks, then check again          |
-| `behind`    | The branch is behind the base                                               | Rebase, then check again                   |
-| `conflict`  | The branch conflicts with the base                                          | Rebase and resolve, or halt                |
-| `blocked`   | Draft, changes requested, unresolved threads, failing checks, or no method  | Merge reports it (`awaiting-human`)        |
-| `protected` | Branch protection or rulesets block the merge (for example a required approval) | Merge reports it (`awaiting-human`)    |
-| `halted`    | The run is halted, or a Halt decision is not lifted                         | Merge reports it (`halted`)                |
-| `queued`    | Already in the merge queue, or auto-merge already on                        | Merge reports it (`done`)                  |
-| `merged`, `closed` | Nothing left to merge                                                | Merge reports it                           |
+| Outcome            | Meaning                                                                         | Action                              |
+| ------------------ | ------------------------------------------------------------------------------- | ----------------------------------- |
+| `ready`            | Every condition passes and a method is allowed                                  | Merge                               |
+| `pending`          | Only checks are still running                                                   | Wait for checks, then check again   |
+| `behind`           | The branch is behind the base                                                   | Rebase, then check again            |
+| `conflict`         | The branch conflicts with the base                                              | Rebase and resolve, or halt         |
+| `blocked`          | Draft, changes requested, unresolved threads, failing checks, or no method      | Merge reports it (`awaiting-human`) |
+| `protected`        | Branch protection or rulesets block the merge (for example a required approval) | Merge reports it (`awaiting-human`) |
+| `halted`           | The run is halted, or a Halt decision is not lifted                             | Merge reports it (`halted`)         |
+| `queued`           | Already in the merge queue, or auto-merge already on                            | Merge reports it (`done`)           |
+| `merged`, `closed` | Nothing left to merge                                                           | Merge reports it                    |
 
 ### Method Resolution
 

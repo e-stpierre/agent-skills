@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
@@ -73,19 +79,31 @@ describe("classifyTarget", () => {
     assert.equal(url.kind, "pr");
     assert.equal(url.number, 12);
     assert.equal(url.url, "https://github.com/o/r/pull/12");
-    assert.deepEqual(classifyTarget("main..HEAD"), { kind: "range", base: "main", head: "HEAD", dots: ".." });
+    assert.deepEqual(classifyTarget("main..HEAD"), {
+      kind: "range",
+      base: "main",
+      head: "HEAD",
+      dots: ".."
+    });
     assert.equal(classifyTarget("origin/main...feature").dots, "...");
-    assert.deepEqual(classifyTarget("origin/main"), { kind: "ref", ref: "origin/main" });
+    assert.deepEqual(classifyTarget("origin/main"), {
+      kind: "ref",
+      ref: "origin/main"
+    });
   });
 
   test("rejects free text", () => {
-    assert.throws(() => classifyTarget("review my code"), (err) => err instanceof ReviewError && err.exitCode === 2);
+    assert.throws(
+      () => classifyTarget("review my code"),
+      (err) => err instanceof ReviewError && err.exitCode === 2
+    );
   });
 });
 
 describe("diffFiles", () => {
   test("lists changed files once, in order", () => {
-    const diff = "diff --git a/src/a.js b/src/a.js\n+x\ndiff --git a/old.js b/new.js\n-y\ndiff --git a/src/a.js b/src/a.js\n";
+    const diff =
+      "diff --git a/src/a.js b/src/a.js\n+x\ndiff --git a/old.js b/new.js\n-y\ndiff --git a/src/a.js b/src/a.js\n";
     assert.deepEqual(diffFiles(diff), ["src/a.js", "new.js"]);
   });
 });
@@ -146,10 +164,22 @@ describe("target", () => {
     git(repo, "commit", "-q", "-m", "add d");
     writeFileSync(join(repo, "e.js"), "export const e = 5;\n");
     git(repo, "add", "e.js");
-    assert.deepEqual(cmdTarget("staged", { "project-dir": repo, "run-dir": runDir }).files, ["e.js"]);
-    assert.deepEqual(cmdTarget("main", { "project-dir": repo, "run-dir": runDir }).files, ["d.js"]);
-    assert.deepEqual(cmdTarget("main..HEAD", { "project-dir": repo, "run-dir": runDir }).files, ["d.js"]);
-    assert.throws(() => cmdTarget("nope", { "project-dir": repo }), (err) => err.exitCode === 2);
+    assert.deepEqual(
+      cmdTarget("staged", { "project-dir": repo, "run-dir": runDir }).files,
+      ["e.js"]
+    );
+    assert.deepEqual(
+      cmdTarget("main", { "project-dir": repo, "run-dir": runDir }).files,
+      ["d.js"]
+    );
+    assert.deepEqual(
+      cmdTarget("main..HEAD", { "project-dir": repo, "run-dir": runDir }).files,
+      ["d.js"]
+    );
+    assert.throws(
+      () => cmdTarget("nope", { "project-dir": repo }),
+      (err) => err.exitCode === 2
+    );
   });
 
   test("an empty diff is reported as empty", () => {
@@ -181,7 +211,10 @@ describe("target", () => {
 
   test("a run dir without run.json is refused", () => {
     rmSync(join(runDir, "run.json"));
-    assert.throws(() => cmdTarget("", { "project-dir": repo, "run-dir": runDir }), /Not a run directory/);
+    assert.throws(
+      () => cmdTarget("", { "project-dir": repo, "run-dir": runDir }),
+      /Not a run directory/
+    );
   });
 
   test("pull requests come from gh", () => {
@@ -196,8 +229,15 @@ if (args[0] === "pr" && args[1] === "view") {
 } else process.exit(3);
 `
     );
-    const env = { ...process.env, ESP_GH_CMD: JSON.stringify([process.execPath, fake]) };
-    const out = cmdTarget("PR 12", { "project-dir": repo, "run-dir": runDir }, env);
+    const env = {
+      ...process.env,
+      ESP_GH_CMD: JSON.stringify([process.execPath, fake])
+    };
+    const out = cmdTarget(
+      "PR 12",
+      { "project-dir": repo, "run-dir": runDir },
+      env
+    );
     assert.equal(out.kind, "pr");
     assert.equal(out.pr.number, 12);
     assert.equal(out.base, "main");
@@ -213,7 +253,11 @@ describe("parseReview", () => {
     assert.deepEqual(parsed.errors, []);
     assert.equal(parsed.header.base, "abc1234");
     assert.equal(parsed.header.head, "def5678");
-    assert.deepEqual(parsed.header.dimensions, ["correctness", "security", "tests"]);
+    assert.deepEqual(parsed.header.dimensions, [
+      "correctness",
+      "security",
+      "tests"
+    ]);
     assert.equal(parsed.header.rejected, 3);
     assert.equal(parsed.findings.length, 3);
     const [f1, f2, f3] = parsed.findings;
@@ -259,7 +303,9 @@ no location here
   });
 
   test("no findings", () => {
-    const parsed = parseReview("### Review: a..b\n\nDimensions: correctness. Candidates: 1, verified: 0, rejected: 1.\n\nNo findings.\n\n#### Rejected Candidates\n\n- `a.js:1` fine\n");
+    const parsed = parseReview(
+      "### Review: a..b\n\nDimensions: correctness. Candidates: 1, verified: 0, rejected: 1.\n\nNo findings.\n\n#### Rejected Candidates\n\n- `a.js:1` fine\n"
+    );
     const report = buildReport(parsed);
     assert.equal(report.findings.length, 0);
     assert.equal(report.result.summary, "No findings, 1 candidate rejected.");
@@ -269,7 +315,9 @@ no location here
 
 describe("buildReport", () => {
   test("applies the minimum severity, sorts by severity and builds a valid result block", () => {
-    const report = buildReport(parseReview(REVIEW_MD), { minSeverity: "medium" });
+    const report = buildReport(parseReview(REVIEW_MD), {
+      minSeverity: "medium"
+    });
     assert.deepEqual(
       report.findings.map((f) => f.id),
       ["F2", "F1"]
@@ -278,9 +326,21 @@ describe("buildReport", () => {
     const { result } = report;
     assert.equal(result.status, "done");
     assert.equal(result.max_risk, "high");
-    assert.equal(result.summary, "2 findings (1 high, 1 medium), 3 candidates rejected.");
-    assert.deepEqual(result.outputs.by_class, { A: 2, "B-Decide": 0, "B-Scope": 0 });
-    assert.deepEqual(result.outputs.by_severity, { critical: 0, high: 1, medium: 1, low: 0 });
+    assert.equal(
+      result.summary,
+      "2 findings (1 high, 1 medium), 3 candidates rejected."
+    );
+    assert.deepEqual(result.outputs.by_class, {
+      A: 2,
+      "B-Decide": 0,
+      "B-Scope": 0
+    });
+    assert.deepEqual(result.outputs.by_severity, {
+      critical: 0,
+      high: 1,
+      medium: 1,
+      low: 0
+    });
     assert.equal(result.outputs.dropped, 1);
     assert.equal(result.outputs.verified, true);
     assert.equal(result.discovered_items[0].title, "Legacy rounding helper");
@@ -288,8 +348,14 @@ describe("buildReport", () => {
   });
 
   test("critical findings raise the risk to high and an unverified review is flagged", () => {
-    const md = REVIEW_MD.replace("#### F1 - medium - tests - A", "#### F1 - critical - security - A");
-    const report = buildReport(parseReview(md), { minSeverity: "critical", verified: false });
+    const md = REVIEW_MD.replace(
+      "#### F1 - medium - tests - A",
+      "#### F1 - critical - security - A"
+    );
+    const report = buildReport(parseReview(md), {
+      minSeverity: "critical",
+      verified: false
+    });
     assert.deepEqual(
       report.findings.map((f) => f.id),
       ["F1"]
@@ -299,7 +365,10 @@ describe("buildReport", () => {
   });
 
   test("rejects an unknown minimum severity", () => {
-    assert.throws(() => buildReport(parseReview(REVIEW_MD), { minSeverity: "urgent" }), (err) => err.exitCode === 2);
+    assert.throws(
+      () => buildReport(parseReview(REVIEW_MD), { minSeverity: "urgent" }),
+      (err) => err.exitCode === 2
+    );
   });
 });
 
@@ -323,7 +392,11 @@ describe("renderReview and the parse command", () => {
     const md = join(dir, "review-1.md");
     const json = join(dir, "review-1.json");
     writeFileSync(md, REVIEW_MD);
-    const { output, exitCode = 0 } = cmdParse(md, { "min-severity": "medium", "md-out": md, out: json });
+    const { output, exitCode = 0 } = cmdParse(md, {
+      "min-severity": "medium",
+      "md-out": md,
+      out: json
+    });
     assert.equal(exitCode, 0);
     assert.equal(output.result.outputs.review_path, md);
     assert.equal(output.result.outputs.findings_path, json);
@@ -340,18 +413,26 @@ describe("renderReview and the parse command", () => {
   test("the CLI prints the result block as one line and fails on a malformed review", () => {
     const md = join(dir, "review.md");
     writeFileSync(md, REVIEW_MD);
-    const ok = spawnSync(process.execPath, [REVIEW, "parse", md, "--min-severity", "high", "--result"], {
-      encoding: "utf8"
-    });
+    const ok = spawnSync(
+      process.execPath,
+      [REVIEW, "parse", md, "--min-severity", "high", "--result"],
+      {
+        encoding: "utf8"
+      }
+    );
     assert.equal(ok.status, 0, ok.stderr);
     const lines = ok.stdout.trim().split(/\r?\n/);
     assert.equal(lines.length, 1);
     assert.equal(JSON.parse(lines[0]).outputs.findings, 1);
     writeFileSync(md, "#### F1 - nope - correctness - A\n");
-    const bad = spawnSync(process.execPath, [REVIEW, "parse", md], { encoding: "utf8" });
+    const bad = spawnSync(process.execPath, [REVIEW, "parse", md], {
+      encoding: "utf8"
+    });
     assert.equal(bad.status, 1);
     assert.match(bad.stdout, /unknown severity/);
-    const usage = spawnSync(process.execPath, [REVIEW, "parse"], { encoding: "utf8" });
+    const usage = spawnSync(process.execPath, [REVIEW, "parse"], {
+      encoding: "utf8"
+    });
     assert.equal(usage.status, 2);
   });
 });

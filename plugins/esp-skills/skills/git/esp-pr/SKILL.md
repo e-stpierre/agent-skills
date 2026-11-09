@@ -44,14 +44,14 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults.language
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                 | Default | Effect                                                                                          |
-| ------------------- | ------- | ----------------------------------------------------------------------------------------------- |
-| `pr.base`           | `null`  | Base branch; `null` uses the repository default branch (`gh repo view --json defaultBranchRef`) |
-| `pr.draft`          | `false` | Open the PR as a draft even without `--draft`                                                   |
-| `pr.attribution`    | `true`  | Append the AI attribution line to the body                                                      |
-| `defaults.language` | `en-US` | Language of the PR title and body                                                               |
-| `pr.body_from_run` | `true` | With `--run-dir`: build the body from the run artifacts                                        |
-| `pr.body_sections` | `summary, milestones, decisions, review-resolution, follow-ups` | Sections of a body built from the run, in order |
+| Key                 | Default                                                         | Effect                                                                                          |
+| ------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `pr.base`           | `null`                                                          | Base branch; `null` uses the repository default branch (`gh repo view --json defaultBranchRef`) |
+| `pr.draft`          | `false`                                                         | Open the PR as a draft even without `--draft`                                                   |
+| `pr.attribution`    | `true`                                                          | Append the AI attribution line to the body                                                      |
+| `defaults.language` | `en-US`                                                         | Language of the PR title and body                                                               |
+| `pr.body_from_run`  | `true`                                                          | With `--run-dir`: build the body from the run artifacts                                         |
+| `pr.body_sections`  | `summary, milestones, decisions, review-resolution, follow-ups` | Sections of a body built from the run, in order                                                 |
 
 ## Instructions
 

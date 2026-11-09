@@ -17,15 +17,15 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" diff <previous> <next> --run-dir <
 
 ## Frontmatter
 
-| Key           | Required | Value                                                     |
-| ------------- | -------- | --------------------------------------------------------- |
-| `plan_format` | Yes      | `1`                                                       |
-| `title`       | Yes      | Short plan title, also the source of the branch name      |
-| `type`        | Yes      | `feature`, `bug` or `chore`                               |
-| `version`     | Yes      | Plan version, `1` for `plan.md`, `N` for `plan.v<N>.md`   |
-| `task`        | No       | The task as the user stated it, in one line               |
-| `source`      | No       | Issue URL or document path the task came from             |
-| `created`     | No       | Date the version was written (`YYYY-MM-DD`)               |
+| Key           | Required | Value                                                   |
+| ------------- | -------- | ------------------------------------------------------- |
+| `plan_format` | Yes      | `1`                                                     |
+| `title`       | Yes      | Short plan title, also the source of the branch name    |
+| `type`        | Yes      | `feature`, `bug` or `chore`                             |
+| `version`     | Yes      | Plan version, `1` for `plan.md`, `N` for `plan.v<N>.md` |
+| `task`        | No       | The task as the user stated it, in one line             |
+| `source`      | No       | Issue URL or document path the task came from           |
+| `created`     | No       | Date the version was written (`YYYY-MM-DD`)             |
 
 Values are flat scalars (quote strings that contain `:` or `#`). Other keys are invalid, except `x-` extension keys.
 
@@ -69,16 +69,16 @@ Each milestone is one coherent, reviewable commit. `esp-build` implements one mi
 - `pnpm test tests/auth`
 ```
 
-| Element                       | Rule                                                                                             |
-| ----------------------------- | ------------------------------------------------------------------------------------------------ |
-| Heading                       | `### M<n>: <title>`. IDs are `M1`, `M2`, ... and unique. An amendment never reuses a removed ID  |
-| `**Goal**`                    | One sentence, the outcome of the milestone                                                       |
-| `**Complexity**`              | `low`, `medium` or `high`. It selects the builder model from config. Plans never name models     |
-| `**Depends**`                 | `none`, or a comma-separated list of earlier milestone IDs. Milestones are listed in dependency order |
-| `**Files**`                   | Comma-separated paths the milestone creates or changes, in backticks                             |
-| `#### Tasks`                  | Ordered, actionable steps                                                                        |
-| `#### Acceptance Criteria`    | Objective checks the verifier can confirm                                                        |
-| `#### Validation`             | Commands that prove the milestone, each item starting with the command in backticks              |
+| Element                    | Rule                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Heading                    | `### M<n>: <title>`. IDs are `M1`, `M2`, ... and unique. An amendment never reuses a removed ID       |
+| `**Goal**`                 | One sentence, the outcome of the milestone                                                            |
+| `**Complexity**`           | `low`, `medium` or `high`. It selects the builder model from config. Plans never name models          |
+| `**Depends**`              | `none`, or a comma-separated list of earlier milestone IDs. Milestones are listed in dependency order |
+| `**Files**`                | Comma-separated paths the milestone creates or changes, in backticks                                  |
+| `#### Tasks`               | Ordered, actionable steps                                                                             |
+| `#### Acceptance Criteria` | Objective checks the verifier can confirm                                                             |
+| `#### Validation`          | Commands that prove the milestone, each item starting with the command in backticks                   |
 
 No other `**Field**` or `####` subsection is allowed in a milestone. Plan-lint warns on milestones with more than 12 tasks or 20 files.
 

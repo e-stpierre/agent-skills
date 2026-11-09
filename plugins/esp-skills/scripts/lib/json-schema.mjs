@@ -192,7 +192,14 @@ function validateNode(schema, value, path, root, errors, ctx) {
     }
     for (const [key, child] of Object.entries(value)) {
       if (schema.propertyNames) {
-        validateNode(schema.propertyNames, key, [...path, key], root, errors, ctx);
+        validateNode(
+          schema.propertyNames,
+          key,
+          [...path, key],
+          root,
+          errors,
+          ctx
+        );
       }
       let matched = false;
       if (schema.properties && key in schema.properties) {
@@ -204,7 +211,7 @@ function validateNode(schema, value, path, root, errors, ctx) {
           root,
           errors,
           ctx
-          );
+        );
       }
       for (const [pattern, sub] of Object.entries(
         schema.patternProperties ?? {}
@@ -225,7 +232,7 @@ function validateNode(schema, value, path, root, errors, ctx) {
             root,
             errors,
             ctx
-            );
+          );
         }
       }
     }
@@ -273,7 +280,8 @@ function validateNode(schema, value, path, root, errors, ctx) {
     const ifErrors = [];
     validateNode(schema.if, value, path, root, ifErrors, ctx);
     const branch = ifErrors.length === 0 ? schema.then : schema.else;
-    if (branch !== undefined) validateNode(branch, value, path, root, errors, ctx);
+    if (branch !== undefined)
+      validateNode(branch, value, path, root, errors, ctx);
   }
 }
 

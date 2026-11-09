@@ -13,14 +13,32 @@
 // merged, 10 awaiting-human, 20 halted, 30 escalate, 1 failed).
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { ConfigError, expandHome, findRepoRoot, loadConfig } from "./config.mjs";
+import {
+  ConfigError,
+  expandHome,
+  findRepoRoot,
+  loadConfig
+} from "./config.mjs";
 import { exitCodeFor, validateArtifact } from "./lib/contract.mjs";
 import { withLock } from "./lib/lock.mjs";
-import { ATTRIBUTION, BODY_SECTIONS, collectRunArtifacts, readStepResults, renderPrBody } from "./lib/pr-body.mjs";
+import {
+  ATTRIBUTION,
+  BODY_SECTIONS,
+  collectRunArtifacts,
+  readStepResults,
+  renderPrBody
+} from "./lib/pr-body.mjs";
 import { appendDecision, appendEvent, cmdUpdate, now } from "./runs.mjs";
 
 export class GoLightError extends Error {
@@ -32,11 +50,31 @@ export class GoLightError extends Error {
 }
 
 export const STATE_FORMAT = 1;
-export const PHASES = ["context", "branch", "implement", "pr", "await-review", "fix-review", "merge"];
+export const PHASES = [
+  "context",
+  "branch",
+  "implement",
+  "pr",
+  "await-review",
+  "fix-review",
+  "merge"
+];
 export const WAIT_PHASES = ["await-review", "fix-review", "merge"];
-export const PHASE_STATUSES = ["pending", "started", "done", "skipped", "failed"];
+export const PHASE_STATUSES = [
+  "pending",
+  "started",
+  "done",
+  "skipped",
+  "failed"
+];
 export const TRIGGERS = ["files", "design", "gates"];
-export const HALT_KEYS = ["critical-security", "gates-exhausted", "scope-change", "destructive-action", "budget"];
+export const HALT_KEYS = [
+  "critical-security",
+  "gates-exhausted",
+  "scope-change",
+  "destructive-action",
+  "budget"
+];
 export const GATE_FAILURE_LIMIT = 2;
 const SHA = /^[0-9a-f]{7,64}$/;
 
@@ -48,7 +86,9 @@ function readJson(path) {
   try {
     return JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, ""));
   } catch (err) {
-    throw new GoLightError(`${path}: ${err.code === "ENOENT" ? "file not found" : `invalid JSON (${err.message})`}`);
+    throw new GoLightError(
+      `${path}: ${err.code === "ENOENT" ? "file not found" : `invalid JSON (${err.message})`}`
+    );
   }
 }
 
@@ -59,16 +99,26 @@ function writeJson(path, data) {
 }
 
 function runDirOf(options) {
-  if (!options["run-dir"]) throw new GoLightError("--run-dir <path> is required", 2);
+  if (!options["run-dir"])
+    throw new GoLightError("--run-dir <path> is required", 2);
   const dir = resolve(expandHome(String(options["run-dir"])));
-  if (!existsSync(join(dir, "run.json"))) throw new GoLightError(`Not a run directory (no run.json): ${dir}`);
+  if (!existsSync(join(dir, "run.json")))
+    throw new GoLightError(`Not a run directory (no run.json): ${dir}`);
   return dir;
 }
 
 export function git(args, cwd, env = process.env) {
-  const r = spawnSync("git", args, { cwd, encoding: "utf8", env, maxBuffer: 64 * 1024 * 1024 });
+  const r = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    env,
+    maxBuffer: 64 * 1024 * 1024
+  });
   if (r.error) throw new GoLightError(`git ${args[0]}: ${r.error.message}`);
-  if (r.status !== 0) throw new GoLightError(`git ${args.join(" ")} failed: ${(r.stderr || r.stdout).trim()}`);
+  if (r.status !== 0)
+    throw new GoLightError(
+      `git ${args.join(" ")} failed: ${(r.stderr || r.stdout).trim()}`
+    );
   return r.stdout;
 }
 
@@ -81,7 +131,9 @@ const lines = (text) =>
 /** Files changed since `base`: committed, staged, unstaged and untracked. */
 export function changedFiles(projectDir, base) {
   const tracked = lines(git(["diff", "--name-only", base], projectDir));
-  const untracked = lines(git(["ls-files", "--others", "--exclude-standard"], projectDir));
+  const untracked = lines(
+    git(["ls-files", "--others", "--exclude-standard"], projectDir)
+  );
   return [...new Set([...tracked, ...untracked])].sort();
 }
 
@@ -111,24 +163,36 @@ const statePath = (dir) => join(dir, "go-light.json");
 /** Structural check of a state object; returns a list of error strings. */
 export function checkState(state) {
   const errors = [];
-  if (state?.state_format !== STATE_FORMAT) errors.push(`state_format: expected ${STATE_FORMAT}`);
-  if (typeof state?.request !== "string" || state.request.trim() === "") errors.push("request: expected a non-empty string");
+  if (state?.state_format !== STATE_FORMAT)
+    errors.push(`state_format: expected ${STATE_FORMAT}`);
+  if (typeof state?.request !== "string" || state.request.trim() === "")
+    errors.push("request: expected a non-empty string");
   if (!Array.isArray(state?.phases)) errors.push("phases: expected an array");
   for (const [name, status] of Object.entries(state?.phase_status ?? {})) {
-    if (!PHASES.includes(name)) errors.push(`phase_status.${name}: unknown phase`);
-    if (!PHASE_STATUSES.includes(status)) errors.push(`phase_status.${name}: expected one of ${PHASE_STATUSES.join(", ")}`);
+    if (!PHASES.includes(name))
+      errors.push(`phase_status.${name}: unknown phase`);
+    if (!PHASE_STATUSES.includes(status))
+      errors.push(
+        `phase_status.${name}: expected one of ${PHASE_STATUSES.join(", ")}`
+      );
   }
-  if (!Number.isInteger(state?.gate_failures) || state.gate_failures < 0) errors.push("gate_failures: expected an integer >= 0");
-  if (state?.base_sha && !SHA.test(state.base_sha)) errors.push("base_sha: expected a commit SHA");
+  if (!Number.isInteger(state?.gate_failures) || state.gate_failures < 0)
+    errors.push("gate_failures: expected an integer >= 0");
+  if (state?.base_sha && !SHA.test(state.base_sha))
+    errors.push("base_sha: expected a commit SHA");
   return errors;
 }
 
 export function readState(dir) {
   const path = statePath(dir);
-  if (!existsSync(path)) throw new GoLightError(`No go-light.json in ${dir}: run "go-light.mjs init" first`);
+  if (!existsSync(path))
+    throw new GoLightError(
+      `No go-light.json in ${dir}: run "go-light.mjs init" first`
+    );
   const state = readJson(path);
   const errors = checkState(state);
-  if (errors.length > 0) throw new GoLightError(`Invalid ${path}:\n  ${errors.join("\n  ")}`);
+  if (errors.length > 0)
+    throw new GoLightError(`Invalid ${path}:\n  ${errors.join("\n  ")}`);
   return state;
 }
 
@@ -139,7 +203,10 @@ function updateState(dir, fn, env) {
     const result = fn(state);
     state.updated_at = now(env).toISOString();
     const errors = checkState(state);
-    if (errors.length > 0) throw new GoLightError(`Refusing to write invalid state:\n  ${errors.join("\n  ")}`);
+    if (errors.length > 0)
+      throw new GoLightError(
+        `Refusing to write invalid state:\n  ${errors.join("\n  ")}`
+      );
     writeJson(path, state);
     return result ?? state;
   });
@@ -150,9 +217,13 @@ function updateState(dir, fn, env) {
  * Without `pr`, the phases that need a pull request are skipped. With
  * --stop-before-wait, the wait phases are left to the caller.
  */
-export function resolvePhases(configured = PHASES, { stopBeforeWait = false } = {}) {
+export function resolvePhases(
+  configured = PHASES,
+  { stopBeforeWait = false } = {}
+) {
   const wanted = new Set(configured);
-  if (!wanted.has("implement")) throw new GoLightError("go-light.phases must include implement", 1);
+  if (!wanted.has("implement"))
+    throw new GoLightError("go-light.phases must include implement", 1);
   const phases = [];
   const skipped = {};
   for (const phase of PHASES) {
@@ -170,14 +241,24 @@ export function resolvePhases(configured = PHASES, { stopBeforeWait = false } = 
 }
 
 function projectDirOf(options, state) {
-  return resolve(expandHome(String(options["project-dir"] ?? state?.project_dir ?? findRepoRoot(process.cwd()) ?? process.cwd())));
+  return resolve(
+    expandHome(
+      String(
+        options["project-dir"] ??
+          state?.project_dir ??
+          findRepoRoot(process.cwd()) ??
+          process.cwd()
+      )
+    )
+  );
 }
 
 function configOf(snapshot) {
   try {
     return loadConfig({ snapshot }).config;
   } catch (err) {
-    if (err instanceof ConfigError) throw new GoLightError(err.message, err.exitCode ?? 1);
+    if (err instanceof ConfigError)
+      throw new GoLightError(err.message, err.exitCode ?? 1);
     throw err;
   }
 }
@@ -185,19 +266,24 @@ function configOf(snapshot) {
 export function cmdInit(options, env = process.env) {
   const dir = runDirOf(options);
   const path = statePath(dir);
-  if (existsSync(path)) return { state_path: path, created: false, ...readState(dir) };
-  if (!options.request || options.request === true) throw new GoLightError("init needs --request <text>", 2);
+  if (existsSync(path))
+    return { state_path: path, created: false, ...readState(dir) };
+  if (!options.request || options.request === true)
+    throw new GoLightError("init needs --request <text>", 2);
   const projectDir = projectDirOf(options, null);
 
   // Freeze the config so the whole task, and an esp-go escalation, use the same settings.
-  let snapshot = options["config-snapshot"] ? resolve(expandHome(String(options["config-snapshot"]))) : null;
+  let snapshot = options["config-snapshot"]
+    ? resolve(expandHome(String(options["config-snapshot"])))
+    : null;
   if (!snapshot) {
     snapshot = join(dir, "config.snapshot.json");
     if (!existsSync(snapshot)) {
       try {
         writeJson(snapshot, loadConfig({ projectDir }).config);
       } catch (err) {
-        if (err instanceof ConfigError) throw new GoLightError(err.message, err.exitCode ?? 1);
+        if (err instanceof ConfigError)
+          throw new GoLightError(err.message, err.exitCode ?? 1);
         throw err;
       }
     }
@@ -205,7 +291,9 @@ export function cmdInit(options, env = process.env) {
   const config = configOf(snapshot);
   const light = config["go-light"] ?? {};
   const stopBeforeWait = Boolean(options["stop-before-wait"]);
-  const { phases, skipped } = resolvePhases(light.phases ?? PHASES, { stopBeforeWait });
+  const { phases, skipped } = resolvePhases(light.phases ?? PHASES, {
+    stopBeforeWait
+  });
   const at = now(env).toISOString();
   const state = {
     state_format: STATE_FORMAT,
@@ -213,7 +301,8 @@ export function cmdInit(options, env = process.env) {
     request: String(options.request).trim(),
     project_dir: projectDir,
     base: options.base ?? config.pr?.base ?? null,
-    base_sha: options["base-sha"] ?? git(["rev-parse", "HEAD"], projectDir).trim(),
+    base_sha:
+      options["base-sha"] ?? git(["rev-parse", "HEAD"], projectDir).trim(),
     branch: null,
     commit: null,
     pr: null,
@@ -224,7 +313,9 @@ export function cmdInit(options, env = process.env) {
     stop_before_wait: stopBeforeWait,
     phases,
     skipped_phases: skipped,
-    phase_status: Object.fromEntries(PHASES.map((p) => [p, phases.includes(p) ? "pending" : "skipped"])),
+    phase_status: Object.fromEntries(
+      PHASES.map((p) => [p, phases.includes(p) ? "pending" : "skipped"])
+    ),
     max_files_changed: light.max_files_changed ?? 10,
     escalate_to_go: light.escalate_to_go ?? true,
     max_wall_minutes: light.budgets?.max_wall_minutes ?? null,
@@ -237,7 +328,8 @@ export function cmdInit(options, env = process.env) {
     halt: null
   };
   const errors = checkState(state);
-  if (errors.length > 0) throw new GoLightError(`Invalid state:\n  ${errors.join("\n  ")}`);
+  if (errors.length > 0)
+    throw new GoLightError(`Invalid state:\n  ${errors.join("\n  ")}`);
   withLock(path, () => writeJson(path, state));
   return { state_path: path, created: true, ...state };
 }
@@ -257,24 +349,40 @@ function parseJsonOption(raw, name) {
 /** Record a phase status and the facts it produced (branch, commit, PR, gates, summary). */
 export function cmdPhase(name, options, env = process.env) {
   const dir = runDirOf(options);
-  if (!PHASES.includes(name)) throw new GoLightError(`Unknown phase: ${name ?? "(missing)"} (${PHASES.join(", ")})`, 2);
+  if (!PHASES.includes(name))
+    throw new GoLightError(
+      `Unknown phase: ${name ?? "(missing)"} (${PHASES.join(", ")})`,
+      2
+    );
   const status = options.status;
   if (!PHASE_STATUSES.includes(status) || status === "pending")
-    throw new GoLightError("--status must be started, done, skipped or failed", 2);
-  if (options.commit && !SHA.test(options.commit)) throw new GoLightError("--commit must be a commit SHA", 2);
-  if (options["base-sha"] && !SHA.test(options["base-sha"])) throw new GoLightError("--base-sha must be a commit SHA", 2);
-  const gates = options.gates === undefined ? null : parseJsonOption(options.gates, "gates");
+    throw new GoLightError(
+      "--status must be started, done, skipped or failed",
+      2
+    );
+  if (options.commit && !SHA.test(options.commit))
+    throw new GoLightError("--commit must be a commit SHA", 2);
+  if (options["base-sha"] && !SHA.test(options["base-sha"]))
+    throw new GoLightError("--base-sha must be a commit SHA", 2);
+  const gates =
+    options.gates === undefined
+      ? null
+      : parseJsonOption(options.gates, "gates");
   const events = [];
   const state = updateState(
     dir,
     (s) => {
       s.phase_status[name] = status;
-      if (options.reason) s.phase_reasons = { ...s.phase_reasons, [name]: options.reason };
+      if (options.reason)
+        s.phase_reasons = { ...s.phase_reasons, [name]: options.reason };
       if (options["base-sha"]) s.base_sha = options["base-sha"];
       if (options.base) s.base = options.base;
       if (options.branch && options.branch !== s.branch) {
         s.branch = options.branch;
-        events.push(["branch.created", { branch: s.branch, base: s.base, base_sha: s.base_sha }]);
+        events.push([
+          "branch.created",
+          { branch: s.branch, base: s.base, base_sha: s.base_sha }
+        ]);
       }
       if (options.commit && options.commit !== s.commit) {
         s.commit = options.commit;
@@ -294,13 +402,23 @@ export function cmdPhase(name, options, env = process.env) {
   if (options.branch) runFields.branch = options.branch;
   if (options.base) runFields.base = options.base;
   if (options.pr) runFields.pr = options.pr;
-  if (Object.keys(runFields).length > 0) cmdUpdate({ "run-dir": dir, ...runFields }, env);
-  return { phase: name, status, next: nextPhase(state), phase_status: state.phase_status };
+  if (Object.keys(runFields).length > 0)
+    cmdUpdate({ "run-dir": dir, ...runFields }, env);
+  return {
+    phase: name,
+    status,
+    next: nextPhase(state),
+    phase_status: state.phase_status
+  };
 }
 
 /** First phase of the resolved list that is still pending or started. */
 export function nextPhase(state) {
-  return state.phases.find((p) => ["pending", "started"].includes(state.phase_status[p])) ?? null;
+  return (
+    state.phases.find((p) =>
+      ["pending", "started"].includes(state.phase_status[p])
+    ) ?? null
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -331,9 +449,13 @@ export function cmdScope(options) {
   let estimate = null;
   if (options.estimate !== undefined) {
     estimate = Number(options.estimate);
-    if (!Number.isInteger(estimate) || estimate < 0) throw new GoLightError("--estimate must be an integer >= 0", 2);
+    if (!Number.isInteger(estimate) || estimate < 0)
+      throw new GoLightError("--estimate must be an integer >= 0", 2);
   }
-  const files = estimate === null ? changedFiles(projectDirOf(options, state), state.base_sha) : [];
+  const files =
+    estimate === null
+      ? changedFiles(projectDirOf(options, state), state.base_sha)
+      : [];
   return scopeCheck(state, files, estimate);
 }
 
@@ -349,20 +471,37 @@ export function cmdGateFailure(options, env = process.env) {
     dir,
     (s) => {
       s.gate_failures += 1;
-      if (options.reason) s.gate_failure_reasons = [...(s.gate_failure_reasons ?? []), String(options.reason)];
+      if (options.reason)
+        s.gate_failure_reasons = [
+          ...(s.gate_failure_reasons ?? []),
+          String(options.reason)
+        ];
     },
     env
   );
-  return { gate_failures: state.gate_failures, limit: state.gate_failure_limit, action: gateFailureAction(state) };
+  return {
+    gate_failures: state.gate_failures,
+    limit: state.gate_failure_limit,
+    action: gateFailureAction(state)
+  };
 }
 
 export function budgetCheck(state, at) {
-  const elapsed = Math.max(0, (at.getTime() - Date.parse(state.created_at)) / 60000);
+  const elapsed = Math.max(
+    0,
+    (at.getTime() - Date.parse(state.created_at)) / 60000
+  );
   const max = state.max_wall_minutes;
   const exceeded = max !== null && max !== undefined && elapsed > max;
   let action = "continue";
-  if (exceeded) action = state.halt_on.includes("budget") ? "halt" : "continue-over-budget";
-  return { elapsed_minutes: Math.round(elapsed * 10) / 10, max_wall_minutes: max ?? null, exceeded, action };
+  if (exceeded)
+    action = state.halt_on.includes("budget") ? "halt" : "continue-over-budget";
+  return {
+    elapsed_minutes: Math.round(elapsed * 10) / 10,
+    max_wall_minutes: max ?? null,
+    exceeded,
+    action
+  };
 }
 
 export function cmdBudget(options, env = process.env) {
@@ -387,7 +526,9 @@ function headOf(projectDir) {
 
 function commitsSince(projectDir, base) {
   try {
-    return lines(git(["log", "--format=%H %s", `${base}..HEAD`], projectDir)).map((line) => {
+    return lines(
+      git(["log", "--format=%H %s", `${base}..HEAD`], projectDir)
+    ).map((line) => {
       const space = line.indexOf(" ");
       return { sha: line.slice(0, space), subject: line.slice(space + 1) };
     });
@@ -410,12 +551,17 @@ function latestStep(steps, pattern) {
 
 function pick(object, keys) {
   if (!object) return null;
-  return Object.fromEntries(keys.filter((k) => object[k] !== undefined).map((k) => [k, object[k]]));
+  return Object.fromEntries(
+    keys.filter((k) => object[k] !== undefined).map((k) => [k, object[k]])
+  );
 }
 
 function assertBlock(block) {
   const { valid, errors } = validateArtifact("result", block);
-  if (!valid) throw new GoLightError(`Invalid result block:\n  ${errors.map((e) => `${e.path}: ${e.message}`).join("\n  ")}`);
+  if (!valid)
+    throw new GoLightError(
+      `Invalid result block:\n  ${errors.map((e) => `${e.path}: ${e.message}`).join("\n  ")}`
+    );
   return block;
 }
 
@@ -439,10 +585,17 @@ export function cmdEscalate(options, env = process.env) {
   const dir = runDirOf(options);
   const state = readState(dir);
   const trigger = options.trigger;
-  if (!TRIGGERS.includes(trigger)) throw new GoLightError(`--trigger must be one of ${TRIGGERS.join(", ")}`, 2);
-  if (!options.reason) throw new GoLightError("escalate needs --reason <text>", 2);
+  if (!TRIGGERS.includes(trigger))
+    throw new GoLightError(
+      `--trigger must be one of ${TRIGGERS.join(", ")}`,
+      2
+    );
+  if (!options.reason)
+    throw new GoLightError("escalate needs --reason <text>", 2);
   if (state.escalation) {
-    throw new GoLightError(`Already escalated (${state.escalation.trigger}): ${state.escalation.reason}`);
+    throw new GoLightError(
+      `Already escalated (${state.escalation.trigger}): ${state.escalation.reason}`
+    );
   }
   const projectDir = projectDirOf(options, state);
   const files = changedFiles(projectDir, state.base_sha);
@@ -461,7 +614,8 @@ export function cmdEscalate(options, env = process.env) {
   const decision = appendDecision(
     dir,
     {
-      phase: state.phase_status.implement === "pending" ? "context" : "implement",
+      phase:
+        state.phase_status.implement === "pending" ? "context" : "implement",
       source: trigger === "design" ? "agent" : "policy",
       risk: "medium",
       decision: `Escalate to esp-go (${trigger})`,
@@ -486,7 +640,9 @@ export function cmdEscalate(options, env = process.env) {
     dir,
     (s) => {
       s.escalation = escalation;
-      for (const phase of s.phases) if (["pending", "started"].includes(s.phase_status[phase])) s.phase_status[phase] = "skipped";
+      for (const phase of s.phases)
+        if (["pending", "started"].includes(s.phase_status[phase]))
+          s.phase_status[phase] = "skipped";
     },
     env
   );
@@ -511,7 +667,8 @@ export function cmdEscalate(options, env = process.env) {
 export function cmdHalt(options, env = process.env) {
   const dir = runDirOf(options);
   const key = options.key;
-  if (!HALT_KEYS.includes(key)) throw new GoLightError(`--key must be one of ${HALT_KEYS.join(", ")}`, 2);
+  if (!HALT_KEYS.includes(key))
+    throw new GoLightError(`--key must be one of ${HALT_KEYS.join(", ")}`, 2);
   if (!options.reason) throw new GoLightError("halt needs --reason <text>", 2);
   const decision = appendDecision(
     dir,
@@ -528,8 +685,15 @@ export function cmdHalt(options, env = process.env) {
   const state = updateState(
     dir,
     (s) => {
-      s.halt = { key, reason: String(options.reason), decision: decision.id, at: now(env).toISOString() };
-      for (const phase of s.phases) if (["pending", "started"].includes(s.phase_status[phase])) s.phase_status[phase] = "skipped";
+      s.halt = {
+        key,
+        reason: String(options.reason),
+        decision: decision.id,
+        at: now(env).toISOString()
+      };
+      for (const phase of s.phases)
+        if (["pending", "started"].includes(s.phase_status[phase]))
+          s.phase_status[phase] = "skipped";
     },
     env
   );
@@ -552,21 +716,36 @@ export function cmdHalt(options, env = process.env) {
  * (fix-review, await-review, merge). The status follows the last phase that
  * did not end `done`, unless --status overrides it.
  */
-export function buildResult(dir, state, { status, summary, projectDir, steps = readStepResults(dir), runRisk = null } = {}) {
+export function buildResult(
+  dir,
+  state,
+  {
+    status,
+    summary,
+    projectDir,
+    steps = readStepResults(dir),
+    runRisk = null
+  } = {}
+) {
   const merge = latestStep(steps, /^merge$/);
   const fixReview = latestStep(steps, /^fix-review$/);
   const awaitReview = latestStep(steps, /^await-review$/);
   let derived = "done";
   let carrier = null;
   for (const step of [awaitReview, fixReview, merge]) {
-    if (step && step.result.status !== "done") [derived, carrier] = [step.result.status, step];
+    if (step && step.result.status !== "done")
+      [derived, carrier] = [step.result.status, step];
   }
   if (merge?.result.status === "merged") [derived, carrier] = ["merged", merge];
   if (state.halt) derived = "halted";
   if (state.escalation) derived = "escalate";
   const finalStatus = status ?? derived;
   const commits = commitsSince(projectDir, state.base_sha);
-  const reviewFixCommits = commits.filter((c) => /^fix(\(review\)|\(ci\))?:/.test(c.subject) || c.subject.startsWith("fixup!"));
+  const reviewFixCommits = commits.filter(
+    (c) =>
+      /^fix(\(review\)|\(ci\))?:/.test(c.subject) ||
+      c.subject.startsWith("fixup!")
+  );
   const discovered = [];
   const seen = new Set();
   for (const { result } of steps) {
@@ -592,17 +771,46 @@ export function buildResult(dir, state, { status, summary, projectDir, steps = r
       commits: commits.map((c) => c.sha),
       review_fix_commits: reviewFixCommits.length,
       files_count: filesSince(projectDir, state.base_sha).length,
-      fix_review: pick(fixReview?.result.outputs, ["mode", "pr", "rounds", "fixed", "rejected", "deferred", "open", "remaining", "exhausted"]),
-      merge: pick(merge?.result.outputs, ["outcome", "merged", "method", "method_reason", "failing"]),
-      await_review: pick(awaitReview?.result.outputs, ["reviewers", "completed", "pending"]),
-      deferred_phases: state.stop_before_wait ? WAIT_PHASES.filter((p) => state.skipped_phases?.[p]?.includes("stop-before-wait")) : [],
+      fix_review: pick(fixReview?.result.outputs, [
+        "mode",
+        "pr",
+        "rounds",
+        "fixed",
+        "rejected",
+        "deferred",
+        "open",
+        "remaining",
+        "exhausted"
+      ]),
+      merge: pick(merge?.result.outputs, [
+        "outcome",
+        "merged",
+        "method",
+        "method_reason",
+        "failing"
+      ]),
+      await_review: pick(awaitReview?.result.outputs, [
+        "reviewers",
+        "completed",
+        "pending"
+      ]),
+      deferred_phases: state.stop_before_wait
+        ? WAIT_PHASES.filter((p) =>
+            state.skipped_phases?.[p]?.includes("stop-before-wait")
+          )
+        : [],
       halt: state.halt ?? undefined,
       escalation: state.escalation ?? undefined
     }
   };
   if (discovered.length > 0) block.discovered_items = discovered;
-  if (finalStatus === "awaiting-human" && carrier?.result.needs_input) block.needs_input = carrier.result.needs_input;
-  if (carrier?.result.blockers?.length && !["done", "merged"].includes(finalStatus)) block.blockers = carrier.result.blockers;
+  if (finalStatus === "awaiting-human" && carrier?.result.needs_input)
+    block.needs_input = carrier.result.needs_input;
+  if (
+    carrier?.result.blockers?.length &&
+    !["done", "merged"].includes(finalStatus)
+  )
+    block.blockers = carrier.result.blockers;
   if (block.gates === undefined) delete block.gates;
   if (block.outputs.halt === undefined) delete block.outputs.halt;
   if (block.outputs.escalation === undefined) delete block.outputs.escalation;
@@ -615,8 +823,11 @@ function defaultSummary(status, state, merge) {
     case "merged":
       return `Merged${pr} with ${merge?.result.outputs?.method ?? "the resolved method"}.`;
     case "done":
-      if (state.stop_before_wait && state.pr) return `Opened${pr}; review, fixes and merge are left to the caller.`;
-      return state.pr ? `Done${pr}.` : `Committed ${state.commit ? state.commit.slice(0, 7) : "the change"} on ${state.branch ?? "the branch"}.`;
+      if (state.stop_before_wait && state.pr)
+        return `Opened${pr}; review, fixes and merge are left to the caller.`;
+      return state.pr
+        ? `Done${pr}.`
+        : `Committed ${state.commit ? state.commit.slice(0, 7) : "the change"} on ${state.branch ?? "the branch"}.`;
     case "halted":
       return `Halted${state.halt ? ` (${state.halt.key}): ${state.halt.reason}` : "."}`;
     case "escalate":
@@ -632,8 +843,19 @@ export function cmdResult(options) {
   const dir = runDirOf(options);
   const state = readState(dir);
   if (options.status !== undefined) {
-    const statuses = ["done", "merged", "halted", "awaiting-human", "failed", "escalate"];
-    if (!statuses.includes(options.status)) throw new GoLightError(`--status must be one of ${statuses.join(", ")}`, 2);
+    const statuses = [
+      "done",
+      "merged",
+      "halted",
+      "awaiting-human",
+      "failed",
+      "escalate"
+    ];
+    if (!statuses.includes(options.status))
+      throw new GoLightError(
+        `--status must be one of ${statuses.join(", ")}`,
+        2
+      );
   }
   return buildResult(dir, state, {
     status: options.status,
@@ -653,11 +875,21 @@ export function cmdPrBody(options) {
   const config = configOf(state.config_snapshot);
   const summary = options.summary ?? state.summary ?? state.request;
   const sections = config.pr?.body_sections ?? BODY_SECTIONS;
-  const attribution = config.pr?.attribution === false ? null : (options.attribution ?? ATTRIBUTION);
-  const body = renderPrBody(collectRunArtifacts(dir), { summary, sections, attribution });
+  const attribution =
+    config.pr?.attribution === false
+      ? null
+      : (options.attribution ?? ATTRIBUTION);
+  const body = renderPrBody(collectRunArtifacts(dir), {
+    summary,
+    sections,
+    attribution
+  });
   if (options.out) {
     writeFileSync(resolve(String(options.out)), body, "utf8");
-    return { path: resolve(String(options.out)), bytes: Buffer.byteLength(body) };
+    return {
+      path: resolve(String(options.out)),
+      bytes: Buffer.byteLength(body)
+    };
   }
   return body;
 }
@@ -704,10 +936,12 @@ export function parseArgs(argv) {
     else if (arg.startsWith("--")) {
       const eq = arg.indexOf("=");
       const key = eq === -1 ? arg.slice(2) : arg.slice(2, eq);
-      if (BOOLEAN_FLAGS.has(key)) options[key] = eq === -1 ? true : arg.slice(eq + 1) !== "false";
+      if (BOOLEAN_FLAGS.has(key))
+        options[key] = eq === -1 ? true : arg.slice(eq + 1) !== "false";
       else {
         const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-        if (value === undefined) throw new GoLightError(`--${key} requires a value`, 2);
+        if (value === undefined)
+          throw new GoLightError(`--${key} requires a value`, 2);
         options[key] = value;
       }
     } else positional.push(arg);
@@ -717,7 +951,8 @@ export function parseArgs(argv) {
 
 export function run(argv, env = process.env) {
   const { command, args, options } = parseArgs(argv);
-  if (options.help || !command) return { output: USAGE, exitCode: command ? 0 : 2 };
+  if (options.help || !command)
+    return { output: USAGE, exitCode: command ? 0 : 2 };
   switch (command) {
     case "init":
       return { output: cmdInit(options, env) };
@@ -733,17 +968,26 @@ export function run(argv, env = process.env) {
       return { output: cmdBudget(options, env) };
     case "escalate": {
       const block = cmdEscalate(options, env);
-      return { output: JSON.stringify(block), exitCode: exitCodeFor(block.status) };
+      return {
+        output: JSON.stringify(block),
+        exitCode: exitCodeFor(block.status)
+      };
     }
     case "halt": {
       const block = cmdHalt(options, env);
-      return { output: JSON.stringify(block), exitCode: exitCodeFor(block.status) };
+      return {
+        output: JSON.stringify(block),
+        exitCode: exitCodeFor(block.status)
+      };
     }
     case "pr-body":
       return { output: cmdPrBody(options) };
     case "result": {
       const block = cmdResult(options);
-      return { output: JSON.stringify(block), exitCode: exitCodeFor(block.status) };
+      return {
+        output: JSON.stringify(block),
+        exitCode: exitCodeFor(block.status)
+      };
     }
     default:
       throw new GoLightError(`Unknown command: ${command}\n\n${USAGE}`, 2);
@@ -753,16 +997,24 @@ export function run(argv, env = process.env) {
 function main() {
   try {
     const { output, exitCode = 0 } = run(process.argv.slice(2));
-    const text = typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    const text =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
     process.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
     process.exitCode = exitCode;
   } catch (err) {
-    const known = ["GoLightError", "RunsError", "LockTimeoutError"].includes(err.name);
-    process.stderr.write(`go-light error: ${known ? err.message : (err.stack ?? err)}\n`);
+    const known = ["GoLightError", "RunsError", "LockTimeoutError"].includes(
+      err.name
+    );
+    process.stderr.write(
+      `go-light error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
     process.exitCode = known ? (err.exitCode ?? 1) : 1;
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   main();
 }
