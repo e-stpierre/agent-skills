@@ -64,7 +64,8 @@ The `SKILL.md` file is required. Supporting files are optional and should be ref
 - Use `[arg...]` for variadic arguments
 - Argument order: flags first, then required args, then optional args
 - The `[context]` argument must ALWAYS come last when present
-- Flags MUST be boolean-only - NEVER use `--flag <value>` pattern
+- Flags are boolean by default; use positional arguments for user-facing values
+- Valued options (`[--name <value>]`) are allowed only for harness or orchestration inputs (`[--run-dir <path>]`, `[--config-snapshot <path>]`) and workflow modes (`[--interactive <mode>]`). They are optional and come after boolean flags, before positionals
 
 Examples:
 
@@ -72,6 +73,7 @@ Examples:
 - `<type> [context]` - required type, optional context
 - `[--verbose] <type> [context]` - flag, required type, optional context
 - `[--draft] [--dry-run] <file> [format]` - flags first, then positional
+- `[--amend] [--run-dir <path>] [context]` - flag, valued option, then positional
 
 ### Positional Argument Access
 

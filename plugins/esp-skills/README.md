@@ -11,7 +11,7 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-pr` - Create a pull request with a contextual description
 - `/esp-skills:esp-fix-pr 42` - Fix review comments and CI failures on a PR
 - `/esp-skills:esp-code-review PR 123` - Review a pull request for high-signal issues
-- `/esp-skills:esp-sdlc-plan feature Add OAuth login` - Plan a feature with milestones
+- `/esp-skills:esp-plan feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
 - `/esp-skills:esp-analyze security` - Analyze the codebase for security issues
 - `/esp-skills:esp-qna How does OAuth 2.0 work?` - Get a concise answer without code changes
 - `/esp-skills:esp-config set pr.draft true` - Change a configuration default
@@ -58,7 +58,7 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 
 | Skill                       | Description                                                          |
 | --------------------------- | -------------------------------------------------------------------- |
-| `/esp-skills:esp-sdlc-plan` | **Beta** - Create an implementation plan (feature, bug, or chore)    |
+| `/esp-skills:esp-plan`      | **Beta** - Create or amend a machine-readable implementation plan    |
 | `/esp-skills:esp-analyze`   | **Beta** - Analyze codebase for bugs, debt, docs, security, or style |
 
 ### Helpers
@@ -117,19 +117,20 @@ Keys read by the current skills:
 | `pr.draft`                     | `false`                                   | `esp-pr`               | Open PRs as drafts                                     |
 | `pr.attribution`               | `true`                                    | `esp-pr`               | Append the AI attribution line                         |
 | `analyze.output_dir`           | `analysis`                                | `esp-analyze`          | Directory for analysis reports                         |
+| `plan.default_type`            | `auto`                                    | `esp-plan`             | Plan type when `--type` is not given                   |
+| `plan.explore_agents`          | `feature: 3, bug: 2, chore: 2`            | `esp-plan`             | Explore subagents per plan type                        |
+| `defaults.interactive`         | `off`                                     | `esp-plan`             | When skills stop to ask (`off`, `plan`, `all`)         |
+| `defaults.models`              | see `references/model-selection.md`       | `esp-plan` (explorer)  | Model and effort per subagent role                     |
 | `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
 
 | Key                                    | Planned use                                                          |
 | -------------------------------------- | -------------------------------------------------------------------- |
-| `defaults.interactive`                 | When workflow skills stop to ask (`off`, `plan`, `all`)              |
-| `defaults.models`                      | Model and effort per subagent role (planner, builder, reviewer, ...) |
 | `runs.retention_days`                  | Days to keep finished runs                                           |
 | `worktrees`                            | Worktree root and cleanup                                            |
 | `commit.review_fixes`                  | Review-fix commit style                                              |
 | `pr.body_from_run`, `pr.body_sections` | PR body built from run artifacts                                     |
-| `plan`                                 | Default plan type and explore agents                                 |
 | `build`                                | Milestone loop retries, parallelism and gate commands                |
 | `review`                               | Review dimensions, minimum severity, finding verification            |
 | `await-review`                         | Bot reviewers, triggers, timeout and polling                         |
@@ -140,24 +141,31 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 
 ## Architecture
 
-The SDLC skills (`esp-sdlc-plan`, `esp-analyze`) accept an optional `[context]` argument as the last parameter. Providing context upfront replaces questions that would otherwise be asked interactively.
+The SDLC skills (`esp-plan`, `esp-analyze`) accept an optional `[context]` argument as the last parameter. Providing context upfront replaces questions that would otherwise be asked interactively.
 
 ```bash
 # With context - minimal prompts
-/esp-skills:esp-sdlc-plan bug "Login fails on Safari when using OAuth."
+/esp-skills:esp-plan bug "Login fails on Safari when using OAuth."
 
 # Without context - interactive prompts
-/esp-skills:esp-sdlc-plan bug
+/esp-skills:esp-plan --interactive plan bug
 ```
 
-Plans are static documentation of work to be done:
-
-- Plans are immutable during implementation (progress tracked via TodoWrite)
-- No time estimates, deadlines, or scheduling information
-- Content includes requirements, architecture, tasks, and validation criteria
-- Implementation skills read plans as reference, not as mutable state
-
 The `esp-code-review` skill produces plain markdown and performs no write-side effects. Routing the review (stdout, PR comment, file, CI annotation) is the caller's responsibility.
+
+### Plans
+
+`esp-plan` writes plans in plan format 1 (`references/plan-format.md`): frontmatter, fixed sections, and milestones with an ID, goal, complexity, dependencies, files, tasks, acceptance criteria and validation commands. Each milestone is one commit. `scripts/plan.mjs` parses a plan into JSON, lints it, and checks an amendment against the previous version:
+
+```bash
+node scripts/plan.mjs parse ~/.esp-skills/runs/2026-11-10-add-oauth-login/plan.md
+node scripts/plan.mjs lint ~/.esp-skills/runs/2026-11-10-add-oauth-login/plan.md
+node scripts/plan.mjs diff plan.md plan.v2.md --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
+```
+
+- Plans live in the run directory, never in the repository, and are never edited once written
+- An amendment writes `plan.v<N>.md`, keeps completed milestones unchanged, and is logged in `amendments.jsonl` and `decisions.jsonl`
+- Plans never name models: milestone `complexity` selects the builder model from the config
 
 ### Run Directories
 
@@ -175,6 +183,7 @@ Workflow skills and agents share these references at the plugin root, reached th
 
 - `references/decision-policy.md`: classes A-Fix, B-Decide, B-Scope, Reject and Halt, interactive and autonomous behavior, `needs_input` under a harness, `go.halt_on` stop conditions, risk levels and decision logging
 - `references/summary-template.md`: frontmatter and sections of a run `summary.md`
+- `references/plan-format.md`: plan format 1, the milestone block, parsed JSON, amendments and plan-lint
 - `references/model-selection.md`: roles and the model and effort precedence (`--model` -> milestone complexity -> config role -> agent frontmatter -> inherit)
 
 ## Complete Examples
@@ -317,33 +326,34 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-code-review #123
 ```
 
-### /esp-skills:esp-sdlc-plan
+### /esp-skills:esp-plan
 
 **Arguments:**
 
-- `[--git]` - Commit plan file after creation
-- `[type]` - Plan type: `feature`, `bug`, `chore`, or `auto` (default: `auto`)
-- `[explore-count]` - Override default explore agent count
-- `[path]` - Directory where the plan file is saved (default: `specs`)
-- `[context]` - Task description
+- `[--amend]` - Amend the latest plan in `--run-dir`; `[context]` is the amendment (text or file)
+- `[--interactive <mode>]` - `off`, `plan` or `all` (default: `defaults.interactive`)
+- `[--type <type>]` - `feature`, `bug`, `chore` or `auto` (default: `plan.default_type`); a leading bare type word also works
+- `[--run-dir <path>]` - Use an existing run directory (default: a new run under `runs.root`)
+- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
+- `[context]` - Task description, issue URL or document path
 
 **Examples:**
 
 ```bash
 # Plan a feature with context
-/esp-skills:esp-sdlc-plan feature Add user authentication with OAuth for Google and GitHub
+/esp-skills:esp-plan feature Add user authentication with OAuth for Google and GitHub
 
-# Plan a bug fix
-/esp-skills:esp-sdlc-plan bug Login fails on Safari when using OAuth
+# Plan a bug fix from an issue
+/esp-skills:esp-plan --type bug https://github.com/acme/web/issues/42
 
 # Plan a chore
-/esp-skills:esp-sdlc-plan chore Update all npm dependencies to latest versions
+/esp-skills:esp-plan chore Update all npm dependencies to latest versions
 
-# Auto-detect type from context
-/esp-skills:esp-sdlc-plan Fix the login timeout issue
+# Auto-detect type, and approve the plan before it is final
+/esp-skills:esp-plan --interactive plan Fix the login timeout issue
 
-# Plan with exploration and commit
-/esp-skills:esp-sdlc-plan feature 5 --git Implement real-time notifications
+# Amend the remaining milestones of an existing plan
+/esp-skills:esp-plan --amend --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login Also support GitHub OAuth
 ```
 
 ### /esp-skills:esp-analyze

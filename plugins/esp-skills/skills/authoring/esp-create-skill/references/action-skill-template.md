@@ -54,14 +54,19 @@ ARGUMENT-HINT CONVENTIONS:
   - `<type> [context]` - required type, optional context
   - `[--verbose] <type> [context]` - flag, required type, optional context
   - `[--draft] [--dry-run] <file> [format]` - flags first, then positional
+  - `[--amend] [--run-dir <path>] [context]` - flag, valued option, then positional
 
 ARGUMENT-HINT VALIDATION RULES:
 - Flags (`[--flag]`) must come first, before all positional arguments
 - Required arguments (`<arg>`) must precede optional arguments (`[arg]`)
-- Flags MUST be boolean-only (presence/absence toggles)
-- NEVER use `--flag <value>` pattern - flags do not take values
-- For named values, use positional arguments with descriptive names
-- Wrong: `--level <level> --step <name>` (flags with values)
+- Flags are boolean (presence/absence toggles) by default
+- Prefer positional arguments with descriptive names for user-facing values
+- Exception, valued options: `[--name <value>]` is allowed for inputs passed by a harness
+  or an orchestrating skill (`[--run-dir <path>]`, `[--config-snapshot <path>]`), and for
+  modes of workflow skills that a positional would make ambiguous (`[--interactive <mode>]`).
+  Valued options are always optional, come after boolean flags and before positionals,
+  and are documented in Definitions with their values and default
+- Wrong: `--level <level> --step <name>` (user-facing values as options)
 - Correct: `<level> <step>` (positional arguments)
 - Wrong: `--type critical` (flag taking a value)
 - Correct: `<type>` with valid values documented in Definitions

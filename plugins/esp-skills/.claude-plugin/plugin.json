@@ -15,7 +15,7 @@
     "./skills/git/esp-pr",
     "./skills/github/esp-fix-pr",
     "./skills/review/esp-code-review",
-    "./skills/sdlc/esp-sdlc-plan",
+    "./skills/sdlc/esp-plan",
     "./skills/sdlc/esp-analyze",
     "./skills/helpers/esp-qna",
     "./skills/helpers/esp-rubberduck",

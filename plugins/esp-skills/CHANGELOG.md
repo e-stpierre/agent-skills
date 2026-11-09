@@ -9,6 +9,10 @@
 - Added `scripts/runs.mjs` to create, update, validate, and index run directories, append decisions and events, write step result blocks, and manage operator messages and plan amendments; `runs.root` is now an active config key
 - Added agents `esp-builder` (one milestone or review-fix set as one commit), `esp-reviewer` (read-only find and verify review), and `esp-verifier` (independent gate and acceptance check), each returning a contract result block
 - Added shared references `decision-policy.md`, `summary-template.md`, and `model-selection.md`
+- **Breaking**: renamed `esp-sdlc-plan` to `esp-plan` (`/esp-skills:esp-sdlc-plan` -> `/esp-skills:esp-plan`). Plans now use plan format 1 (`references/plan-format.md`), are written to a run directory instead of `specs/`, and are never committed; the `[--git]`, `[explore-count]` and `[path]` arguments are removed (use `plan.explore_agents` in the config)
+- `esp-plan` gains `--type`, `--interactive`, `--run-dir`, `--config-snapshot` and `--amend` (writes `plan.v<N>.md`, keeps completed milestones, logs `amendments.jsonl` and `decisions.jsonl`), runs plan-lint, and ends with a contract result block
+- Added `scripts/plan.mjs` to parse plans into JSON, lint them, and diff plan versions; `plan`, `defaults.interactive` and `defaults.models` are now active config keys
+- Skill templates allow valued options (`[--name <value>]`) for harness and orchestration inputs such as `--run-dir <path>`
 
 ## 0.6.0
 
