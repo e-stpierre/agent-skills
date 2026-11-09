@@ -35,7 +35,8 @@
         "style",
         "skill",
         "template",
-        "config"
+        "config",
+        "merge"
       ],
       "category": "development",
       "strict": false

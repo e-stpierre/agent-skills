@@ -12,6 +12,7 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-await-review --reviewers codex 42` - Wait in the background until Codex has reviewed the head commit of PR 42
 - `/esp-skills:esp-fix-review --reviewers codex 42` - Fix, reply to, or defer Codex's comments and failing CI on PR 42, re-review included
 - `/esp-skills:esp-fix-review --internal --run-dir <run>` - Apply the findings of the last `esp-review` of a run, without a PR
+- `/esp-skills:esp-merge 42` - Merge PR 42 once its checks, threads, reviews and branch protection allow it, with the method the repo allows
 - `/esp-skills:esp-review PR 123` - Review a pull request across correctness, security, tests and conventions, with classified findings
 - `/esp-skills:esp-plan feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
 - `/esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login` - Build the plan, one verified commit per milestone
@@ -51,6 +52,7 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 | ------------------------ | ----------------------------------------------------------------------------- |
 | `/esp-skills:esp-fix-review` | Fix, reply to, or defer PR review comments and failing CI checks over bounded rounds, or apply `esp-review` findings |
 | `/esp-skills:esp-await-review` | Wait in the background for bot reviews of the PR head commit, then report |
+| `/esp-skills:esp-merge` | Merge a PR under objective conditions, with the method the repository allows, rebasing when behind |
 
 ### Code Review
 
@@ -144,6 +146,15 @@ Keys read by the current skills:
 | `fix-review.reply_to_rejected` | `true`                                    | `esp-fix-review`       | Reply with the reason to rejected comments             |
 | `fix-review.deferred_items`    | `follow-up`                               | `esp-fix-review`       | `follow-up` (reply, resolve, discovered item) or `block` |
 | `commit.review_fixes`          | `separate`                                | `esp-fix-review`       | `fix(review)` commits, or `fixup!` commits             |
+| `merge.enabled`                | `true`                                    | `esp-merge`            | `false` leaves the PR open                             |
+| `merge.method`                 | `repo`                                    | `esp-merge`            | `repo` resolves it from the repository, else forced    |
+| `merge.preference`             | `squash, rebase, merge`                   | `esp-merge`            | Order when the repository allows several methods       |
+| `merge.delete_branch`          | `true`                                    | `esp-merge`            | Delete the remote head branch after the merge          |
+| `merge.require_resolved_threads` | `true`                                  | `esp-merge`            | Unresolved review threads block the merge              |
+| `merge.require_green_checks`   | `true`                                    | `esp-merge`            | Every check must pass (`false`: required checks only)  |
+| `merge.use_auto_merge`         | `false`                                   | `esp-merge`            | Enable auto-merge on pending checks instead of waiting |
+| `merge.checks_timeout_minutes` | `30`                                      | `esp-merge`            | Wait for pending checks and for a busy merge lock      |
+| `worktrees.cleanup`            | `on-merge`                                | `esp-merge`            | Remove the task worktree after the merge (`never` keeps it) |
 | `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
@@ -151,9 +162,7 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 | Key                                    | Planned use                                                          |
 | -------------------------------------- | -------------------------------------------------------------------- |
 | `runs.retention_days`                  | Days to keep finished runs                                           |
-| `worktrees.cleanup`                    | Worktree cleanup policy                                              |
 | `pr.body_from_run`, `pr.body_sections` | PR body built from run artifacts                                     |
-| `merge`                                | Merge conditions and method                                          |
 | `go` (except `default_reviewers`), `go-light` | Workflow phases, budgets and halt conditions                  |
 | `recap`                                | Runs roots and fan-out                                               |
 
@@ -238,6 +247,20 @@ node scripts/fix-review.mjs result --run-dir <run>
 - `internal [review-<N>.json]` loads `esp-review` findings instead of PR comments, for the internal review loop
 - Every resolution is a decision in `decisions.jsonl`; deferred items become `discovered_items` (no GitHub issues are opened)
 - Rounds exhausted with items left halt the task when `budget` is in `go.halt_on`, else they become a follow-up item
+
+### Merging
+
+`esp-merge` never decides by itself that a PR may merge: `scripts/merge-ready.mjs` checks the conditions (no halt in the run, checks green, threads resolved, not a draft, no changes requested, up to date with the base, branch protection satisfied) and resolves the method. The skill rebases a branch that is behind (gates re-run, `--force-with-lease` on the PR branch only), waits for pending checks in the background, and halts on a conflict it cannot resolve:
+
+```bash
+node scripts/merge-ready.mjs check 42
+node scripts/merge-ready.mjs check 42 --wait
+node scripts/merge-ready.mjs merge 42 --run-dir <run>
+```
+
+- Method (`merge.method: repo`): merge queue -> enqueue; one allowed method -> it; several -> the first allowed in `merge.preference`, never `merge` under linear history; an explicit method errors when not allowed. The method and its reason are logged as a decision
+- Unmet branch protection ends `awaiting-human` and is never bypassed (no `--admin`). A Halt decision blocks the merge until an operator decision references it
+- With `AF_MERGE_LOCK` set (a harness serializing merges), `merge` holds that lock file from its final check to the cleanup; standalone runs merge directly
 
 ### Run Directories
 
@@ -414,6 +437,33 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 # Record the wait in a workflow run
 /esp-skills:esp-await-review --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login 42
+```
+
+### /esp-skills:esp-merge
+
+**Arguments:**
+
+- `[--dry-run]` (optional) - Check the conditions and resolve the method without rebasing or merging
+- `[--method <method>]` (optional) - `repo`, `squash`, `rebase` or `merge`; errors when the repository does not allow it (default: `merge.method`)
+- `[--interactive <mode>]` (optional) - `off`, `plan` or `all`; `all` asks before merging (default: `defaults.interactive`)
+- `[--run-dir <path>]` (optional) - Read halt signals from a run directory, log the decision, record step `merge`
+- `[--config-snapshot <path>]` (optional) - Read this config snapshot instead of the user and project layers
+- `[pr]` (optional) - Pull request number, `#<n>` or URL (default: the PR of the current branch)
+
+**Examples:**
+
+```bash
+# Merge the PR of the current branch when it is ready
+/esp-skills:esp-merge
+
+# See what would happen on PR 42, without merging
+/esp-skills:esp-merge --dry-run 42
+
+# Force a rebase merge, and confirm before merging
+/esp-skills:esp-merge --method rebase --interactive all https://github.com/o/r/pull/42
+
+# Merge as a workflow step: halts in the run block the merge
+/esp-skills:esp-merge --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login 42
 ```
 
 ### /esp-skills:esp-review

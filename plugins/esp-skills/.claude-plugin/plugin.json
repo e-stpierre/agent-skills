@@ -15,6 +15,7 @@
     "./skills/git/esp-pr",
     "./skills/github/esp-fix-review",
     "./skills/github/esp-await-review",
+    "./skills/github/esp-merge",
     "./skills/review/esp-review",
     "./skills/sdlc/esp-plan",
     "./skills/sdlc/esp-build",

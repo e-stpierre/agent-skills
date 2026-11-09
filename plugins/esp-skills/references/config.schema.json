@@ -68,7 +68,7 @@
       }
     },
     "worktrees": {
-      "description": "esp-build --parallel: git worktree location (root). cleanup is reserved (esp-go).",
+      "description": "esp-build --parallel: git worktree location (root). esp-merge: worktree removal after the merge (cleanup).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -281,7 +281,7 @@
       }
     },
     "merge": {
-      "description": "Reserved (esp-merge): merge conditions and method.",
+      "description": "esp-merge: merge conditions and method.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
