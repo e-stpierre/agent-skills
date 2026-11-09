@@ -108,7 +108,7 @@ A resolution:
 - `resolution`: `fixed` (A-Fix, B-Decide), `rejected` (Reject), `deferred` (B-Scope, or a valid item outside the task), `skipped` (noise: praise, acknowledgments, bot progress placeholders and summaries without findings; class Reject), or `open` (needs an answer the skill cannot get: B-Decide, B-Scope or Halt).
 - `reply`: the text posted on GitHub. Give it for `rejected` (the reason; not posted when `reply_to_rejected` is off), `deferred` (why, and where it is tracked) and `open` (the question). Leave it null for `fixed` and `skipped`.
 - `discovered_item`: for `deferred`, `{ type, title, evidence, severity?, files? }` with `type` one of `bug`, `debt`, `security`, `docs`, `test`, `follow-up`, `other`.
-- `alternatives`: for B-Decide, the options not taken. `risk` defaults from the resolution (`low`, `medium` for deferred, `high` for open). Raise it for anything touching security, data or a public API.
+- `alternatives`: for B-Decide, the options not taken. `risk` defaults to `medium` for B-Decide, else from the resolution (`low`, `medium` for deferred, `high` for open). Raise it for anything touching security, data or a public API.
 - One call can record several items with the same resolution, for example every skipped comment, or the fixes in one commit.
 
 With `--run-dir`, `record` logs the decision (`phase: fix-review`, `x-esp-class`, the comment URLs in `refs`). `respond` then posts the owed replies, resolves fixed and deferred threads (and bot threads it rejected), and minimizes fixed bot comments. An item whose GitHub action failed stays pending, and the next `respond` retries it.

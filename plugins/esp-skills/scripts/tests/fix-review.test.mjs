@@ -248,6 +248,13 @@ describe("fetch, record and rounds", () => {
     );
   });
 
+  test("a fixed B-Decide item defaults to medium risk", () => {
+    cmdFetch(ctx(), null);
+    const out = cmdRecord(ctx(), { items: ["inline:103"], resolution: "fixed", class: "B-Decide", decision: "Renamed", rationale: "best fit", alternatives: ["keep"] });
+    assert.equal(out.risk, "medium");
+    assert.deepEqual(decisions()[0].alternatives, ["keep"]);
+  });
+
   test("round counts persist and stop at max rounds", () => {
     const c = ctx({ "max-rounds": "2" });
     assert.deepEqual(cmdRound(c), { round: 1, exhausted: false, rounds: 1, max_rounds: 2, last: false });

@@ -569,7 +569,7 @@ export function cmdRecord(ctx, input) {
   if (!input.decision || !input.rationale)
     throw new FixReviewError("record: `decision` and `rationale` are required", 2);
   const fr = config["fix-review"] ?? {};
-  const risk = input.risk ?? DEFAULT_RISK[input.resolution];
+  const risk = input.risk ?? (input.class === "B-Decide" ? "medium" : DEFAULT_RISK[input.resolution]);
   return updateState(statePath, env, (state) => {
     const unknown = ids.filter((id) => !state.items[id]);
     if (unknown.length > 0 && statePath)
