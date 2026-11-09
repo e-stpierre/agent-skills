@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:harness-contract:v1:result",
-  "title": "Harness contract v1 (draft): step result block",
+  "title": "Harness contract v1: step result block",
   "description": "Printed as one JSON object on the final output line of a step and written to steps/<step>/result.json.",
   "type": "object",
   "required": ["status", "summary"],

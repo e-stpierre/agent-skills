@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:harness-contract:v1:needs-input",
-  "title": "Harness contract v1 (draft): needs_input request",
+  "title": "Harness contract v1: needs_input request",
   "description": "A decision request returned in a result block with status awaiting-human.",
   "type": "object",
   "required": ["id", "question", "options", "recommended", "blocking"],

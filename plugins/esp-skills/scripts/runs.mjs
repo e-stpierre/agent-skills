@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// esp-skills run directories (harness contract v1, draft).
+// esp-skills run directories (harness contract v1, owned by agentic-forge).
 //
 // Creates and updates contract-compliant run directories so no skill writes
 // the JSON layouts by hand. Every artifact is validated against the schemas in
@@ -73,7 +73,7 @@ export function localDate(date) {
 export function slugify(text) {
   const slug = String(text ?? "")
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
@@ -91,7 +91,7 @@ function readJsonFile(path) {
     throw new RunsError(`${path}: cannot read file (${err.code ?? err.message})`);
   }
   try {
-    return JSON.parse(text.replace(/^﻿/, ""));
+    return JSON.parse(text.replace(/^\uFEFF/, ""));
   } catch (err) {
     throw new RunsError(`${path}: invalid JSON (${err.message})`);
   }
@@ -112,10 +112,17 @@ function assertArtifact(artifact, value, source) {
   }
 }
 
+/** Number of lines up to the last non-blank one (trailing blank lines do not count). */
+function jsonlEnd(lines) {
+  let end = lines.length;
+  while (end > 0 && lines[end - 1].trim() === "") end--;
+  return end;
+}
+
+/** Physical line count of a jsonl file, which is the `seq` of its last event. */
 function countLines(path) {
   if (!existsSync(path)) return 0;
-  const text = readFileSync(path, "utf8");
-  return text.split("\n").filter((l) => l.trim() !== "").length;
+  return jsonlEnd(readFileSync(path, "utf8").split("\n"));
 }
 
 /**
@@ -438,6 +445,8 @@ export function cmdMessages(options) {
 export function cmdSend(options, env = process.env) {
   const dir = requireRunDir(options);
   if (!options.text || options.text === true) throw new RunsError("send requires --text <message>", 2);
+  if (options.target === "step" && (!options.step || options.step === true))
+    throw new RunsError("send --target step requires --step <name>", 2);
   const inbox = join(dir, "inbox");
   mkdirSync(inbox, { recursive: true });
   const message = withLock(inbox, () => {
@@ -570,7 +579,7 @@ export function indexRuns(roots, filters = {}, fs = DEFAULT_FS) {
     if (!fs.existsSync(runPath)) return;
     let run;
     try {
-      run = JSON.parse(fs.readFileSync(runPath, "utf8").replace(/^﻿/, ""));
+      run = JSON.parse(fs.readFileSync(runPath, "utf8").replace(/^\uFEFF/, ""));
     } catch (err) {
       errors.push({ path: runPath, message: err.message });
       return;
@@ -671,29 +680,35 @@ export function validateFile(file, schemaName) {
   const artifact = schemaName ?? artifactFor(path);
   if (!artifact) throw new RunsError(`Cannot infer the artifact of ${path}; pass --schema <name>`, 2);
   const errors = [];
-  const text = readFileSync(path, "utf8").replace(/^﻿/, "");
+  const text = readFileSync(path, "utf8").replace(/^\uFEFF/, "");
   const check = (value, line) => {
     for (const e of validateArtifact(artifact, value).errors) {
       errors.push(line ? { line, ...e } : e);
     }
   };
   if (path.endsWith(".jsonl")) {
-    let expectedSeq = 1;
-    text.split("\n").forEach((raw, i) => {
-      if (raw.trim() === "") return;
+    // Trailing empty lines come from the final newline; any other blank line
+    // is an error. Event `seq` must equal the physical line number.
+    const lines = text.split("\n");
+    const end = jsonlEnd(lines);
+    for (let i = 0; i < end; i++) {
+      const line = i + 1;
+      if (lines[i].trim() === "") {
+        errors.push({ line, path: "(root)", message: "blank line inside a jsonl file" });
+        continue;
+      }
       let value;
       try {
-        value = JSON.parse(raw);
+        value = JSON.parse(lines[i]);
       } catch (err) {
-        errors.push({ line: i + 1, path: "(root)", message: `invalid JSON (${err.message})` });
-        return;
+        errors.push({ line, path: "(root)", message: `invalid JSON (${err.message})` });
+        continue;
       }
-      check(value, i + 1);
-      if (artifact === "event" && value.seq !== expectedSeq) {
-        errors.push({ line: i + 1, path: "seq", message: `expected ${expectedSeq}, got ${value.seq}` });
+      check(value, line);
+      if (artifact === "event" && value?.seq !== line) {
+        errors.push({ line, path: "seq", message: `expected ${line}, got ${value?.seq}` });
       }
-      expectedSeq++;
-    });
+    }
   } else if (artifact === "summary-frontmatter" && path.endsWith(".md")) {
     let data;
     try {

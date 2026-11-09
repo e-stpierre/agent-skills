@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:harness-contract:v1:decision",
-  "title": "Harness contract v1 (draft): decision entry",
+  "title": "Harness contract v1: decision entry",
   "description": "One line of decisions.jsonl, appended when the decision is made.",
   "type": "object",
   "required": ["id", "at", "phase", "source", "risk", "decision", "rationale"],

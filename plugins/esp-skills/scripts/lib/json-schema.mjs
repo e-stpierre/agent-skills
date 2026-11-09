@@ -3,7 +3,7 @@
 // Supported keywords: type, enum, const, properties, required,
 // additionalProperties, patternProperties, propertyNames, items, minItems,
 // maxItems, uniqueItems, minimum, maximum, minLength, maxLength, pattern,
-// format (date-time, date only), anyOf, oneOf, allOf, not, $ref (local
+// format (date-time, date only), anyOf, oneOf, allOf, not, if/then/else, $ref (local
 // "#/..." pointers, and "<$id>#/..." references to schemas passed in
 // options.schemas).
 // Annotation keywords ($schema, $id, $comment, title, description, default,
@@ -267,6 +267,13 @@ function validateNode(schema, value, path, root, errors, ctx) {
     validateNode(schema.not, value, path, root, notErrors, ctx);
     if (notErrors.length === 0)
       errors.push({ path, message: "matches a disallowed schema" });
+  }
+
+  if (schema.if !== undefined) {
+    const ifErrors = [];
+    validateNode(schema.if, value, path, root, ifErrors, ctx);
+    const branch = ifErrors.length === 0 ? schema.then : schema.else;
+    if (branch !== undefined) validateNode(branch, value, path, root, errors, ctx);
   }
 }
 

@@ -26,13 +26,13 @@ function fixtureFiles(artifact, kind) {
 }
 
 describe("contract v1 schemas", () => {
-  test("every artifact has a schema with a urn $id and draft marker", () => {
+  test("every artifact has a schema with a urn $id and v1 title", () => {
     const schemas = loadSchemas();
     for (const artifact of ARTIFACTS) {
       const schema = schemas[artifact];
       assert.ok(schema, `missing schema for ${artifact}`);
       assert.equal(schema.$id, `urn:harness-contract:v1:${artifact}`);
-      assert.match(schema.title, /^Harness contract v1 \(draft\)/);
+      assert.match(schema.title, /^Harness contract v1: /);
     }
   });
 

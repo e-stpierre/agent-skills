@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:harness-contract:v1:amendment",
-  "title": "Harness contract v1 (draft): amendment entry",
+  "title": "Harness contract v1: amendment entry",
   "description": "One line of amendments.jsonl: a requirement change applied to the remaining milestones of a plan.",
   "type": "object",
   "required": ["id", "at", "text", "affects", "plan_version"],

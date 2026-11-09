@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:harness-contract:v1:common",
-  "title": "Harness contract v1 (draft): shared definitions",
+  "title": "Harness contract v1: shared definitions",
   "description": "Definitions shared by every contract v1 artifact schema.",
   "$defs": {
     "contract_version": {

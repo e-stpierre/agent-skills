@@ -409,6 +409,16 @@ describe("plans, messages and amendments", () => {
     assert.deepEqual(cli(["deliver", "m001", "--run-dir", dir]).json(), []);
   });
 
+  test("send --target step requires --step", () => {
+    const dir = createRun();
+    const missing = cli(["send", "--run-dir", dir, "--text", "x", "--target", "step"]);
+    assert.equal(missing.code, 2);
+    assert.match(missing.stderr, /--step/);
+    const ok = cli(["send", "--run-dir", dir, "--text", "x", "--target", "step", "--step", "build"]);
+    assert.equal(ok.code, 0, ok.stderr);
+    assert.equal(ok.json().step, "build");
+  });
+
   test("amend appends to amendments.jsonl and logs an operator decision", () => {
     const dir = createRun();
     const missing = cli(["amend", "--run-dir", dir, "--text", "x", "--affects", "M2"]);
@@ -558,6 +568,17 @@ describe("validate", () => {
     assert.equal(out.code, 1);
     assert.deepEqual(out.json().errors, [
       { line: 2, path: "seq", message: "expected 2, got 5" }
+    ]);
+    // Blank lines are only allowed at the end, and seq counts physical lines.
+    const fresh = createRun();
+    const lines = readFileSync(join(fresh, "events.jsonl"), "utf8");
+    writeFileSync(
+      join(fresh, "events.jsonl"),
+      `${lines}\n{"seq":2,"at":"${NOW}","run":"r","type":"pr.opened"}\n\n`
+    );
+    assert.deepEqual(cli(["validate", join(fresh, "events.jsonl")]).json().errors, [
+      { line: 2, path: "(root)", message: "blank line inside a jsonl file" },
+      { line: 3, path: "seq", message: "expected 3, got 2" }
     ]);
     const bare = join(root, "x.json");
     writeFileSync(bare, "{}");

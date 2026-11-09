@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:harness-contract:v1:summary-frontmatter",
-  "title": "Harness contract v1 (draft): summary.md frontmatter",
+  "title": "Harness contract v1: summary.md frontmatter",
   "description": "YAML frontmatter of summary.md. Values are flat scalars so simple parsers can read them.",
   "type": "object",
   "required": ["task", "title", "status"],

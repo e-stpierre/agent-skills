@@ -1,6 +1,6 @@
 # Harness Contract Notes
 
-How esp-skills implements harness contract v1. The contract itself is the set of JSON Schemas and fixtures in [`contract/v1/`](./contract/v1/). This is a **draft**: the harness that adopts it becomes its owner, and esp-skills re-syncs its copy from there and never changes it on its own.
+How esp-skills implements harness contract v1. agentic-forge owns the contract: the spec is its `docs/harness-contract.md`, and the JSON Schemas and fixtures are published in its `schemas/contract-v1/`. [`contract/v1/`](./contract/v1/) is a byte-identical copy of that directory. esp-skills re-syncs the copy from agentic-forge and never changes it on its own.
 
 Skills never write contract files by hand. They call `scripts/runs.mjs`, which validates every artifact against the schemas before writing it:
 
@@ -54,7 +54,7 @@ Extension fields are allowed on most artifacts when they start with `x-` (for ex
 
 ## Append Protocol
 
-Writers of `events.jsonl`, `decisions.jsonl`, `amendments.jsonl` and `run.json` hold a lock file next to the target (`<file>.lock`, created with exclusive create, removed after the write; a lock older than 30 seconds is stale). Under the lock, the writer reads the line count, builds the entry (`seq` or the next ID), validates it and appends one line. This keeps lines whole and `seq` gap-free when several processes write to the same run. A harness that writes to the same files must follow the same protocol.
+Writers of `events.jsonl`, `decisions.jsonl`, `amendments.jsonl` and `run.json` hold a lock file next to the target (`<file>.lock`, created with exclusive create, removed after the write; a lock older than 30 seconds is stale). Under the lock, the writer reads the line count, builds the entry (`seq` or the next ID), validates it and appends one line. This keeps lines whole and `seq` gap-free when several processes write to the same run. A harness that writes to the same files must follow the same protocol. Inbox messages need no lock: each is its own file. In a jsonl file, `seq` equals the physical line number and blank lines are only allowed at the end; `runs.mjs validate` reports any other blank line.
 
 ## Standalone and Harness Runs
 

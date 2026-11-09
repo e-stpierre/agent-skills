@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:harness-contract:v1:event",
-  "title": "Harness contract v1 (draft): event envelope",
+  "title": "Harness contract v1: event envelope",
   "description": "One line of events.jsonl. The file is append-only and seq increases by one per line.",
   "type": "object",
   "required": ["seq", "at", "run", "type"],

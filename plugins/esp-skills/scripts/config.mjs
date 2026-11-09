@@ -83,7 +83,7 @@ function readJson(path) {
     );
   }
   try {
-    return JSON.parse(text.replace(/^﻿/, ""));
+    return JSON.parse(text.replace(/^\uFEFF/, ""));
   } catch (err) {
     throw new ConfigError(`${path}: invalid JSON (${err.message})`);
   }

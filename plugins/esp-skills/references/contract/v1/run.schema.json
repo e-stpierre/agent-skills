@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:harness-contract:v1:run",
-  "title": "Harness contract v1 (draft): run.json",
+  "title": "Harness contract v1: run.json",
   "description": "Metadata and status of one run directory. Written by the run owner, read by harnesses and recap tools.",
   "type": "object",
   "required": ["contract_version", "id", "type", "status", "started_at"],

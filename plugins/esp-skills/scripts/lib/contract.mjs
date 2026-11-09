@@ -1,4 +1,6 @@
-// Harness contract v1 (draft): schemas, status vocabulary and exit codes.
+// Harness contract v1: schemas, status vocabulary and exit codes.
+// agentic-forge owns the contract; references/contract/v1/ is a copy of its
+// schemas/contract-v1/ and is re-synced from there, never edited here.
 
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -102,7 +104,7 @@ export function maxRisk(a, b) {
  * Returns null when the document has no frontmatter.
  */
 export function parseFrontmatter(text) {
-  const match = /^﻿?---\r?\n([\s\S]*?)\r?\n---\r?(?:\n|$)/.exec(text);
+  const match = /^\uFEFF?---\r?\n([\s\S]*?)\r?\n---\r?(?:\n|$)/.exec(text);
   if (!match) return null;
   const data = {};
   for (const line of match[1].split(/\r?\n/)) {
