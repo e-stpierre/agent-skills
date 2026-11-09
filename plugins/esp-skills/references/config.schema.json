@@ -17,7 +17,7 @@
       "additionalProperties": false,
       "properties": {
         "interactive": {
-          "description": "Read by esp-plan (later also esp-go, esp-go-light, esp-review): when the skill stops to ask the user. off: never, plan: after planning, all: at every decision.",
+          "description": "Read by esp-plan, esp-review, esp-go-light (later also esp-go): when the skill stops to ask the user. off: never, plan: after planning, all: at every decision.",
           "enum": ["off", "plan", "all"]
         },
         "language": {
@@ -146,11 +146,11 @@
           "type": "boolean"
         },
         "body_from_run": {
-          "description": "Reserved (esp-pr with a run directory): build the body from run artifacts.",
+          "description": "esp-go-light (and esp-pr with a run directory): build the PR body from run artifacts.",
           "type": "boolean"
         },
         "body_sections": {
-          "description": "Reserved (esp-pr with a run directory): sections of a body built from run artifacts, in order.",
+          "description": "esp-go-light (and esp-pr with a run directory): sections of a PR body built from run artifacts, in order.",
           "type": "array",
           "items": {
             "enum": [
@@ -304,7 +304,7 @@
       }
     },
     "go": {
-      "description": "Reserved (esp-go): full workflow.",
+      "description": "Reserved (esp-go): full workflow. default_reviewers and halt_on are already read by esp-await-review, esp-fix-review and esp-go-light.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -357,7 +357,7 @@
       }
     },
     "go-light": {
-      "description": "Reserved (esp-go-light): single-session fast track.",
+      "description": "esp-go-light: single-session fast track (phases, escalation limits, budget).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
