@@ -18,6 +18,7 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login` - Build the plan, one verified commit per milestone
 - `/esp-skills:esp-go Add OAuth login with Google` - Take a feature from request to merged PR: plan, one commit per milestone, internal review, bot review fixes, merge
 - `/esp-skills:esp-go-light Add a --json flag to the status command` - Take a small task from request to merged PR in one session, escalating when it is not small
+- `/esp-skills:esp-recap --last 7d` - Recap the runs of the last week; `--risks` lists high-risk decisions and critical findings, and a question gets an answer with sources
 - `/esp-skills:esp-analyze security` - Analyze the codebase for security issues
 - `/esp-skills:esp-qna How does OAuth 2.0 work?` - Get a concise answer without code changes
 - `/esp-skills:esp-config set pr.draft true` - Change a configuration default
@@ -70,6 +71,7 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 | `/esp-skills:esp-build`     | **Beta** - Build a plan with one verified commit per milestone       |
 | `/esp-skills:esp-go`        | **Beta** - Feature to merged PR, with phase subagents                |
 | `/esp-skills:esp-go-light`  | **Beta** - Small task to merged PR in one session, or escalate       |
+| `/esp-skills:esp-recap`     | **Beta** - Recap runs, report their risks, or answer with sources    |
 | `/esp-skills:esp-analyze`   | **Beta** - Analyze codebase for bugs, debt, docs, security, or style |
 
 ### Helpers
@@ -172,6 +174,9 @@ Keys read by the current skills:
 | `go.halt_on`                   | all five stop conditions                  | `esp-go`, `esp-go-light`, `esp-fix-review` | Stop conditions honored (see `decision-policy.md`) |
 | `pr.body_from_run`             | `true`                                    | `esp-go`, `esp-go-light`, `esp-pr` | Build the PR body from the run artifacts               |
 | `pr.body_sections`             | `summary, milestones, decisions, review-resolution, follow-ups` | `esp-go`, `esp-go-light`, `esp-pr` | Sections of that body, in order |
+| `recap.roots`                  | `["~/.esp-skills/runs"]`                  | `esp-recap`            | Runs roots read by the recap, besides `runs.root` (add the agentic-forge runs root) |
+| `recap.default_range_days`     | `7`                                       | `esp-recap`            | Days covered when no date option is given              |
+| `recap.fan_out_threshold`      | `5`                                       | `esp-recap`            | Above this many runs, digest them in parallel subagents |
 | `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
@@ -179,7 +184,6 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 | Key                                    | Planned use                                                          |
 | -------------------------------------- | -------------------------------------------------------------------- |
 | `runs.retention_days`                  | Days to keep finished runs                                           |
-| `recap`                                | Runs roots and fan-out                                               |
 
 ## Architecture
 
@@ -316,6 +320,16 @@ Workflow skills record their work in a run directory that follows harness contra
 node scripts/runs.mjs create fix-login-timeout --workflow esp-go-light
 node scripts/runs.mjs index --last 7d --status merged,done --risk medium
 node scripts/runs.mjs validate ~/.esp-skills/runs/2026-11-10-fix-login-timeout/events.jsonl
+```
+
+### Recaps
+
+`esp-recap` reads the run directories of every root in `recap.roots` and `runs.root`, standalone and harness runs alike, and cites a source for each statement. `scripts/recap.mjs` selects the runs through the `runs.mjs index` filters and returns compact JSON: `collect` (one digest per run, and fan-out batches above `recap.fan_out_threshold`), `show` (one run in full), `risks` (high-risk decisions, critical findings, stopped runs) and `sources` (Q&A candidates in the order decisions -> summaries -> git log and blame -> PR descriptions and comments):
+
+```bash
+node scripts/recap.mjs collect --last 7d --repo api
+node scripts/recap.mjs risks --since 2026-11-01 --min-risk medium
+node scripts/recap.mjs sources --question "Why do refresh tokens rotate?"
 ```
 
 ### Shared References
@@ -673,6 +687,39 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 # Stop once the PR is open, as a harness workflow step
 /esp-skills:esp-go-light --stop-before-wait --run-dir ~/.esp-skills/runs/2026-11-10-status-json Add a --json flag
+```
+
+### /esp-skills:esp-recap
+
+**Arguments:**
+
+- `[--risks]` - Risk report: high-risk decisions, critical findings, halted and waiting runs
+- `[--all]` - No date filter (default: the last `recap.default_range_days` days)
+- `[--since <date>]`, `[--until <date>]` - Date range, `YYYY-MM-DD`, on the run directory date
+- `[--last <span>]` - Shortcut for `--since`: `<N>d`, `<N>w` or `<N>h`
+- `[--repo <name>]` - Only runs of this repository
+- `[--status <list>]` - Only runs with these statuses, comma-separated
+- `[--risk <level>]` - Only runs whose `max_risk` is at least `low`, `medium` or `high`
+- `[--config-snapshot <path>]` - Config snapshot from a harness
+- `[context]` - Empty for a recap, a run ID or path for one run, or a question for Q&A
+
+**Examples:**
+
+```bash
+# Recap the runs of the last 7 days (recap.default_range_days)
+/esp-skills:esp-recap
+
+# Recap the merged and halted runs of one repository this month
+/esp-skills:esp-recap --since 2026-11-01 --repo api --status merged,halted
+
+# Recap one run
+/esp-skills:esp-recap 2026-11-10-add-token-refresh
+
+# Risk report over every run
+/esp-skills:esp-recap --risks --all
+
+# Ask why a decision was made, with sources
+/esp-skills:esp-recap Why do refresh tokens rotate on every use?
 ```
 
 ### /esp-skills:esp-analyze

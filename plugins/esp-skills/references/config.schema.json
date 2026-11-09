@@ -388,7 +388,7 @@
       }
     },
     "recap": {
-      "description": "Reserved (esp-recap): run recap sources and fan-out.",
+      "description": "esp-recap: runs roots to read (runs.root is always read), the default date range, and the fan-out threshold.",
       "type": "object",
       "additionalProperties": false,
       "properties": {

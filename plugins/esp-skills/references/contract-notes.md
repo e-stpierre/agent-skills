@@ -103,6 +103,7 @@ Target level of each planned skill:
 - `scripts/fix-review.mjs --help`: esp-fix-review items, rounds, resolutions and replies
 - `scripts/go.mjs --help`: esp-go phase dispatch, review and PR loops, worktree, PR body and result
 - `scripts/go-light.mjs --help`: esp-go-light phase state, limits, escalation hand-off and PR body
+- `scripts/recap.mjs --help`: esp-recap run selection, digests, risk report and Q&A sources
 - `scripts/merge-ready.mjs --help`: esp-merge conditions, method resolution and the `AF_MERGE_LOCK` merge lock
 - `scripts/plan.mjs --help` and [`plan-format.md`](./plan-format.md): plan format 1, parsing, lint and amendment checks
 - `scripts/lib/contract.mjs`: status vocabulary, exit codes and schema loading for other scripts

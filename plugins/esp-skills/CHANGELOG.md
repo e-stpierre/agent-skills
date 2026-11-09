@@ -30,6 +30,8 @@
 - Added `scripts/go.mjs` (phase dispatch, internal review and PR round loops, budgets, task worktree, escalation pickup, PR body, result block); every `go` key is now active
 - `esp-pr` gains `--run-dir`: with `pr.body_from_run`, the body is built from the run artifacts (`runs.mjs pr-body`) and the PR URL is recorded in `run.json`
 - `esp-fix-review` in internal mode keeps one state file per review round (`fix-review-<N>.json`) under a run directory, apart from the PR rounds
+- Added `esp-recap` skill: recaps runs from every root in `recap.roots` (filters `--since`, `--until`, `--last`, `--repo`, `--status`, `--risk`), reports high-risk decisions, critical findings and stopped runs (`--risks`), and answers questions with sources in the order decisions, summaries, git log and blame, PR descriptions and comments; above `recap.fan_out_threshold` runs it digests them in parallel subagents
+- Added `scripts/recap.mjs` (`collect`, `show`, `risks`, `sources`); `recap` is now an active config key
 - Skill templates allow valued options (`[--name <value>]`) for harness and orchestration inputs such as `--run-dir <path>`
 
 ## 0.6.0
