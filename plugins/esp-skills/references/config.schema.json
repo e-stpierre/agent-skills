@@ -241,7 +241,7 @@
       }
     },
     "await-review": {
-      "description": "Reserved (esp-await-review): bot reviewers and waiting.",
+      "description": "esp-await-review: bot reviewers, trigger comments and waiting.",
       "type": "object",
       "additionalProperties": false,
       "properties": {

@@ -17,6 +17,8 @@
 - **Breaking**: renamed `esp-code-review` to `esp-review` (`/esp-skills:esp-code-review` -> `/esp-skills:esp-review`). The output is now the `esp-reviewer` finding format (`#### F<n> - <severity> - <dimension> - <class>`) followed by a contract result block, instead of the `## Code review` emoji list
 - `esp-review` reviews in a fresh-context `esp-reviewer` across configurable dimensions (correctness, security, plan conformance, tests, conventions, simplification, performance) with a find and a verify pass, classifies findings as A, B-Decide or B-Scope, and gains `--focus`, `--plan`, `--interactive`, `--run-dir` and `--config-snapshot`; untracked files and PR URLs are now reviewed too
 - Added `scripts/review.mjs` to resolve review targets into diff files and parse reviews into findings (`review-<N>.json`) and a result block; `review` is now an active config key
+- Added `esp-await-review` skill: waits in the background for bot reviewers (Claude, Codex, or any login) to review the head commit of a PR, with timeout, backoff and optional trigger comments, and ends with a contract result block
+- Added `scripts/wait-for-review.mjs`, the token-free wait loop behind it (`--once` for a single check); `await-review` and `go.default_reviewers` are now active config keys
 - Skill templates allow valued options (`[--name <value>]`) for harness and orchestration inputs such as `--run-dir <path>`
 
 ## 0.6.0

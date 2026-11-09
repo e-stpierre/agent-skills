@@ -9,6 +9,7 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-branch feature add-oauth 123` - Create a branch with standardized naming
 - `/esp-skills:esp-commit` - Commit changes with a structured message
 - `/esp-skills:esp-pr` - Create a pull request with a contextual description
+- `/esp-skills:esp-await-review --reviewers codex 42` - Wait in the background until Codex has reviewed the head commit of PR 42
 - `/esp-skills:esp-fix-pr 42` - Fix review comments and CI failures on a PR
 - `/esp-skills:esp-review PR 123` - Review a pull request across correctness, security, tests and conventions, with classified findings
 - `/esp-skills:esp-plan feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
@@ -48,6 +49,7 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 | Skill                    | Description                                                                   |
 | ------------------------ | ----------------------------------------------------------------------------- |
 | `/esp-skills:esp-fix-pr` | **Beta** - Fix review comments and failing CI checks on a PR, then push fixes |
+| `/esp-skills:esp-await-review` | Wait in the background for bot reviews of the PR head commit, then report |
 
 ### Code Review
 
@@ -131,6 +133,11 @@ Keys read by the current skills:
 | `review.dimensions`            | `correctness, security, conventions, plan-conformance` | `esp-review` | Dimensions checked when `--focus` names none |
 | `review.min_severity`          | `medium`                                  | `esp-review`           | Findings below it are dropped                          |
 | `review.verify_findings`       | `true`                                    | `esp-review`           | Run the verify pass that rejects false positives       |
+| `await-review.reviewers`       | `claude`, `codex` (`@codex review` trigger) | `esp-await-review`   | Reviewer names, GitHub logins and trigger comments     |
+| `await-review.timeout_minutes` | `30`                                      | `esp-await-review`     | Time before the wait gives up                          |
+| `await-review.poll_seconds`    | `60`                                      | `esp-await-review`     | First poll interval, backing off to 5x                 |
+| `await-review.auto_trigger`    | `false`                                   | `esp-await-review`     | Post trigger comments without `--trigger`              |
+| `go.default_reviewers`         | `["claude"]`                              | `esp-await-review`     | Reviewers waited for when `--reviewers` is not given   |
 | `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
@@ -141,10 +148,9 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 | `worktrees.cleanup`                    | Worktree cleanup policy                                              |
 | `commit.review_fixes`                  | Review-fix commit style                                              |
 | `pr.body_from_run`, `pr.body_sections` | PR body built from run artifacts                                     |
-| `await-review`                         | Bot reviewers, triggers, timeout and polling                         |
 | `fix-review`                           | Review fix rounds, CI fixes, deferred items                          |
 | `merge`                                | Merge conditions and method                                          |
-| `go`, `go-light`                       | Workflow phases, budgets and halt conditions                         |
+| `go` (except `default_reviewers`), `go-light` | Workflow phases, budgets and halt conditions                  |
 | `recap`                                | Runs roots and fan-out                                               |
 
 ## Architecture
@@ -200,6 +206,18 @@ node scripts/review.mjs parse review-1.md --min-severity medium --md-out review-
 
 - Findings below `review.min_severity` are dropped, and the counts by class and severity go to the result block
 - `review-<N>.json` (`review_format: 1`) is the machine-readable list a fixer consumes
+
+### Waiting for Bot Reviews
+
+`esp-await-review` waits without spending tokens: it starts `scripts/wait-for-review.mjs` in the background and resumes when the script exits. Each poll reads the pull request, its reviews and its comments through `gh`. A reviewer is done when it has reviewed the current head commit: a review on the head SHA, a completed review-state comment for the head SHA (Codex posts only a summary comment when it has no findings), or a non-placeholder comment after the head commit. A push during the wait restarts it on the new head. The interval starts at `poll_seconds` and grows 1.5x per unchanged poll, up to 5x.
+
+```bash
+node scripts/wait-for-review.mjs 42 --reviewers codex,claude --timeout-minutes 30 --trigger
+node scripts/wait-for-review.mjs 42 --reviewers codex --once
+```
+
+- Exit codes: 0 done, 10 awaiting-human (timeout, with a `needs_input` request to wait again or skip), 1 failed (closed pull request or repeated `gh` errors), 2 usage error
+- Verified logins: Codex reviews as `chatgpt-codex-connector[bot]` and starts on its own when a PR opens or leaves draft; `@codex review` asks for a new review after a push. The Claude GitHub Action reviews through an issue comment by `claude[bot]`, not a PR review
 
 ### Run Directories
 
@@ -332,6 +350,34 @@ When only one argument is provided, it is treated as the branch-name with catego
 ```bash
 # Fix all review comments and CI failures on PR 42
 /esp-skills:esp-fix-pr 42
+```
+
+### /esp-skills:esp-await-review
+
+**Arguments:**
+
+- `[--trigger]` (optional) - Post the trigger comment of each pending reviewer that has one, once per head commit
+- `[--no-trigger]` (optional) - Never post trigger comments, even with `await-review.auto_trigger`
+- `[--reviewers <names>]` (optional) - Reviewer names from `await-review.reviewers`, or raw logins (default: `go.default_reviewers`)
+- `[--timeout <minutes>]` (optional) - Give up after this many minutes (default: `await-review.timeout_minutes`)
+- `[--run-dir <path>]` (optional) - Record the wait in a run directory, as step `await-review`
+- `[--config-snapshot <path>]` (optional) - Read this config snapshot instead of the user and project layers
+- `[pr]` (optional) - Pull request number, `#<n>` or URL (default: the PR of the current branch)
+
+**Examples:**
+
+```bash
+# Wait for the default reviewers on the PR of the current branch
+/esp-skills:esp-await-review
+
+# Wait for Codex and Claude on PR 42, asking Codex for a review after a push
+/esp-skills:esp-await-review --reviewers codex,claude --trigger 42
+
+# Wait at most 10 minutes for a custom bot
+/esp-skills:esp-await-review --reviewers my-bot[bot] --timeout 10 https://github.com/o/r/pull/42
+
+# Record the wait in a workflow run
+/esp-skills:esp-await-review --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login 42
 ```
 
 ### /esp-skills:esp-review
