@@ -16,6 +16,16 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-qna How does OAuth 2.0 work?` - Get a concise answer without code changes
 - `/esp-skills:esp-config set pr.draft true` - Change a configuration default
 
+## Agents
+
+Subagents spawned by the workflow skills. Each returns a contract result block and keeps details in the run dir. Spawn sites pass the model and effort of the role from the config (see `references/model-selection.md`); the frontmatter model is only a fallback.
+
+| Agent                     | Description                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| `esp-skills:esp-builder`  | Implements one milestone or one set of review fixes as exactly one commit           |
+| `esp-skills:esp-reviewer` | Read-only, fresh-context review with a find and verify pass and classified findings |
+| `esp-skills:esp-verifier` | Re-runs gates and checks acceptance criteria without changing code                  |
+
 ## Skills
 
 ### Git
@@ -158,6 +168,14 @@ node scripts/runs.mjs create fix-login-timeout --workflow esp-go-light
 node scripts/runs.mjs index --last 7d --status merged,done --risk medium
 node scripts/runs.mjs validate ~/.esp-skills/runs/2026-11-10-fix-login-timeout/events.jsonl
 ```
+
+### Shared References
+
+Workflow skills and agents share these references at the plugin root, reached through `${CLAUDE_PLUGIN_ROOT}`:
+
+- `references/decision-policy.md`: classes A-Fix, B-Decide, B-Scope, Reject and Halt, interactive and autonomous behavior, `needs_input` under a harness, `go.halt_on` stop conditions, risk levels and decision logging
+- `references/summary-template.md`: frontmatter and sections of a run `summary.md`
+- `references/model-selection.md`: roles and the model and effort precedence (`--model` -> milestone complexity -> config role -> agent frontmatter -> inherit)
 
 ## Complete Examples
 
