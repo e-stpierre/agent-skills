@@ -45,6 +45,7 @@ Extension fields are allowed on most artifacts when they start with `x-` (for ex
 | Amendments in `amendments.jsonl`, plans as `plan.vN.md`           | `runs.mjs amend`, `runs.mjs plan` (latest version)            |
 | Later steps read the latest plan version                          | `runs.mjs plan`                                               |
 | Plans parse without a model; amendments keep completed milestones | `plan.mjs parse`, `plan.mjs lint`, `plan.mjs diff` (`references/plan-format.md`) |
+| Milestone loop state (`state.json`, reserved name)               | `build.mjs init`, `next`, `start`, `finish` (emits `iteration.*`, `commit.created`) |
 | `summary.md` frontmatter per the schema                           | `references/summary-template.md`, `runs.mjs validate summary.md` |
 | Date filtering without file reads, other filters from `run.json`  | `runs.mjs index --since --until --last --repo --status --risk` |
 | Any contract file can be checked                                  | `runs.mjs validate <file>`                                    |
@@ -90,5 +91,6 @@ Target level of each planned skill:
 
 - [`contract/v1/`](./contract/v1/): schemas and fixtures
 - `scripts/runs.mjs --help`: every command and option
+- `scripts/build.mjs --help`: the esp-build milestone state (`state.json`)
 - `scripts/plan.mjs --help` and [`plan-format.md`](./plan-format.md): plan format 1, parsing, lint and amendment checks
 - `scripts/lib/contract.mjs`: status vocabulary, exit codes and schema loading for other scripts

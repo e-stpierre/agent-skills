@@ -68,7 +68,7 @@
       }
     },
     "worktrees": {
-      "description": "Reserved (esp-go, esp-build --parallel): git worktree location and cleanup.",
+      "description": "esp-build --parallel: git worktree location (root). cleanup is reserved (esp-go).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -196,7 +196,7 @@
       }
     },
     "build": {
-      "description": "Reserved (esp-build): milestone loop.",
+      "description": "esp-build: milestone loop, retries, parallelism and gate commands.",
       "type": "object",
       "additionalProperties": false,
       "properties": {

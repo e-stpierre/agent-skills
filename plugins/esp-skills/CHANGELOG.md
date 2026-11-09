@@ -12,6 +12,8 @@
 - **Breaking**: renamed `esp-sdlc-plan` to `esp-plan` (`/esp-skills:esp-sdlc-plan` -> `/esp-skills:esp-plan`). Plans now use plan format 1 (`references/plan-format.md`), are written to a run directory instead of `specs/`, and are never committed; the `[--git]`, `[explore-count]` and `[path]` arguments are removed (use `plan.explore_agents` in the config)
 - `esp-plan` gains `--type`, `--interactive`, `--run-dir`, `--config-snapshot` and `--amend` (writes `plan.v<N>.md`, keeps completed milestones, logs `amendments.jsonl` and `decisions.jsonl`), runs plan-lint, and ends with a contract result block
 - Added `scripts/plan.mjs` to parse plans into JSON, lint them, and diff plan versions; `plan`, `defaults.interactive` and `defaults.models` are now active config keys
+- Added `esp-build` skill: builds a plan with one `esp-builder` commit per milestone, verified by `esp-verifier`, with retries that amend the commit, `--milestone next` single-milestone mode, `--resume`, and `--parallel` worktrees for disjoint milestones
+- Added `scripts/build.mjs` to manage `state.json` (milestone status, attempts, commits, frozen config), pick the next milestone, resolve builder and verifier models, and detect gate commands; `build` and `worktrees.root` are now active config keys
 - Skill templates allow valued options (`[--name <value>]`) for harness and orchestration inputs such as `--run-dir <path>`
 
 ## 0.6.0

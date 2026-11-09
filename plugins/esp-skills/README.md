@@ -12,6 +12,7 @@ Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit
 - `/esp-skills:esp-fix-pr 42` - Fix review comments and CI failures on a PR
 - `/esp-skills:esp-code-review PR 123` - Review a pull request for high-signal issues
 - `/esp-skills:esp-plan feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
+- `/esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login` - Build the plan, one verified commit per milestone
 - `/esp-skills:esp-analyze security` - Analyze the codebase for security issues
 - `/esp-skills:esp-qna How does OAuth 2.0 work?` - Get a concise answer without code changes
 - `/esp-skills:esp-config set pr.draft true` - Change a configuration default
@@ -59,6 +60,7 @@ Subagents spawned by the workflow skills. Each returns a contract result block a
 | Skill                       | Description                                                          |
 | --------------------------- | -------------------------------------------------------------------- |
 | `/esp-skills:esp-plan`      | **Beta** - Create or amend a machine-readable implementation plan    |
+| `/esp-skills:esp-build`     | **Beta** - Build a plan with one verified commit per milestone       |
 | `/esp-skills:esp-analyze`   | **Beta** - Analyze codebase for bugs, debt, docs, security, or style |
 
 ### Helpers
@@ -120,7 +122,12 @@ Keys read by the current skills:
 | `plan.default_type`            | `auto`                                    | `esp-plan`             | Plan type when `--type` is not given                   |
 | `plan.explore_agents`          | `feature: 3, bug: 2, chore: 2`            | `esp-plan`             | Explore subagents per plan type                        |
 | `defaults.interactive`         | `off`                                     | `esp-plan`             | When skills stop to ask (`off`, `plan`, `all`)         |
-| `defaults.models`              | see `references/model-selection.md`       | `esp-plan` (explorer)  | Model and effort per subagent role                     |
+| `defaults.models`              | see `references/model-selection.md`       | `esp-plan`, `esp-build` | Model and effort per subagent role                    |
+| `build.max_retries_per_milestone` | `2`                                    | `esp-build`            | Builder retries before the build halts                 |
+| `build.parallel`               | `false`                                   | `esp-build`            | Run disjoint milestones in parallel worktrees          |
+| `build.commit_per_milestone`   | `true`                                    | `esp-build`            | `false` squashes milestone commits at the end          |
+| `build.gates`                  | all `null` (auto-detect)                  | `esp-build`            | Gate commands: `test`, `lint`, `typecheck`, `build`    |
+| `worktrees.root`               | `~/.esp-skills/worktrees`                 | `esp-build`            | Where parallel milestone worktrees are created         |
 | `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
@@ -128,10 +135,9 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 | Key                                    | Planned use                                                          |
 | -------------------------------------- | -------------------------------------------------------------------- |
 | `runs.retention_days`                  | Days to keep finished runs                                           |
-| `worktrees`                            | Worktree root and cleanup                                            |
+| `worktrees.cleanup`                    | Worktree cleanup policy                                              |
 | `commit.review_fixes`                  | Review-fix commit style                                              |
 | `pr.body_from_run`, `pr.body_sections` | PR body built from run artifacts                                     |
-| `build`                                | Milestone loop retries, parallelism and gate commands                |
 | `review`                               | Review dimensions, minimum severity, finding verification            |
 | `await-review`                         | Bot reviewers, triggers, timeout and polling                         |
 | `fix-review`                           | Review fix rounds, CI fixes, deferred items                          |
@@ -166,6 +172,20 @@ node scripts/plan.mjs diff plan.md plan.v2.md --run-dir ~/.esp-skills/runs/2026-
 - Plans live in the run directory, never in the repository, and are never edited once written
 - An amendment writes `plan.v<N>.md`, keeps completed milestones unchanged, and is logged in `amendments.jsonl` and `decisions.jsonl`
 - Plans never name models: milestone `complexity` selects the builder model from the config
+
+### Builds
+
+`esp-build` runs a plan milestone by milestone: an `esp-builder` subagent implements the milestone and commits, then an `esp-verifier` subagent re-runs the gates and checks the acceptance criteria. A failed verification retries the builder, which amends the milestone commit; exhausted retries halt the build. `scripts/build.mjs` keeps the loop state in `<run-dir>/state.json`:
+
+```bash
+node scripts/build.mjs init --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login --base "$(git rev-parse HEAD)"
+node scripts/build.mjs next --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
+node scripts/build.mjs gates --project-dir .
+```
+
+- `state.json` records each milestone's status, attempts, base and commit, and the frozen config snapshot, so `--resume` continues where the build stopped
+- `--milestone next` runs one milestone per invocation, for loop-driven harness steps
+- An amended plan (`esp-plan --amend`) is picked up on the next call, and done milestones are kept
 
 ### Run Directories
 
@@ -354,6 +374,35 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 # Amend the remaining milestones of an existing plan
 /esp-skills:esp-plan --amend --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login Also support GitHub OAuth
+```
+
+### /esp-skills:esp-build
+
+**Arguments:**
+
+- `[--resume]` - Continue an existing build from `state.json`
+- `[--parallel]` - Run milestones with disjoint files in parallel worktrees (default: `build.parallel`)
+- `[--milestone <id>]` - Run one milestone and exit; `next` picks the next runnable one
+- `[--model <alias>]` - Builder model for every milestone (`opus`, `sonnet`, `haiku`, `fable`)
+- `[--interactive <mode>]` - `off`, `plan` or `all` (default: `defaults.interactive`)
+- `[--run-dir <path>]` - Run directory that holds the plan (default: the plan's directory, or a new run)
+- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
+- `[plan]` - Plan file (default: the latest plan version in the run directory)
+
+**Examples:**
+
+```bash
+# Build every milestone of a plan
+/esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
+
+# Build from a plan path, with sonnet as the builder
+/esp-skills:esp-build --model sonnet ~/.esp-skills/runs/2026-11-10-add-oauth-login/plan.md
+
+# Run only the next milestone, as a loop iteration would
+/esp-skills:esp-build --milestone next --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
+
+# Resume an interrupted build, running independent milestones in parallel
+/esp-skills:esp-build --resume --parallel --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
 ```
 
 ### /esp-skills:esp-analyze
