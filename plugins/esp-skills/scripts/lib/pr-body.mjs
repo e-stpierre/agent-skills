@@ -15,7 +15,7 @@ const SKIPPED_DECISION_PHASES = new Set(["fix-review", "merge"]);
 
 function readJson(path) {
   try {
-    return JSON.parse(readFileSync(path, "utf8").replace(/^﻿/, ""));
+    return JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, ""));
   } catch {
     return null;
   }

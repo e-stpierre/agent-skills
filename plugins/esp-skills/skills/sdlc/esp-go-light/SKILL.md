@@ -145,7 +145,7 @@ At each phase boundary, read the injected `## Operator Messages` section (first 
 11. **Refresh the body and merge**: `go-light.mjs pr-body --out <run-dir>/pr-body.md`, then `gh pr edit <url> --body-file <file>` (with `pr.body_from_run` only). Follow `esp-merge` inline with `--interactive <mode>` and the pull request URL. Record `phase merge --status done` when it ended `merged` or `done`.
 12. **Result**: `go-light.mjs result` piped into `runs.mjs result go-light --run-dir <run-dir>`. Pass `--summary` when the default one does not say enough.
 13. **Summary and run status** (skip both with `--stop-before-wait`): write `<run-dir>/summary.md` per the summary template (`workflow: esp-go-light`; `status` is the result status, `escalate` included) and validate it with `runs.mjs validate`. In an own run, set `runs.mjs update --status` to the result status (`merged`, `done`, `awaiting-human`, `halted`, `failed`; `halted` for an escalation).
-14. **Report** (see Output Guidance), ending with the line printed by `runs.mjs result` as the final output line.
+14. **Report** (see Output Guidance), ending with the line printed by `runs.mjs result` as the final output line, copied exactly: never shorten or rewrite it.
 
 ## Output Guidance
 

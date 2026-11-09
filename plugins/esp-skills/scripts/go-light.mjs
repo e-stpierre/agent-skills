@@ -46,7 +46,7 @@ const SHA = /^[0-9a-f]{7,64}$/;
 
 function readJson(path) {
   try {
-    return JSON.parse(readFileSync(path, "utf8").replace(/^﻿/, ""));
+    return JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, ""));
   } catch (err) {
     throw new GoLightError(`${path}: ${err.code === "ENOENT" ? "file not found" : `invalid JSON (${err.message})`}`);
   }
