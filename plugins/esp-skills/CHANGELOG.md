@@ -5,6 +5,8 @@
 - Added `esp-config` skill to initialize, show, get, set, unset, and validate configuration
 - Added layered configuration (defaults, `~/.esp-skills/config.json`, `<repo>/.esp-skills/config.json`, `--config-snapshot`) resolved by `scripts/config.mjs`, with `references/config.schema.json` and `references/config-defaults.json`
 - `esp-branch`, `esp-commit`, `esp-pr`, and `esp-analyze` read their settings from configuration; defaults keep the 0.6.0 behavior
+- Added a draft harness contract v1 (`references/contract/v1/`): JSON Schemas with valid and invalid fixtures for `run.json`, result blocks, `needs_input`, inbox messages, amendments, events, decisions, and `summary.md` frontmatter, plus `references/contract-notes.md`
+- Added `scripts/runs.mjs` to create, update, validate, and index run directories, append decisions and events, write step result blocks, and manage operator messages and plan amendments; `runs.root` is now an active config key
 
 ## 0.6.0
 

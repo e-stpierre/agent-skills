@@ -4,7 +4,8 @@
 // additionalProperties, patternProperties, propertyNames, items, minItems,
 // maxItems, uniqueItems, minimum, maximum, minLength, maxLength, pattern,
 // format (date-time, date only), anyOf, oneOf, allOf, not, $ref (local
-// "#/..." pointers only).
+// "#/..." pointers, and "<$id>#/..." references to schemas passed in
+// options.schemas).
 // Annotation keywords ($schema, $id, $comment, title, description, default,
 // examples, deprecated) are ignored.
 
@@ -52,26 +53,30 @@ export function formatPath(path) {
   return out;
 }
 
-function resolveRef(root, ref) {
-  if (!ref.startsWith("#")) {
-    throw new Error(`Unsupported $ref (only local refs are allowed): ${ref}`);
+function resolveRef(root, ref, ctx) {
+  const hash = ref.indexOf("#");
+  const base = hash === -1 ? ref : ref.slice(0, hash);
+  if (base !== "") {
+    const target = ctx.schemas.get(base);
+    if (!target) throw new Error(`Unresolvable $ref (unknown schema): ${ref}`);
+    root = target;
   }
-  const pointer = ref.slice(1);
-  if (pointer === "") return root;
+  const pointer = hash === -1 ? "" : ref.slice(hash + 1);
+  if (pointer === "") return { node: root, root };
   let node = root;
   for (const raw of pointer.split("/").slice(1)) {
     const key = raw.replace(/~1/g, "/").replace(/~0/g, "~");
     node = node?.[key];
     if (node === undefined) throw new Error(`Unresolvable $ref: ${ref}`);
   }
-  return node;
+  return { node, root };
 }
 
 function deepEqual(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function validateNode(schema, value, path, root, errors) {
+function validateNode(schema, value, path, root, errors, ctx) {
   if (schema === true) return;
   if (schema === false) {
     errors.push({ path, message: "is not allowed" });
@@ -79,7 +84,8 @@ function validateNode(schema, value, path, root, errors) {
   }
 
   if (schema.$ref) {
-    validateNode(resolveRef(root, schema.$ref), value, path, root, errors);
+    const target = resolveRef(root, schema.$ref, ctx);
+    validateNode(target.node, value, path, target.root, errors, ctx);
   }
 
   if (schema.type !== undefined) {
@@ -173,7 +179,7 @@ function validateNode(schema, value, path, root, errors) {
     }
     if (schema.items !== undefined) {
       value.forEach((item, i) => {
-        validateNode(schema.items, item, [...path, i], root, errors);
+        validateNode(schema.items, item, [...path, i], root, errors, ctx);
       });
     }
   }
@@ -186,7 +192,7 @@ function validateNode(schema, value, path, root, errors) {
     }
     for (const [key, child] of Object.entries(value)) {
       if (schema.propertyNames) {
-        validateNode(schema.propertyNames, key, [...path, key], root, errors);
+        validateNode(schema.propertyNames, key, [...path, key], root, errors, ctx);
       }
       let matched = false;
       if (schema.properties && key in schema.properties) {
@@ -196,15 +202,16 @@ function validateNode(schema, value, path, root, errors) {
           child,
           [...path, key],
           root,
-          errors
-        );
+          errors,
+          ctx
+          );
       }
       for (const [pattern, sub] of Object.entries(
         schema.patternProperties ?? {}
       )) {
         if (new RegExp(pattern, "u").test(key)) {
           matched = true;
-          validateNode(sub, child, [...path, key], root, errors);
+          validateNode(sub, child, [...path, key], root, errors, ctx);
         }
       }
       if (!matched && schema.additionalProperties !== undefined) {
@@ -216,8 +223,9 @@ function validateNode(schema, value, path, root, errors) {
             child,
             [...path, key],
             root,
-            errors
-          );
+            errors,
+            ctx
+            );
         }
       }
     }
@@ -225,14 +233,14 @@ function validateNode(schema, value, path, root, errors) {
 
   if (schema.allOf) {
     for (const sub of schema.allOf)
-      validateNode(sub, value, path, root, errors);
+      validateNode(sub, value, path, root, errors, ctx);
   }
 
   if (schema.anyOf || schema.oneOf) {
     const branches = schema.anyOf ?? schema.oneOf;
     const results = branches.map((sub) => {
       const branchErrors = [];
-      validateNode(sub, value, path, root, branchErrors);
+      validateNode(sub, value, path, root, branchErrors, ctx);
       return branchErrors;
     });
     const passing = results.filter((r) => r.length === 0).length;
@@ -256,7 +264,7 @@ function validateNode(schema, value, path, root, errors) {
 
   if (schema.not) {
     const notErrors = [];
-    validateNode(schema.not, value, path, root, notErrors);
+    validateNode(schema.not, value, path, root, notErrors, ctx);
     if (notErrors.length === 0)
       errors.push({ path, message: "matches a disallowed schema" });
   }
@@ -264,11 +272,20 @@ function validateNode(schema, value, path, root, errors) {
 
 /**
  * Validate a value against a schema.
+ * `options.schemas` lists other schemas that `$ref` can point at by `$id`
+ * (for example `"urn:example:common#/$defs/timestamp"`).
  * @returns {{ valid: boolean, errors: { path: string, message: string }[] }}
  */
-export function validate(schema, value) {
+export function validate(schema, value, options = {}) {
   const errors = [];
-  validateNode(schema, value, [], schema, errors);
+  const schemas = new Map();
+  for (const s of [schema, ...(options.schemas ?? [])]) {
+    if (s && typeof s === "object" && typeof s.$id === "string") {
+      schemas.set(s.$id, s);
+    }
+  }
+  const ctx = { schemas };
+  validateNode(schema, value, [], schema, errors, ctx);
   return {
     valid: errors.length === 0,
     errors: errors.map((e) => ({

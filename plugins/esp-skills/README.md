@@ -107,6 +107,7 @@ Keys read by the current skills:
 | `pr.draft`                     | `false`                                   | `esp-pr`               | Open PRs as drafts                                     |
 | `pr.attribution`               | `true`                                    | `esp-pr`               | Append the AI attribution line                         |
 | `analyze.output_dir`           | `analysis`                                | `esp-analyze`          | Directory for analysis reports                         |
+| `runs.root`                    | `~/.esp-skills/runs`                      | `scripts/runs.mjs`     | Where standalone run directories are created           |
 
 Reserved keys are accepted and validated, but belong to skills that are not shipped yet. Their defaults are in `references/config-defaults.json`:
 
@@ -114,7 +115,7 @@ Reserved keys are accepted and validated, but belong to skills that are not ship
 | -------------------------------------- | -------------------------------------------------------------------- |
 | `defaults.interactive`                 | When workflow skills stop to ask (`off`, `plan`, `all`)              |
 | `defaults.models`                      | Model and effort per subagent role (planner, builder, reviewer, ...) |
-| `runs`                                 | Run directory root and retention                                     |
+| `runs.retention_days`                  | Days to keep finished runs                                           |
 | `worktrees`                            | Worktree root and cleanup                                            |
 | `commit.review_fixes`                  | Review-fix commit style                                              |
 | `pr.body_from_run`, `pr.body_sections` | PR body built from run artifacts                                     |
@@ -147,6 +148,16 @@ Plans are static documentation of work to be done:
 - Implementation skills read plans as reference, not as mutable state
 
 The `esp-code-review` skill produces plain markdown and performs no write-side effects. Routing the review (stdout, PR comment, file, CI annotation) is the caller's responsibility.
+
+### Run Directories
+
+Workflow skills record their work in a run directory that follows a draft harness contract (v1): `run.json`, step result blocks, `decisions.jsonl`, `events.jsonl`, operator messages and plan amendments. Standalone runs go to `<runs.root>/<YYYY-MM-DD>-<slug>`; a harness or parent run passes `--run-dir <path>` instead. Skills never write these files by hand: `scripts/runs.mjs` creates, updates, validates and indexes them. The schemas and fixtures are in `references/contract/v1/`, and `references/contract-notes.md` maps each contract requirement to the command that meets it.
+
+```bash
+node scripts/runs.mjs create fix-login-timeout --workflow esp-go-light
+node scripts/runs.mjs index --last 7d --status merged,done --risk medium
+node scripts/runs.mjs validate ~/.esp-skills/runs/2026-11-10-fix-login-timeout/events.jsonl
+```
 
 ## Complete Examples
 

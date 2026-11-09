@@ -51,7 +51,7 @@
       }
     },
     "runs": {
-      "description": "Reserved (run directories): where standalone runs are stored.",
+      "description": "Run directories created by scripts/runs.mjs.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -61,7 +61,7 @@
           "minLength": 1
         },
         "retention_days": {
-          "description": "Days to keep finished runs. 0 keeps them forever.",
+          "description": "Reserved (run cleanup, not enforced yet): days to keep finished runs. 0 keeps them forever.",
           "type": "integer",
           "minimum": 0
         }
