@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
 
+- **Migration from 0.6.0**: three skills are renamed. Replace `/esp-skills:esp-sdlc-plan` with `/esp-skills:esp-plan`, `/esp-skills:esp-code-review` with `/esp-skills:esp-review`, and `/esp-skills:esp-fix-pr` with `/esp-skills:esp-fix-review` in your prompts, scripts and workflows. Plans now live in a run directory (`~/.esp-skills/runs/`) instead of `specs/`, reviews use the finding format, and fix commits are `fix(review): ...`; see the **Breaking** entries below
 - Added `esp-config` skill to initialize, show, get, set, unset, and validate configuration
 - Added layered configuration (defaults, `~/.esp-skills/config.json`, `<repo>/.esp-skills/config.json`, `--config-snapshot`) resolved by `scripts/config.mjs`, with `references/config.schema.json` and `references/config-defaults.json`
 - `esp-branch`, `esp-commit`, `esp-pr`, and `esp-analyze` read their settings from configuration; defaults keep the 0.6.0 behavior
