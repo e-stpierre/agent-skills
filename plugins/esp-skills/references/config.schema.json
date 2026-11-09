@@ -1,0 +1,431 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/e-stpierre/skills/main/plugins/esp-skills/references/config.schema.json",
+  "title": "esp-skills configuration",
+  "description": "Configuration for the esp-skills plugin. Every key is optional: missing keys fall back to references/config-defaults.json. Keys marked Reserved belong to skills that are planned but not shipped yet; they are accepted and validated, but no skill reads them yet. Never store secrets here.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": {
+      "description": "Configuration format version.",
+      "const": 1
+    },
+    "defaults": {
+      "description": "Settings shared by every skill.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interactive": {
+          "description": "Reserved (esp-go, esp-go-light, esp-plan, esp-review): when the skill stops to ask the user. off: never, plan: after planning, all: at every decision.",
+          "enum": ["off", "plan", "all"]
+        },
+        "language": {
+          "description": "Language tag for generated prose (commit messages, PR descriptions, reports).",
+          "type": "string",
+          "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$"
+        },
+        "models": {
+          "description": "Reserved (orchestrator skills): model and effort per subagent role. Spawn sites resolve their role here.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "planner": { "$ref": "#/$defs/modelChoice" },
+            "explorer": { "$ref": "#/$defs/modelChoice" },
+            "builder": {
+              "description": "Builder model per plan milestone complexity.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "low": { "$ref": "#/$defs/modelChoice" },
+                "medium": { "$ref": "#/$defs/modelChoice" },
+                "high": { "$ref": "#/$defs/modelChoice" }
+              }
+            },
+            "verifier": { "$ref": "#/$defs/modelChoice" },
+            "reviewer": { "$ref": "#/$defs/modelChoice" },
+            "fixer": { "$ref": "#/$defs/modelChoice" },
+            "mechanical": { "$ref": "#/$defs/modelChoice" }
+          }
+        }
+      }
+    },
+    "runs": {
+      "description": "Reserved (run directories): where standalone runs are stored.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "root": {
+          "description": "Runs root directory. A leading ~ expands to the home directory.",
+          "type": "string",
+          "minLength": 1
+        },
+        "retention_days": {
+          "description": "Days to keep finished runs. 0 keeps them forever.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "worktrees": {
+      "description": "Reserved (esp-go, esp-build --parallel): git worktree location and cleanup.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "root": { "type": "string", "minLength": 1 },
+        "cleanup": { "enum": ["on-merge", "on-finish", "never"] }
+      }
+    },
+    "branch": {
+      "description": "esp-branch: branch naming.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "pattern": {
+          "description": "Branch name pattern when an issue ID is known. Tokens: {category}, {issue}, {name}.",
+          "type": "string",
+          "pattern": "\\{name\\}"
+        },
+        "pattern_without_issue": {
+          "description": "Branch name pattern when no issue ID is known. Tokens: {category}, {name}.",
+          "type": "string",
+          "pattern": "\\{name\\}"
+        },
+        "default_category": {
+          "description": "Category used when none is given or inferred.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "categories": {
+          "description": "Suggested categories. Other values are still accepted.",
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "commit": {
+      "description": "esp-commit: commit message format.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "style": {
+          "description": "plain: imperative title. conventional: Conventional Commits title (type(scope): subject).",
+          "enum": ["plain", "conventional"]
+        },
+        "co_author": {
+          "description": "Add the AI Co-Authored-By trailer.",
+          "type": "boolean"
+        },
+        "plan_step_prefix": {
+          "description": "Prefix the title with the plan step ([Task N], [Milestone N]) when following a plan.",
+          "type": "boolean"
+        },
+        "review_fixes": {
+          "description": "Reserved (esp-fix-review): separate commits for review fixes, or fixup commits.",
+          "enum": ["separate", "fixup"]
+        }
+      }
+    },
+    "pr": {
+      "description": "esp-pr: pull request defaults.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "description": "Base branch. null uses the repository default branch.",
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "draft": {
+          "description": "Open PRs as drafts by default.",
+          "type": "boolean"
+        },
+        "attribution": {
+          "description": "Append the AI attribution line to the PR body.",
+          "type": "boolean"
+        },
+        "body_from_run": {
+          "description": "Reserved (esp-pr with a run directory): build the body from run artifacts.",
+          "type": "boolean"
+        },
+        "body_sections": {
+          "description": "Reserved (esp-pr with a run directory): sections of a body built from run artifacts, in order.",
+          "type": "array",
+          "items": {
+            "enum": [
+              "summary",
+              "milestones",
+              "decisions",
+              "review-resolution",
+              "follow-ups"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "analyze": {
+      "description": "esp-analyze: report output.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "output_dir": {
+          "description": "Directory, relative to the repository root, where reports are saved.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "plan": {
+      "description": "Reserved (esp-plan): planning defaults.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "default_type": { "enum": ["auto", "feature", "bug", "chore"] },
+        "explore_agents": {
+          "description": "Explore subagents per plan type.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "feature": { "type": "integer", "minimum": 0 },
+            "bug": { "type": "integer", "minimum": 0 },
+            "chore": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "build": {
+      "description": "Reserved (esp-build): milestone loop.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "parallel": { "type": "boolean" },
+        "max_retries_per_milestone": { "type": "integer", "minimum": 0 },
+        "commit_per_milestone": { "type": "boolean" },
+        "gates": {
+          "description": "Gate commands. null auto-detects the command from the project.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "test": { "$ref": "#/$defs/gateCommand" },
+            "lint": { "$ref": "#/$defs/gateCommand" },
+            "typecheck": { "$ref": "#/$defs/gateCommand" },
+            "build": { "$ref": "#/$defs/gateCommand" }
+          }
+        }
+      }
+    },
+    "review": {
+      "description": "Reserved (esp-review): review dimensions and filtering.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dimensions": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "correctness",
+              "security",
+              "plan-conformance",
+              "tests",
+              "conventions",
+              "simplification",
+              "performance"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "min_severity": { "$ref": "#/$defs/severity" },
+        "verify_findings": { "type": "boolean" }
+      }
+    },
+    "await-review": {
+      "description": "Reserved (esp-await-review): bot reviewers and waiting.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "reviewers": {
+          "description": "Reviewers by short name.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["login"],
+            "properties": {
+              "login": { "type": "string", "minLength": 1 },
+              "trigger": {
+                "description": "Comment that triggers a review. null when the reviewer runs on its own.",
+                "type": ["string", "null"]
+              }
+            }
+          }
+        },
+        "timeout_minutes": { "type": "integer", "minimum": 1 },
+        "poll_seconds": { "type": "integer", "minimum": 5 },
+        "auto_trigger": { "type": "boolean" }
+      }
+    },
+    "fix-review": {
+      "description": "Reserved (esp-fix-review): review fix rounds.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_rounds": { "type": "integer", "minimum": 1 },
+        "fix_ci": { "type": "boolean" },
+        "reply_to_rejected": { "type": "boolean" },
+        "deferred_items": {
+          "description": "follow-up: record a follow-up item, reply and resolve. block: leave open, block the merge.",
+          "enum": ["follow-up", "block"]
+        }
+      }
+    },
+    "merge": {
+      "description": "Reserved (esp-merge): merge conditions and method.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "method": {
+          "description": "repo: pick from what the repository allows, using preference. Otherwise force one method.",
+          "enum": ["repo", "squash", "rebase", "merge"]
+        },
+        "preference": {
+          "type": "array",
+          "items": { "enum": ["squash", "rebase", "merge"] },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "delete_branch": { "type": "boolean" },
+        "require_resolved_threads": { "type": "boolean" },
+        "require_green_checks": { "type": "boolean" },
+        "use_auto_merge": { "type": "boolean" },
+        "checks_timeout_minutes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "go": {
+      "description": "Reserved (esp-go): full workflow.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phases": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "plan",
+              "branch",
+              "build",
+              "review",
+              "pr",
+              "await-review",
+              "fix-review",
+              "merge"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "default_reviewers": {
+          "description": "Reviewer short names from await-review.reviewers.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "internal_review_rounds": { "type": "integer", "minimum": 0 },
+        "worktree": { "type": "boolean" },
+        "pr_draft_until_reviewed": { "type": "boolean" },
+        "budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_milestones": { "type": "integer", "minimum": 1 },
+            "max_wall_minutes": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "halt_on": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "critical-security",
+              "gates-exhausted",
+              "scope-change",
+              "destructive-action",
+              "budget"
+            ]
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "go-light": {
+      "description": "Reserved (esp-go-light): single-session fast track.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phases": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "context",
+              "branch",
+              "implement",
+              "pr",
+              "await-review",
+              "fix-review",
+              "merge"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "max_files_changed": { "type": "integer", "minimum": 1 },
+        "escalate_to_go": { "type": "boolean" },
+        "budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_wall_minutes": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "recap": {
+      "description": "Reserved (esp-recap): run recap sources and fan-out.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "roots": {
+          "description": "Runs roots to read. A leading ~ expands to the home directory.",
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "default_range_days": { "type": "integer", "minimum": 1 },
+        "fan_out_threshold": { "type": "integer", "minimum": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "modelChoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model"],
+      "properties": {
+        "model": {
+          "description": "Model alias passed to the subagent spawn.",
+          "enum": ["opus", "sonnet", "haiku", "fable"]
+        },
+        "effort": {
+          "description": "Reasoning effort passed to the subagent spawn.",
+          "enum": ["low", "medium", "high", "xhigh", "max"]
+        }
+      }
+    },
+    "gateCommand": {
+      "description": "Shell command for the gate, or null to auto-detect.",
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "severity": {
+      "enum": ["low", "medium", "high", "critical"]
+    }
+  }
+}
