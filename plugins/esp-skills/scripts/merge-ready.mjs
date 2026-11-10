@@ -16,7 +16,8 @@
 // merge exits with the contract code of its result status (0 done or merged,
 // 10 awaiting-human, 20 halted, 1 failed). 2 is a usage error everywhere.
 
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import {
   closeSync,
   existsSync,
@@ -774,9 +775,12 @@ export async function waitForChecks(
 
 /**
  * Acquire the harness merge lock: exclusive create of `lockPath`, the contract
- * lock protocol (a lock older than 30 s is stale). The holder refreshes the
- * mtime every 10 s and before each GitHub call, so a long merge never looks
- * stale. Returns `{ path, refresh(), release() }`.
+ * lock protocol (a lock older than 30 s is stale). A separate heartbeat
+ * process refreshes the mtime every 10 s, so the lock stays live while this
+ * process blocks on synchronous GitHub calls; the holder also refreshes before
+ * each call. Refresh and release act only on a lock that still carries this
+ * holder's token, never on a lock another process took over.
+ * Returns `{ path, token, refresh(), release() }`.
  */
 export async function acquireMergeLock(
   lockPath,
@@ -785,9 +789,11 @@ export async function acquireMergeLock(
     sleep,
     now = () => new Date(),
     staleMs = STALE_LOCK_MS,
+    heartbeatMs = HEARTBEAT_MS,
     holder = {}
   }
 ) {
+  const token = randomUUID();
   const deadline = now().getTime() + timeoutMs;
   for (;;) {
     try {
@@ -798,7 +804,8 @@ export async function acquireMergeLock(
           pid: process.pid,
           host: hostname(),
           at: now().toISOString(),
-          ...holder
+          ...holder,
+          token
         })
       );
       closeSync(fd);
@@ -820,7 +827,15 @@ export async function acquireMergeLock(
       await sleep(Math.min(2000, Math.max(0, deadline - now().getTime())));
     }
   }
+  const owned = () => {
+    try {
+      return JSON.parse(readFileSync(lockPath, "utf8")).token === token;
+    } catch {
+      return false;
+    }
+  };
   const refresh = () => {
+    if (!owned()) return;
     try {
       const t = new Date();
       utimesSync(lockPath, t, t);
@@ -828,16 +843,63 @@ export async function acquireMergeLock(
       // Lost the lock file: nothing to refresh.
     }
   };
-  const timer = setInterval(refresh, HEARTBEAT_MS);
-  timer.unref?.();
+  const heartbeat = startHeartbeat(lockPath, token, heartbeatMs);
   return {
     path: lockPath,
+    token,
     refresh,
     release() {
-      clearInterval(timer);
-      rmSync(lockPath, { force: true });
+      stopHeartbeat(heartbeat);
+      if (owned()) rmSync(lockPath, { force: true });
     }
   };
+}
+
+// The heartbeat runs in its own process: the holder blocks its event loop on
+// spawnSync GitHub calls, which would starve an in-process timer. It exits
+// when the holder dies or the lock is no longer this holder's.
+const HEARTBEAT_SCRIPT = `
+const fs = require("node:fs");
+const [lockPath, token, parent, everyMs] = process.argv.slice(1);
+const beat = () => {
+  try { process.kill(Number(parent), 0); } catch { process.exit(0); }
+  try {
+    if (JSON.parse(fs.readFileSync(lockPath, "utf8")).token !== token) process.exit(0);
+    const t = new Date();
+    fs.utimesSync(lockPath, t, t);
+  } catch { process.exit(0); }
+};
+setInterval(beat, Number(everyMs));
+`;
+
+function startHeartbeat(lockPath, token, everyMs) {
+  try {
+    const child = spawn(
+      process.execPath,
+      [
+        "-e",
+        HEARTBEAT_SCRIPT,
+        lockPath,
+        token,
+        String(process.pid),
+        String(everyMs)
+      ],
+      { stdio: "ignore", windowsHide: true }
+    );
+    child.on("error", () => {});
+    child.unref();
+    return child;
+  } catch {
+    return null;
+  }
+}
+
+function stopHeartbeat(child) {
+  try {
+    child?.kill();
+  } catch {
+    // Already gone.
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -6,6 +6,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   utimesSync,
   writeFileSync
 } from "node:fs";
@@ -718,6 +719,38 @@ describe("merge lock", () => {
     assert.match(readFileSync(lockPath, "utf8"), /"pid"/);
     lock.release();
     assert.equal(existsSync(lockPath), false);
+  });
+
+  test("acquireMergeLock keeps the lock fresh while the event loop is blocked", async () => {
+    const lockPath = join(tmp, "beat.lock");
+    const lock = await acquireMergeLock(lockPath, {
+      timeoutMs: 1000,
+      sleep: async () => {},
+      heartbeatMs: 100
+    });
+    const old = new Date(Date.now() - 60_000);
+    utimesSync(lockPath, old, old);
+    // Block like a spawnSync GitHub call: no in-process timer can fire.
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2500);
+    const age = Date.now() - statSync(lockPath).mtimeMs;
+    lock.release();
+    assert.ok(age < 30_000, `lock is ${age} ms old`);
+    assert.equal(existsSync(lockPath), false);
+  });
+
+  test("acquireMergeLock never refreshes or removes a lock another holder took", async () => {
+    const lockPath = join(tmp, "taken.lock");
+    const lock = await acquireMergeLock(lockPath, {
+      timeoutMs: 1000,
+      sleep: async () => {}
+    });
+    writeFileSync(lockPath, JSON.stringify({ pid: 1, token: "other" }));
+    const old = new Date(Date.now() - 60_000);
+    utimesSync(lockPath, old, old);
+    lock.refresh();
+    assert.ok(Date.now() - statSync(lockPath).mtimeMs > 30_000);
+    lock.release();
+    assert.match(readFileSync(lockPath, "utf8"), /"other"/);
   });
 });
 
