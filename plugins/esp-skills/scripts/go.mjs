@@ -299,8 +299,12 @@ function projectDirOf(options, state) {
 export function cmdInit(options, env = process.env) {
   const dir = runDirOf(options);
   const path = statePath(dir);
-  if (existsSync(path))
+  if (existsSync(path)) {
+    if (options.resume) return resumeRun(dir, env);
     return { state_path: path, created: false, ...readState(dir) };
+  }
+  if (options.resume)
+    throw new GoError(`No go.json in ${dir}: nothing to resume`, 2);
   const escalation = findEscalation(dir);
   const request =
     options.request && options.request !== true
@@ -866,17 +870,55 @@ export function cmdStop(options, env = process.env) {
   return updateState(
     dir,
     (s) => {
+      // Keep the unfinished phases, so a resume after an awaiting-human stop restores them.
+      const unfinished = {};
+      for (const p of s.phases)
+        if (["pending", "started"].includes(s.phase_status[p])) {
+          unfinished[p] = s.phase_status[p];
+          s.phase_status[p] = "skipped";
+        }
       s.stop = {
         status: options.status,
         reason: String(options.reason),
-        at: now(env).toISOString()
+        at: now(env).toISOString(),
+        unfinished
       };
-      for (const p of s.phases)
-        if (["pending", "started"].includes(s.phase_status[p]))
-          s.phase_status[p] = "skipped";
     },
     env
   ).stop;
+}
+
+/**
+ * Resume a run: clear an awaiting-human stop and restore the phases it left
+ * unfinished, keeping the completed work. Halted and failed runs stay stopped.
+ */
+export function resumeRun(dir, env = process.env) {
+  const path = statePath(dir);
+  let resumed = null;
+  const state = updateState(
+    dir,
+    (s) => {
+      if (s.halt || s.stop?.status !== "awaiting-human") return;
+      resumed = s.stop;
+      for (const [p, status] of Object.entries(s.stop.unfinished ?? {}))
+        if (s.phase_status[p] === "skipped") s.phase_status[p] = status;
+      s.stop = null;
+    },
+    env
+  );
+  if (resumed)
+    appendEvent(
+      dir,
+      "run.resumed",
+      { by: "esp-go", from: "awaiting-human", reason: resumed.reason },
+      env
+    );
+  return {
+    state_path: path,
+    created: false,
+    resumed: Boolean(resumed),
+    ...state
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -1276,13 +1318,20 @@ Options:
   --config-snapshot <path>  Config snapshot (init; later commands use the frozen one)
   --project-dir <dir>       Repository root (default: recorded at init, else the git root)
   --no-pr, --no-merge       init: stop before the pull request, or before the merge
+  --resume                  init: lift an awaiting-human stop, restoring the unfinished phases
   --worktree                init: build in a task worktree (default: go.worktree)
   --max-rounds <n>          init: pull request fix rounds (default: fix-review.max_rounds)
   --interactive <mode>      init: off, plan or all (default: defaults.interactive)
   --reviewers <names>       init: reviewers to wait for and fix (default: go.default_reviewers)
   --help                    Show this help`;
 
-const BOOLEAN_FLAGS = new Set(["no-pr", "no-merge", "worktree", "help"]);
+const BOOLEAN_FLAGS = new Set([
+  "no-pr",
+  "no-merge",
+  "worktree",
+  "resume",
+  "help"
+]);
 
 export function parseArgs(argv) {
   const options = {};

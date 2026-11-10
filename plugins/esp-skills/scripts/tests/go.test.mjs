@@ -695,6 +695,33 @@ describe("halt and result", () => {
     assert.equal(block.status, "awaiting-human");
     assert.deepEqual(block.blockers, ["2 review items open"]);
   });
+
+  test("a resume lifts an awaiting-human stop and restores the unfinished phases", () => {
+    init();
+    go("phase", "plan", "--status", "done", "--plan", examplePlan());
+    go("phase", "branch", "--status", "started");
+    go("stop", "--status", "awaiting-human", "--reason", "open question");
+    assert.equal(JSON.parse(go("next").stdout).action, "result");
+    assert.equal(JSON.parse(go("init").stdout).stop.status, "awaiting-human");
+    const resumed = JSON.parse(go("init", "--resume").stdout);
+    assert.equal(resumed.resumed, true);
+    assert.equal(resumed.stop, null);
+    assert.equal(resumed.phase_status.plan, "done");
+    assert.equal(resumed.phase_status.branch, "started");
+    const next = JSON.parse(go("next").stdout);
+    assert.equal(next.action, "run");
+    assert.equal(next.phase, "branch");
+    assert.equal(next.resumed, true);
+    assert.ok(jsonl("events.jsonl").some((e) => e.type === "run.resumed"));
+  });
+
+  test("a resume leaves a failed stop in place", () => {
+    init();
+    go("stop", "--status", "failed", "--reason", "broken");
+    const out = JSON.parse(go("init", "--resume").stdout);
+    assert.equal(out.resumed, false);
+    assert.equal(out.stop.status, "failed");
+  });
 });
 
 describe("pr-body", () => {
