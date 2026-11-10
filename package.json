@@ -9,6 +9,7 @@
   },
   "license": "MIT",
   "scripts": {
+    "test": "node --test \"plugins/**/*.test.mjs\"",
     "lint": "markdownlint-cli2 \"**/*.md\"",
     "format": "prettier --check .",
     "check": "pnpm lint && pnpm format",
@@ -17,5 +18,8 @@
   "devDependencies": {
     "markdownlint-cli2": "^0.17.2",
     "prettier": "^3.7.4"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
