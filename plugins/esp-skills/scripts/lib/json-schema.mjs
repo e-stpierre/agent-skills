@@ -19,12 +19,33 @@ const TYPE_CHECKS = {
   string: (v) => typeof v === "string"
 };
 
+const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+// Check the calendar components explicitly: Date.parse normalizes impossible
+// days (2026-02-30 becomes March 2) instead of rejecting them.
+function isCalendarDate(year, month, day) {
+  if (month < 1 || month > 12 || day < 1) return false;
+  const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const max = month === 2 && leap ? 29 : DAYS_IN_MONTH[month - 1];
+  return day <= max;
+}
+
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DATE_TIME_RE =
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d+)?(Z|[+-](\d{2}):(\d{2}))$/;
+
 const FORMAT_CHECKS = {
-  "date-time": (v) =>
-    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(
-      v
-    ) && !Number.isNaN(Date.parse(v)),
-  date: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v))
+  "date-time": (v) => {
+    const m = DATE_TIME_RE.exec(v);
+    if (!m || !isCalendarDate(+m[1], +m[2], +m[3])) return false;
+    // Seconds allow 60 for leap seconds, as RFC 3339 does.
+    if (+m[4] > 23 || +m[5] > 59 || +m[6] > 60) return false;
+    return m[9] === undefined || (+m[9] <= 23 && +m[10] <= 59);
+  },
+  date: (v) => {
+    const m = DATE_RE.exec(v);
+    return m !== null && isCalendarDate(+m[1], +m[2], +m[3]);
+  }
 };
 
 /** Format a JSON value for error messages. */
@@ -186,7 +207,7 @@ function validateNode(schema, value, path, root, errors, ctx) {
 
   if (TYPE_CHECKS.object(value)) {
     for (const key of schema.required ?? []) {
-      if (!(key in value)) {
+      if (!Object.hasOwn(value, key)) {
         errors.push({ path: [...path, key], message: "is required" });
       }
     }
@@ -202,7 +223,9 @@ function validateNode(schema, value, path, root, errors, ctx) {
         );
       }
       let matched = false;
-      if (schema.properties && key in schema.properties) {
+      // Own-property check: inherited names (constructor, __proto__) are not
+      // declared fields and must not bypass additionalProperties.
+      if (schema.properties && Object.hasOwn(schema.properties, key)) {
         matched = true;
         validateNode(
           schema.properties[key],
