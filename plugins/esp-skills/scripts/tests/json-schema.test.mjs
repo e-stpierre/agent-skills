@@ -28,6 +28,39 @@ describe("json-schema validator", () => {
     ]);
   });
 
+  test("inherited prototype names are not declared properties", () => {
+    const schema = {
+      type: "object",
+      properties: { a: { type: "string" } },
+      additionalProperties: false
+    };
+    for (const key of ["constructor", "toString", "hasOwnProperty"]) {
+      assert.deepEqual(paths(validate(schema, { a: "ok", [key]: 42 })), [key]);
+    }
+    const proto = JSON.parse('{"a":"ok","__proto__":42}');
+    assert.deepEqual(paths(validate(schema, proto)), ["__proto__"]);
+    assert.deepEqual(
+      paths(validate({ type: "object", required: ["toString"] }, {})),
+      ["toString"]
+    );
+  });
+
+  test("date and date-time reject impossible calendar values", () => {
+    const dt = { type: "string", format: "date-time" };
+    const d = { type: "string", format: "date" };
+    assert.equal(validate(dt, "2026-02-30T10:00:00Z").valid, false);
+    assert.equal(validate(dt, "2026-04-31T10:00:00Z").valid, false);
+    assert.equal(validate(dt, "2026-13-01T10:00:00Z").valid, false);
+    assert.equal(validate(dt, "2026-11-08T24:00:00Z").valid, false);
+    assert.equal(validate(dt, "2026-11-08T10:60:00Z").valid, false);
+    assert.equal(validate(dt, "2026-11-08T10:00:00+25:00").valid, false);
+    assert.equal(validate(dt, "2028-02-29T23:59:60.5-05:00").valid, true);
+    assert.equal(validate(d, "2026-02-29").valid, false);
+    assert.equal(validate(d, "1900-02-29").valid, false);
+    assert.equal(validate(d, "2000-02-29").valid, true);
+    assert.equal(validate(d, "2026-00-10").valid, false);
+  });
+
   test("arrays: items, minItems, uniqueItems", () => {
     const schema = {
       type: "array",
