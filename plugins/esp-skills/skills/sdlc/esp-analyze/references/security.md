@@ -42,12 +42,10 @@ Check for common security issues:
 
 ## Core Principles
 
-- Only report REAL issues - security false positives waste time
 - Verify exploitability before reporting critical/high severity
 - Be specific with exact vulnerability type and exploitation scenario
 - Prioritize correctly - not everything is critical; consider defense in depth when assessing severity
 - Check if framework features mitigate the issue before reporting
-- This complements but does not replace SAST tools, dependency scanners, or security audits
 
 ## OWASP Top 10 Coverage
 

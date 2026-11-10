@@ -2,7 +2,7 @@
 
 ## Analysis Criteria
 
-Focus on NORMALIZATION - there should be ONE way of doing things:
+Look for normalization gaps, since the codebase should have one way of doing each thing:
 
 **Naming:**
 
@@ -31,7 +31,6 @@ Focus on NORMALIZATION - there should be ONE way of doing things:
 
 ## Core Principles
 
-- Normalization is key - one way to do each thing reduces cognitive load
 - Respect existing patterns - work with the codebase, not against it
 - Majority pattern wins - align outliers to dominant pattern
 - Automated tools first - focus on what automation misses (ESLint/Prettier handle formatting)

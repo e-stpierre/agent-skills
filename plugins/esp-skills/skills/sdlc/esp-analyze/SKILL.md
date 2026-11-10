@@ -1,26 +1,26 @@
 ---
 name: esp-analyze
-description: Analyze codebase for bugs, debt, documentation, security, or style issues
-argument-hint: <type> [context]
+description: Severity-ranked codebase analysis report for one issue type. Use to audit the codebase for bugs, technical debt, documentation drift, security vulnerabilities, or style inconsistencies.
+argument-hint: "-t|--type <type> [context]"
 ---
 
 # Analyze Codebase
 
 ## Overview
 
-Analyze codebase for issues across multiple domains: bugs, technical debt, documentation, security vulnerabilities, or style inconsistencies. Categorizes findings by severity with specific file locations and actionable fix suggestions. Returns structured JSON for workflow integration and generates a markdown report.
+Analyze the codebase for one type of issue: bugs, technical debt, documentation, security vulnerabilities, or style inconsistencies. Findings are rated by severity, each with its file location and an actionable fix, saved as a markdown report, and summarized for the user.
 
 ## Arguments
 
 ### Definitions
 
-- **`<type>`** (required): Analysis type to perform. Must be one of:
+- **`-t|--type <type>`** (required): Analysis type to perform. Must be one of:
   - `bug` - Logic errors, runtime errors, and edge cases
   - `debt` - Technical debt, architecture, and performance issues
   - `doc` - Documentation accuracy and completeness
   - `security` - Vulnerabilities, unsafe patterns, and dependency issues
   - `style` - Code style, consistency, and best practices
-- **`[context]`** (optional): Specific areas or concerns to focus on, or directories/files to analyze. When provided, only these paths are analyzed. Otherwise, the entire codebase is analyzed.
+- **`[context]`** (optional): Specific areas or concerns to focus on, or directories/files to analyze. When it names paths, only these paths are analyzed. Otherwise, the entire codebase is analyzed.
 
 ### Values
 
@@ -28,7 +28,7 @@ Arguments: $ARGUMENTS
 
 ## Additional Resources
 
-Load ONE of these based on the `<type>` argument:
+Load the one reference that matches `--type`:
 
 - For bug analysis, see [references/bug.md](references/bug.md)
 - For debt analysis, see [references/debt.md](references/debt.md)
@@ -38,70 +38,68 @@ Load ONE of these based on the `<type>` argument:
 
 ## Core Principles
 
-- Only report REAL issues - quality over quantity
-- Only report UNFIXED issues - if resolved, do not include it
-- Be specific with exact file and line numbers
-- Understand project patterns before flagging issues
-- Consider framework conventions and intentional design choices
-- Check if apparent issues are handled elsewhere before flagging
+- Report only real, unfixed issues: quality over quantity
+- Give every finding its exact file and line
+- A finding is real only after you checked that the project's patterns, framework conventions, an intentional design choice, or code elsewhere do not already handle or explain it
 - Recognize test-specific patterns and legitimate edge cases
-- If no issues found, return success with zero counts
+- When nothing is found, the report still exists, with zero counts
+
+## Skill-Specific Guidelines
+
+### Configuration
+
+Read the `analyze` section once at the start:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get analyze
+```
+
+If the command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
+
+| Key                  | Default    | Effect                                                        |
+| -------------------- | ---------- | ------------------------------------------------------------- |
+| `analyze.output_dir` | `analysis` | Directory, relative to the repository root, for saved reports |
+
+In the instructions below, `{output_dir}` is the resolved `analyze.output_dir`.
 
 ## Instructions
 
-1. **Validate Type Argument**
-   - Check that `<type>` argument is provided
-   - Verify it is one of: `bug`, `debt`, `doc`, `security`, `style`
-   - If missing or invalid, stop execution and report the error:
+1. **Validate the type**
+   - Read the type from `-t` or `--type` (`--type=<type>` works too)
+   - If it is missing or not one of `bug`, `debt`, `doc`, `security`, `style`, stop and report:
 
      ```text
-     Error: Invalid or missing type argument. Must be one of: bug, debt, doc, security, style
+     Error: Invalid or missing --type. Must be one of: bug, debt, doc, security, style
      ```
 
-2. **Load Type-Specific Guidelines**
-   Based on the `<type>` argument, load the corresponding reference file:
-   - `bug` -> Read [references/bug.md](references/bug.md)
-   - `debt` -> Read [references/debt.md](references/debt.md)
-   - `doc` -> Read [references/doc.md](references/doc.md)
-   - `security` -> Read [references/security.md](references/security.md)
-   - `style` -> Read [references/style.md](references/style.md)
+   - Load the `analyze` configuration (see Configuration)
 
-3. **Determine Scope**
-   - If `[context]` specifies files/directories, focus on those
-   - Otherwise, analyze the entire codebase
+2. **Load the type reference**: read `references/<type>.md` (see Additional Resources).
+
+3. **Determine scope**
+   - If `[context]` names files or directories, analyze those; otherwise the entire codebase
    - Exclude test files, node_modules, build outputs, and vendor directories
-   - For `doc` type: find all documentation files (README, docs/, \*.md)
+   - For `doc`: find all documentation files (README, docs/, \*.md)
 
-4. **Understand Project Context**
+4. **Understand project context**
    - Check for linter configs (ESLint, Prettier, Ruff)
    - Read CLAUDE.md and AGENTS.md (if present) for project-specific guidelines
-   - Analyze existing code patterns to understand conventions
+   - Read representative code to learn the conventions the findings are judged against
 
-5. **Analyze for Issues**
-   - Apply type-specific analysis criteria from the loaded reference file
-   - Verify each finding is a real issue, not a false positive
-   - Check if apparent issues are handled elsewhere
+5. **Analyze for issues**: apply every analysis criterion of the type reference to every file in scope, and verify each candidate per the Core Principles before keeping it. Done when each criterion has been checked across the whole scope.
 
-6. **Categorize Findings**
-   - Apply severity ratings as defined in the type-specific reference file
-   - Use consistent severity levels across all types
+6. **Categorize findings**: rate each one with the severity guidelines of the type reference.
 
-7. **Generate Report**
-   - Save to `analysis/{type}.md`
-   - Include date in report header
-   - Group findings by severity
-   - Use the template from the type-specific reference file
+7. **Generate the report**: save it to `{output_dir}/{type}.md` with the report template of the type reference: the date in the header, findings grouped by severity, each with its location and fix.
 
-8. **Present Results**
-   - Display summary counts by severity
-   - Inform user of report file location
+8. **Present results**: the severity counts and the report path (see Output Guidance).
 
 ## Output Guidance
 
 Save a detailed markdown report and present a user-friendly summary:
 
 ```text
-{Type} analysis complete. Report saved to analysis/{type}.md
+{Type} analysis complete. Report saved to {output_dir}/{type}.md
 
 ## Summary
 - Critical: X issues

@@ -41,15 +41,15 @@ All skills ship in a single plugin and are invoked as `/esp-skills:<skill>`. See
 
 ```bash
 # Create a branch, commit, and open a pull request
-/esp-skills:esp-branch feature add-oauth 123
+/esp-skills:esp-branch --slug add-oauth --type feature --issue 123
 /esp-skills:esp-commit
 /esp-skills:esp-pr
 
 # Plan a feature with milestones and implementation steps
-/esp-skills:esp-sdlc-plan feature Add OAuth login
+/esp-skills:esp-plan --type feature Add OAuth login
 
 # Review a pull request for high-signal issues
-/esp-skills:esp-code-review PR 123
+/esp-skills:esp-review --target "PR 123"
 ```
 
 ## Contributing

@@ -8,13 +8,13 @@ argument-hint: "<context>"
 
 ## Overview
 
-Rubber duck debugging and idea clarification skill. Based on the conversation context and the provided argument, help the user think through a plan, bug, architecture decision, or any other concept. This skill focuses on helping the user think, not on doing work for them.
+Rubber duck debugging and idea clarification: from the conversation and the provided context, help the user think through a plan, bug, architecture decision, or any other concept. The user does the thinking; the skill sharpens it.
 
 ## Arguments
 
 ### Definitions
 
-- **`<context>`** (required): Description of what the user wants to clarify (plan, bug, architecture decision, etc.)
+- **`<context>`** (required): What the user wants to clarify (plan, bug, architecture decision, etc.): all the free text.
 
 ### Values
 
@@ -22,21 +22,20 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- Use the conversation context and provided argument as primary input
-- If code-related, use explore agents to navigate the codebase for relevant context
-- Focus on helping the user think through the problem, not solving it for them
-- Highlight potential blockers, edge cases, or risks
+- The conversation and the provided context are the primary input
+- Help the user reason toward their own answer: question, suggest, and challenge rather than implement
+- Surface the blockers, edge cases, and risks the user has not named
 
 ## Instructions
 
-1. Analyze the context and conversation history to understand what the user wants to clarify
-2. If the topic is code-related, launch explore agents to gather relevant codebase context
-3. Based on the situation, do one or more of:
-   - Ask clarifying questions to deepen understanding
-   - Suggest new ideas and possible improvements
-   - Highlight issues, edge cases, or potential blockers
-4. Keep the discussion conversational and focused on the user's thinking process
+1. Pin down, in one sentence, what the user wants to clarify, from the context and the conversation.
+2. When the topic involves code, launch Explore agents to gather the relevant codebase context.
+3. Respond with one or more of:
+   - Clarifying questions that deepen the understanding
+   - New ideas and possible improvements
+   - Issues, edge cases, or potential blockers
+4. Keep the discussion conversational and centered on the user's reasoning; each reply ends with the open question or decision the user should consider next.
 
 ## Output Guidance
 
-Conversational text with sections as needed. Use headings for questions, suggestions, and concerns when multiple areas are covered.
+Conversational text. When several areas are covered, group them under headings for questions, suggestions, and concerns.

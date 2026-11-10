@@ -2,7 +2,7 @@
 
 ## Analysis Criteria
 
-Focus on finding REAL bugs, not theoretical concerns:
+Look for concrete bugs, each one reachable in practice:
 
 **Logic Errors:**
 

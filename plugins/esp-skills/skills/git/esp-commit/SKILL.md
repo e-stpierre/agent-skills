@@ -1,20 +1,20 @@
 ---
 name: esp-commit
 description: Commit changes with a structured message
-argument-hint: "[message]"
+argument-hint: "[-m|--message <title>]"
 ---
 
 # Git Commit
 
 ## Overview
 
-Create a well-structured commit with a concise title and optional bullet-point description for staged changes. Always includes AI attribution with the model name.
+Commit the staged changes with a concise title, an optional bullet-point description, and an AI attribution trailer naming the model.
 
 ## Arguments
 
 ### Definitions
 
-- **`[message]`** (optional): Override commit title. If not provided, auto-generate from changes.
+- **`[-m|--message <title>]`** (optional): Read from `-m` or `--message`. The commit title. The plan step prefix is still added when it can be inferred (see Plan Step Reference). Defaults to a title generated from the changes.
 
 ### Values
 
@@ -22,45 +22,58 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- Title must be short (50 chars ideal, 120 max) and focus on the main task completed
-- Description is optional for small commits
-- Description uses 1-5 bullet points for larger commits highlighting important aspects
-- Always include AI attribution with your model name: `Co-Authored-By: Claude <model> <noreply@anthropic.com>`
+- The title names the main task completed: 50 characters ideal, 120 at most
+- The description is 1-5 bullets on the key aspects of a substantial change; a small change has none
+- Arguments override configuration; missing configuration falls back to the defaults below
 
 ## Skill-Specific Guidelines
 
+### Configuration
+
+Read the `commit` section and the shared language once at the start:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get commit
+node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults.language
+```
+
+If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
+
+| Key                       | Default | Effect                                                                                   |
+| ------------------------- | ------- | ---------------------------------------------------------------------------------------- |
+| `commit.style`            | `plain` | `plain`: imperative title. `conventional`: `type(scope): subject` (Conventional Commits) |
+| `commit.co_author`        | `true`  | Add the `Co-Authored-By: Claude <model> <noreply@anthropic.com>` trailer                 |
+| `commit.plan_step_prefix` | `true`  | Add the plan step prefix (`[Task N]`, `[Milestone N]`) when following a plan             |
+| `defaults.language`       | `en-US` | Language of the commit title and description                                             |
+
 ### Plan Step Reference
 
-When following a plan (implementation plan, milestone plan, etc.), include the current step reference at the start of the commit title in brackets:
+When actively following a plan with numbered steps and `commit.plan_step_prefix` is `true`, the title starts with the step these changes complete, in brackets:
 
-- **Task-based plans**: `[Task N]` where N is the task number (e.g., `[Task 1]`, `[Task 8]`)
+- **Task-based plans**: `[Task N]` (e.g., `[Task 1]`, `[Task 8]`)
 - **Milestone-based plans**: `[Milestone N]` when committing after completing a milestone
 - **Nested plans**: `[Task M.N]` for tasks within milestones (e.g., `[Task 1.1]`, `[Task 2.3]`)
 
-Only include this prefix if you are actively following a plan with numbered steps. If no plan context exists, omit the brackets entirely.
+Without a plan, the title has no brackets. With `conventional` style, the prefix comes first.
 
 **Examples:**
 
 - `[Task 8] Update CLI with orchestrator integration`
 - `[Milestone 1] Complete authentication module`
-- `[Task 2.3] Add unit tests for validation logic`
+- `[Task 2] feat(auth): add token refresh`
 - `Add helper function for date parsing` (no plan context)
 
 ## Instructions
 
-1. Run `git status` to verify there are changes to commit
-2. Run `git diff --staged` to analyze staged changes (if none, stage all with `git add .`)
-3. Analyze the changes to determine:
-   - Primary purpose of the changes (the "what")
-   - Impact and scope (small fix vs. larger feature)
-4. Determine plan step reference (if following a plan):
-   - Check if there is an active plan with numbered tasks or milestones
-   - Identify which task/milestone these changes correspond to
-   - Format the prefix accordingly (e.g., `[Task 3]`, `[Milestone 2]`, `[Task 1.2]`)
-5. Construct commit message:
-   - **Title**: `[Step Ref]` prefix (if applicable) + imperative mood, capitalize first letter, no period
-   - **Description**: Only if changes are substantial; 1-5 bullets on key aspects
-6. Execute commit using HEREDOC for proper formatting:
+1. Load the `commit` configuration (see Configuration).
+2. Run `git status`. With nothing to commit, report it and stop.
+3. Run `git diff --staged`; when nothing is staged, stage everything with `git add .` and read the staged diff.
+4. Determine the primary purpose of the changes and their scope (small fix or larger feature), and the plan step they complete (see Plan Step Reference).
+5. Construct the message in `defaults.language`:
+   - **Title**: the plan step prefix (if any), then `--message` when given, otherwise per `commit.style`: imperative mood, capitalized first letter, no period (`plain`), or `type(scope): subject` (`conventional`)
+   - **Description**: per Core Principles
+   - **Trailer**: the `Co-Authored-By` line with your model name, unless `commit.co_author` is `false`
+6. Commit with a HEREDOC so the formatting survives:
 
    ```bash
    git commit -m "$(cat <<'EOF'
@@ -74,7 +87,7 @@ Only include this prefix if you are actively following a plan with numbered step
    )"
    ```
 
-7. Report success with commit hash
+7. Report the commit hash and title, read from `git log -1 --format='%h - %s'`.
 
 ## Output Guidance
 

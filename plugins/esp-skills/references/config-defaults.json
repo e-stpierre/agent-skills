@@ -1,0 +1,140 @@
+{
+  "$schema": "https://raw.githubusercontent.com/e-stpierre/skills/main/plugins/esp-skills/references/config.schema.json",
+  "version": 1,
+  "defaults": {
+    "interactive": "off",
+    "language": "en-US",
+    "models": {
+      "planner": { "model": "opus", "effort": "high" },
+      "explorer": { "model": "sonnet" },
+      "builder": {
+        "low": { "model": "sonnet" },
+        "medium": { "model": "opus" },
+        "high": { "model": "opus", "effort": "high" }
+      },
+      "verifier": { "model": "sonnet" },
+      "reviewer": { "model": "opus", "effort": "high" },
+      "fixer": { "model": "opus" },
+      "mechanical": { "model": "haiku" }
+    }
+  },
+  "runs": { "root": "~/.esp-skills/runs", "retention_days": 90 },
+  "worktrees": { "root": "~/.esp-skills/worktrees", "cleanup": "on-merge" },
+  "branch": {
+    "pattern": "{category}/{issue}_{name}",
+    "pattern_without_issue": "{category}/{name}",
+    "default_category": "feature",
+    "categories": ["feature", "fix", "chore", "doc", "refactor", "poc"]
+  },
+  "commit": {
+    "style": "plain",
+    "co_author": true,
+    "plan_step_prefix": true,
+    "review_fixes": "separate"
+  },
+  "pr": {
+    "base": null,
+    "draft": false,
+    "attribution": true,
+    "body_from_run": true,
+    "body_sections": [
+      "summary",
+      "milestones",
+      "decisions",
+      "review-resolution",
+      "follow-ups"
+    ]
+  },
+  "analyze": { "output_dir": "analysis" },
+  "plan": {
+    "default_type": "auto",
+    "explore_agents": { "feature": 3, "bug": 2, "chore": 2 }
+  },
+  "build": {
+    "parallel": false,
+    "max_retries_per_milestone": 2,
+    "commit_per_milestone": true,
+    "gates": { "test": null, "lint": null, "typecheck": null, "build": null }
+  },
+  "review": {
+    "dimensions": [
+      "correctness",
+      "security",
+      "conventions",
+      "plan-conformance"
+    ],
+    "min_severity": "medium",
+    "verify_findings": true
+  },
+  "await-review": {
+    "reviewers": {
+      "claude": { "login": "claude[bot]", "trigger": null },
+      "codex": {
+        "login": "chatgpt-codex-connector[bot]",
+        "trigger": "@codex review"
+      }
+    },
+    "timeout_minutes": 30,
+    "poll_seconds": 60,
+    "auto_trigger": false
+  },
+  "fix-review": {
+    "max_rounds": 3,
+    "fix_ci": true,
+    "reply_to_rejected": true,
+    "deferred_items": "follow-up"
+  },
+  "merge": {
+    "enabled": true,
+    "method": "repo",
+    "preference": ["squash", "rebase", "merge"],
+    "delete_branch": true,
+    "require_resolved_threads": true,
+    "require_green_checks": true,
+    "use_auto_merge": false,
+    "checks_timeout_minutes": 30
+  },
+  "go": {
+    "phases": [
+      "plan",
+      "branch",
+      "build",
+      "review",
+      "pr",
+      "await-review",
+      "fix-review",
+      "merge"
+    ],
+    "default_reviewers": ["claude"],
+    "internal_review_rounds": 2,
+    "worktree": false,
+    "pr_draft_until_reviewed": true,
+    "budgets": { "max_milestones": 12, "max_wall_minutes": 240 },
+    "halt_on": [
+      "critical-security",
+      "gates-exhausted",
+      "scope-change",
+      "destructive-action",
+      "budget"
+    ]
+  },
+  "go-light": {
+    "phases": [
+      "context",
+      "branch",
+      "implement",
+      "pr",
+      "await-review",
+      "fix-review",
+      "merge"
+    ],
+    "max_files_changed": 10,
+    "escalate_to_go": true,
+    "budgets": { "max_wall_minutes": 60 }
+  },
+  "recap": {
+    "roots": ["~/.esp-skills/runs"],
+    "default_range_days": 7,
+    "fan_out_threshold": 5
+  }
+}

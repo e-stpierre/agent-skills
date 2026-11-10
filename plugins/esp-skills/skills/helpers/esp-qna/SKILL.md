@@ -8,13 +8,13 @@ argument-hint: "<question>"
 
 ## Overview
 
-Answer any question with a clear and concise response. This is a read-only skill -- it gathers context when needed but never modifies the codebase, creates files, or runs commands with side effects.
+Answer a question with a clear, concise response. The skill is read-only: it gathers context when the answer needs it and leaves the codebase, the files and the environment exactly as they were.
 
 ## Arguments
 
 ### Definitions
 
-- **`<question>`** (required): The question to answer
+- **`<question>`** (required): The question to answer: all the free text.
 
 ### Values
 
@@ -22,17 +22,15 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- Provide direct, clear answers without unnecessary preamble
-- Do not modify the codebase, create files, or run commands with side effects
-- Read-only operations (Read, Grep, Glob) are acceptable to gather context for answering
-- Use examples when they help clarify the answer
+- Read-only: gather context with read-only tools (Read, Grep, Glob) and read-only commands; every edit, new file, and command with side effects is out of scope, even when the answer suggests one
+- Lead with the answer, then the support; add an example when it clarifies
 
 ## Instructions
 
-1. Parse the question from the arguments
-2. If code context is needed, gather it using read-only operations (Read, Grep, Glob)
-3. Provide a clear, concise answer based on the question and any gathered context
+1. Read the question from the free text.
+2. When the answer depends on the code, gather context read-only until every claim in the answer is backed by a file or line you read.
+3. Answer the question.
 
 ## Output Guidance
 
-Direct text answer. No JSON, no structured output. Keep it brief and to the point.
+A direct text answer, as brief as the question allows.

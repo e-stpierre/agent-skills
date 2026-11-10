@@ -63,7 +63,7 @@ Use US English spelling in all code, comments, documentation, and UI strings whe
 ### Naming Conventions
 
 - **Agents**: Use descriptive names with domain prefix (e.g., `devops-agent.md`, `test-agent.md`)
-- **Skills**: Use kebab-case directory names prefixed with `esp-` (e.g., `esp-branch/`, `esp-sdlc-plan/`) with `SKILL.md` inside. The skill `name` in the frontmatter must match the directory name
+- **Skills**: Use kebab-case directory names prefixed with `esp-` (e.g., `esp-branch/`, `esp-plan/`) with `SKILL.md` inside. The skill `name` in the frontmatter must match the directory name
 - **Hooks**: Include event name (e.g., `session-start-hook.sh`, `tool-call-hook.sh`)
 
 ### Documentation Guidelines
@@ -140,11 +140,11 @@ Skills referenced in workflow YAML files must use the full plugin namespace to a
 ```yaml
 # Correct - explicit namespace
 - type: skill
-  skill: esp-skills:esp-sdlc-plan
+  skill: esp-skills:esp-plan
 
 # Incorrect - ambiguous, could match multiple plugins
 - type: skill
-  skill: esp-sdlc-plan
+  skill: esp-plan
 ```
 
 ### Marketplace Ordering
