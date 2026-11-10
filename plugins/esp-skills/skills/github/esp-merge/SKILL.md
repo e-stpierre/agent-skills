@@ -78,13 +78,13 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 
 Every `merge-ready.mjs` call takes the `--pr` value as `<pr>` (omitted without it), plus `--run-dir <path>` and `--config-snapshot <path>` when given:
 
-| Moment             | Command                                                                                          |
-| ------------------ | ------------------------------------------------------------------------------------------------ |
+| Moment             | Command                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------- |
 | Check              | `merge-ready.mjs check [<pr>] [--method <m>]` (report: `ready`, `outcome`, `conditions`, `method`) |
 | Wait for checks    | `merge-ready.mjs check [<pr>] --wait` (polls every 30 s up to `checks_timeout_minutes`)            |
 | Merge              | `merge-ready.mjs merge [<pr>] [--method <m>] [--dry-run]` (result block)                           |
 | Halt               | `merge-ready.mjs merge [<pr>] --halt "<reason>"` (logs a Halt decision, never merges)              |
-| Gates after rebase | `build.mjs gates --project-dir <repo>` prints the gate commands (configured or detected); run each                    |
+| Gates after rebase | `build.mjs gates --project-dir <repo>` prints the gate commands (configured or detected); run each |
 
 Each condition in the report is `pass`, `fail` or `pending`, with a reason. The outcomes:
 

@@ -95,11 +95,11 @@ While it runs, `node "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-review.mjs" [<pr>] 
 
 ### Outcomes
 
-| Status           | When                                                                             | Next step                                                                 |
-| ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `done`           | Every reviewer reviewed the head commit                                          | Fix the comments with `esp-fix-review`                                    |
+| Status           | When                                                                             | Next step                                                                |
+| ---------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `done`           | Every reviewer reviewed the head commit                                          | Fix the comments with `esp-fix-review`                                   |
 | `awaiting-human` | Timeout, with a `needs_input` request (wait or skip)                             | Interactive session: ask (see below). Headless or subagent: report, stop |
-| `failed`         | The pull request is closed with reviews missing, or `gh` failed 5 times in a row | Report the summary                                                        |
+| `failed`         | The pull request is closed with reviews missing, or `gh` failed 5 times in a row | Report the summary                                                       |
 
 On a timeout in an interactive session (not headless, not a subagent), ask whether to wait again or continue without the missing reviews, with "wait again" first. On "wait again", run the wait again with a new `--state` file. With `--run-dir`, log the answer with `runs.mjs decision` (`source: operator`, `phase: await-review`).
 
