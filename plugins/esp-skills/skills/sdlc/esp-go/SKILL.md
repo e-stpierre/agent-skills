@@ -1,7 +1,7 @@
 ---
 name: esp-go
 description: Run a feature from request to merged pull request, with phase subagents and a commit per milestone
-argument-hint: "[--interactive <mode>] [--worktree] [--reviewers <names>] [--no-pr] [--no-merge] [--max-rounds <n>] [--resume] [--run-dir <path>] [--config-snapshot <path>] [context]"
+argument-hint: "[-u|--resume] [-w|--worktree] [-P|--no-pr] [-M|--no-merge] [-r|--reviewers <name>...] [-m|--max-rounds <n>] [-i|--interactive <mode>] [-d|--run-dir <path>] [-c|--config-snapshot <path>] [context]"
 disable-model-invocation: true
 metadata: { af-contract: 1, af-level: recappable }
 ---
@@ -10,7 +10,7 @@ metadata: { af-contract: 1, af-level: recappable }
 
 ## Overview
 
-The full workflow for a feature: plan, branch, build one verified commit per milestone, review and fix internally, open the pull request, wait in the background for the bot reviews, fix them, refresh the pull request body from the run artifacts, and merge under objective conditions. The skill is an orchestrator: each phase runs in its own subagent (`esp-plan`, `esp-build`, `esp-review`, `esp-fix-review`, `esp-pr`, `esp-merge`), and this session keeps only the run state and the result lines. `scripts/go.mjs` decides what runs next, with which model, how many review rounds are left, and when the task stops. State lives in `<run-dir>/go.json`, so `--resume` continues an interrupted run, and a run escalated by `esp-go-light` is picked up in place.
+The full workflow for a feature: plan, branch, build one verified commit per milestone, review and fix internally, open the pull request, wait in the background for the bot reviews, fix them, refresh the pull request body from the run artifacts, and merge under objective conditions. The skill is an orchestrator: each phase runs in its own subagent (`esp-plan`, `esp-branch`, `esp-build`, `esp-review`, `esp-fix-review`, `esp-pr`, `esp-merge`), and this session keeps only the run state and the result lines. `scripts/go.mjs` decides what runs next, with which model, how many review rounds are left, and when the task stops. State lives in `<run-dir>/go.json`, so a resume continues an interrupted run, and a run escalated by `esp-go-light` is picked up in place.
 
 `preflight -> plan -> [approve] -> branch -> build -> review <-> fix -> PR -> await-review <-> fix-review -> refresh body -> merge -> summary`
 
@@ -18,15 +18,15 @@ The full workflow for a feature: plan, branch, build one verified commit per mil
 
 ### Definitions
 
-- **`[--interactive <mode>]`** (optional): `off`, `plan` or `all`. `plan` approves the plan, then runs on its own. `all` also stops at the internal review findings, after each pull request fix round, and before the merge. `--interactive=<mode>` also works. Defaults to `defaults.interactive` (`off`). Headless sessions always use `off`.
-- **`[--worktree]`** (optional): Build in a task worktree under `worktrees.root`, so the current checkout stays untouched. Defaults to `go.worktree` (`false`).
-- **`[--reviewers <names>]`** (optional): Comma-separated reviewer names from `await-review.reviewers` (`claude`, `codex`) or GitHub logins. Defaults to `go.default_reviewers`.
-- **`[--no-pr]`** (optional): Stop after the internal review: no push, no pull request.
-- **`[--no-merge]`** (optional): Stop after the pull request review fixes, with the pull request left open.
-- **`[--max-rounds <n>]`** (optional): Pull request fix rounds. Defaults to `fix-review.max_rounds` (`3`).
-- **`[--resume]`** (optional): Continue the run in `--run-dir` from `go.json`. Fails when the run has no `go.json`.
-- **`[--run-dir <path>]`** (optional): Run directory. A harness or a parent skill owns it, unless it is a run that `esp-go-light` escalated (esp-go takes that run over). Without it, the skill creates and owns its run under `runs.root`.
-- **`[--config-snapshot <path>]`** (optional): Config snapshot from a harness or parent run. Frozen in `go.json` on the first call.
+- **`[-u|--resume]`** (optional): Continue the run in `--run-dir` from `go.json`. Fails when the run has no `go.json`.
+- **`[-w|--worktree]`** (optional): Build in a task worktree under `worktrees.root`, so the current checkout stays untouched. Defaults to `go.worktree` (`false`).
+- **`[-P|--no-pr]`** (optional): Stop after the internal review: no push, no pull request.
+- **`[-M|--no-merge]`** (optional): Stop after the pull request review fixes, with the pull request left open.
+- **`[-r|--reviewers <name>...]`** (optional): Reviewer names from `await-review.reviewers` (`claude`, `codex`) or GitHub logins, repeated (`-r claude -r codex`) or comma-separated. Defaults to `go.default_reviewers`.
+- **`[-m|--max-rounds <n>]`** (optional): Pull request fix rounds. Defaults to `fix-review.max_rounds` (`3`).
+- **`[-i|--interactive <mode>]`** (optional): `off`, `plan` or `all`. `plan` approves the plan, then runs on its own. `all` also stops at the internal review findings, after each pull request fix round, and before the merge. Defaults to `defaults.interactive` (`off`). Headless sessions always use `off`.
+- **`[-d|--run-dir <path>]`** (optional): Run directory. A harness or a parent skill owns it, unless it is a run that `esp-go-light` escalated (esp-go takes that run over). Without it, the skill creates and owns its run under `runs.root`.
+- **`[-c|--config-snapshot <path>]`** (optional): Config snapshot from a harness or parent run. Frozen in `go.json` on the first call.
 - **`[context]`** (required unless resuming or picking up an escalation): The feature: a description, a GitHub issue URL or `#<number>`, or a path to a file that describes it.
 
 ### Values
@@ -43,12 +43,12 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- This session orchestrates and never implements: every phase except the review wait runs in a fresh subagent, and only its final result line comes back. Details stay in the run directory
-- `go.mjs next` decides the phase, the model and the loop; never pick them yourself. Every state change goes through `go.mjs` and `runs.mjs`; never write `go.json`, `run.json`, `decisions.jsonl` or result files by hand
+- This session orchestrates: every phase except the review wait runs in a fresh subagent, and only its final result line comes back. Details stay in the run directory
+- `go.mjs next` decides the phase, the model and the loop. Every state change goes through `go.mjs` and `runs.mjs`, the only writers of `go.json`, `run.json`, `decisions.jsonl` and the result files
 - Run every script with Bash, with the literal `"${CLAUDE_PLUGIN_ROOT}/scripts/..."` path
 - One commit per milestone (from `esp-build`); review fixes are separate `fix(review): ...` commits
-- A halted task is never merged. Never push to the base branch, never force-push outside a rebase of the task branch, never bypass branch protection
-- Waiting never burns tokens: the review wait runs as a background script in this session
+- A halted task stays unmerged. Push only the task branch; force-push only after a rebase of the task branch; respect branch protection
+- Waiting costs no tokens: the review wait runs as a background script in this session
 - Log each decision this session makes with `runs.mjs decision`
 
 ## Skill-Specific Guidelines
@@ -99,6 +99,8 @@ The phase skills read their own sections (`plan`, `build`, `review`, `fix-review
 | `pr-body [--summary <text>] [--out <file>]`                                                                                                                            | Pull request body from the plan, `state.json`, `decisions.jsonl` and the step results                                                     |
 | `result [--status <status>] [--summary <text>]`                                                                                                                        | Final result block from the state and the steps (exits with its contract code)                                                            |
 
+The scripts take long option names only, and `--reviewers` as one comma-separated value.
+
 `next` actions: `run` (spawn the phase, see Phase Subagents), `complete` (the internal review loop ended: record `phase review --status done`), `halt` (run `go.mjs halt` with its `key` and `reason`), `stop` (run `go.mjs stop` with its `status` and `reason`), `result` (go to the result). `resumed: true` means the phase was started before an interruption: run it again, the phase skills pick up their own state.
 
 ### Phase Subagents
@@ -114,38 +116,38 @@ Work in <cwd>. You are a subagent: never ask questions (interactive mode off); w
 End with the result line printed by runs.mjs result, copied exactly, as your final line.
 ```
 
-`<plugin-root>` is the value of `${CLAUDE_PLUGIN_ROOT}` in this session (`echo "${CLAUDE_PLUGIN_ROOT}"`). Every phase skill that takes them gets `--run-dir <run-dir> --config-snapshot <config_snapshot from go.json>`. Pending operator messages go in `<extra context>` as an `## Operator Messages` section (see Operator Messages).
+`<plugin-root>` is the value of `${CLAUDE_PLUGIN_ROOT}` in this session (`echo "${CLAUDE_PLUGIN_ROOT}"`). `<arguments>` uses the long option names below. Every phase skill that takes them also gets `--run-dir <run-dir> --config-snapshot <config_snapshot from go.json>`. Pending operator messages go in `<extra context>` as an `## Operator Messages` section (see Operator Messages).
 
-| Phase (`sub`) | Role (`next.role`) | Skill and arguments                                                                                                                                 | Extra context and outcome                                                                                                                                                                                                                                                                                                                             |
-| ------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plan`        | `planner`          | `esp-plan --interactive off <request>` (`--amend "<feedback>"` after a rejected plan)                                                               | With `escalated_from`: the escalation reason and `escalation.patch` path, as a starting point the plan may reuse. Then `phase plan --status done --plan <outputs.plan_path>`                                                                                                                                                                          |
-| `branch`      | `mechanical`       | `esp-branch` named from the plan title, from the freshly fetched `origin/<base>`                                                                    | With `use_worktree`: pick the name per `branch.pattern`, then `go.mjs worktree --branch <name>` instead of a checkout. With `go.json` `branch` already set (escalation): check it out. The subagent records `runs.mjs result branch` with `outputs.branch` and `outputs.base_sha`; then `phase branch --status done --branch <name> --base-sha <sha>` |
-| `build`       | `verifier`         | `esp-build --interactive off` (add `--resume` when `next.build_resume`)                                                                             | The build subagent spawns the builders and verifiers itself (nesting depth 2)                                                                                                                                                                                                                                                                         |
-| `review`      | `reviewer`         | `esp-review --plan <plan_path>` on the task branch vs `origin/<base>`                                                                               | The step is `next.loop.step` (`review-<N>`)                                                                                                                                                                                                                                                                                                           |
-| `review-fix`  | `fixer`            | `esp-fix-review --internal <next.loop.findings_path>`, with `--state <run-dir>/fix-review-<N>.json`                                                 | Never pushes                                                                                                                                                                                                                                                                                                                                          |
-| `pr`          | `mechanical`       | `git push -u origin <branch>`, then `esp-pr --run-dir <run-dir>` (add `--draft` when `next.draft`) with the `go.json` `summary` as the body summary | Then `gh pr ready <url>` when `next.mark_ready`. The subagent records `runs.mjs result pr` with `pr`; then `phase pr --status done --pr <url>`                                                                                                                                                                                                        |
-| `fix-review`  | `fixer`            | `esp-fix-review --rounds <next.rounds> [--reviewers <names>] <pr url>`                                                                              | One pull request round per spawn: `--rounds` is the cumulative round number, so it never waits for a re-review itself                                                                                                                                                                                                                                 |
-| `merge`       | `fixer`            | `esp-merge <pr url>`                                                                                                                                | First refresh the body in this session: `go.mjs pr-body --out <run-dir>/pr-body.md`, then `gh pr edit <url> --body-file <run-dir>/pr-body.md` (with `pr.body_from_run`)                                                                                                                                                                               |
+| Phase (`sub`) | Role (`next.role`) | Skill and arguments                                                                                                                   | Extra context and outcome                                                                                                                                                                                                                                                                                                                             |
+| ------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plan`        | `planner`          | `esp-plan --interactive off <request>` (`esp-plan --amend --interactive off "<feedback>"` after a rejected plan)                      | With `escalated_from`: the escalation reason and `escalation.patch` path, as a starting point the plan may reuse. Then `phase plan --status done --plan <outputs.plan_path>`                                                                                                                                                                          |
+| `branch`      | `mechanical`       | `git fetch origin <base>`, then `esp-branch --slug <slug from the plan title> --base origin/<base>` (add `--issue <number>` when the request is a GitHub issue)                                   | With `use_worktree`: pick the name per `branch.pattern`, then `go.mjs worktree --branch <name>` instead of a checkout. With `go.json` `branch` already set (escalation): check it out. The subagent records `runs.mjs result branch` with `outputs.branch` and `outputs.base_sha`; then `phase branch --status done --branch <name> --base-sha <sha>` |
+| `build`       | `verifier`         | `esp-build --interactive off` (add `--resume` when `next.build_resume`)                                                               | The build subagent spawns the builders and verifiers itself (nesting depth 2)                                                                                                                                                                                                                                                                         |
+| `review`      | `reviewer`         | `esp-review --plan <plan_path> --target origin/<base>`, on the task branch                                                            | The step is `next.loop.step` (`review-<N>`)                                                                                                                                                                                                                                                                                                           |
+| `review-fix`  | `fixer`            | `esp-fix-review --internal --findings <next.loop.findings_path>`                                                                      | Never pushes                                                                                                                                                                                                                                                                                                                                          |
+| `pr`          | `mechanical`       | `git push -u origin <branch>`, then `esp-pr --base <base>` (add `--draft` when `next.draft`) | Then `gh pr ready <url>` when `next.mark_ready`. The subagent records `runs.mjs result pr` with `pr`; then `phase pr --status done --pr <url>`                                                                                                                                                                                                        |
+| `fix-review`  | `fixer`            | `esp-fix-review --rounds <next.rounds> --pr <pr url>` (add `--reviewers <names>` when given)                                         | One pull request round per spawn: `--rounds` is the cumulative round number, so it never waits for a re-review itself                                                                                                                                                                                                                                 |
+| `merge`       | `fixer`            | `esp-merge --pr <pr url>`                                                                                                             | First refresh the body in this session: `go.mjs pr-body --out <run-dir>/pr-body.md`, then `gh pr edit <url> --body-file <run-dir>/pr-body.md` (with `pr.body_from_run`)                                                                                                                                                                               |
 
 Before spawning a phase, record `phase <name> --status started`. After it returns, act on its result status: `done` (or `merged` for the merge) records `phase <name> --status done`; `halted` runs `go.mjs stop --status halted --reason <summary>` (the phase logged its Halt decision); `awaiting-human` or `failed` runs `go.mjs stop` with that status, unless Waiting and Open Items says otherwise. A subagent that returns no valid result line counts as `failed` with reason `no result block`.
 
 ### The Review Wait and the Pull Request Rounds
 
-`await-review` runs in this session, not in a subagent: its background script wakes this session, and only its result line stays. Follow [esp-await-review](../../github/esp-await-review/SKILL.md) inline (it is a user-only skill: read it, do not invoke it with a skill tool), with `--run-dir`, `--config-snapshot`, `--reviewers` (when given) and the pull request URL. Then:
+`await-review` runs in this session, not in a subagent: its background script wakes this session, and only its result line stays. `esp-await-review` is user-only, so read its [SKILL.md](../../github/esp-await-review/SKILL.md) and follow it inline, as if invoked with `--run-dir <run-dir> --config-snapshot <snapshot> --pr <pr url>` (add `--reviewers <names>` when given). Then:
 
 1. `go.mjs pr-loop --after await`: `fix` spawns the `fix-review` phase (record `phase await-review --status done` the first time); `stop` ends the task (the stop is recorded). With `timed_out: true`, log a B-Decide decision: the comments that arrived are fixed without waiting longer.
 2. After each `fix-review` spawn, `go.mjs pr-loop --after fix`: `await` waits again (step 1, then the next `fix-review` spawn with `next.rounds`); `merge` records `phase fix-review --status done`; `stop` ends the task.
 
 ### Waiting and Open Items
 
-- A plan that returns `awaiting-human` (open questions): in `plan` or `all` mode, ask, log the answers as operator decisions, and re-run the plan phase with `--amend "<answers>"`. In `off` mode, `go.mjs stop --status awaiting-human`.
+- A plan that returns `awaiting-human` (open questions): in `plan` or `all` mode, ask, log the answers as operator decisions, and re-run the plan phase with `--amend` and the answers. In `off` mode, `go.mjs stop --status awaiting-human`.
 - `phase plan --status done --plan` returns `milestones.action: halt`: run `go.mjs halt --key budget`.
 - Open pull request review items, or a merge blocked by a condition, end the task with `awaiting-human` and the pull request left open.
 - With a caller-owned `--run-dir`, an `awaiting-human` phase ends the skill with that status; the result block passes its `needs_input` through, so the caller can answer and run the skill again with the same `--run-dir`.
 
 ### Interactive Checkpoints
 
-Only in `plan` or `all` mode, standalone and not headless. Phase subagents never ask: this session asks, logs each answer with `runs.mjs decision` (`source: operator`), and passes it to the next subagent as an operator message.
+Only in `plan` or `all` mode, standalone and not headless. This session does the asking: it logs each answer with `runs.mjs decision` (`source: operator`) and passes it to the next subagent as an operator message.
 
 | Checkpoint                    | Mode          | Ask                                                                                                                                  |
 | ----------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -156,7 +158,7 @@ Only in `plan` or `all` mode, standalone and not headless. Phase subagents never
 
 ### Operator Messages
 
-At each phase boundary, read the injected `## Operator Messages` section (first boundary only) and `runs.mjs messages`. Pass the pending messages to the next subagent, then deliver them with `runs.mjs deliver <id>`. A message that says to stop is `go.mjs halt --key scope-change` (or `destructive-action` when it names one). A message that changes the plan re-runs the plan phase with `--amend "<message>"` before the next build.
+At each phase boundary, read the injected `## Operator Messages` section (first boundary only) and `runs.mjs messages`. Pass the pending messages to the next subagent, then deliver them with `runs.mjs deliver <id>`. A message that says to stop is `go.mjs halt --key scope-change` (or `destructive-action` when it names one). A message that changes the plan re-runs the plan phase with `--amend` and the message before the next build.
 
 ### Escalation from esp-go-light
 
@@ -164,14 +166,14 @@ At each phase boundary, read the injected `## Operator Messages` section (first 
 
 ## Instructions
 
-1. **Parse arguments**: read the flags and `[context]`. Resolve the interactive mode: the flag, else `defaults.interactive`, `off` when headless. `--resume` without `--run-dir`, or on a run without `go.json`, is a usage error: report it and stop.
+1. **Parse arguments**: read each option by its short or long name (`-w` or `--worktree`, `-m 2` or `--max-rounds 2`), and the trailing `[context]`. Collect every `-r`/`--reviewers` value into one comma-separated list. Resolve the interactive mode: `-i`/`--interactive`, else `defaults.interactive`, `off` when headless. `-u`/`--resume` without `-d`/`--run-dir`, or on a run without `go.json`, is a usage error: report it and stop.
 2. **Load configuration** (see Configuration).
-3. **Preflight**: a git repository with a clean working tree (`git status --porcelain`); with the `pr` phase, `gh auth status` must succeed. Otherwise report it and stop with `status: failed`.
-4. **Resolve the run**: with `--run-dir`, use it (`runs.mjs create --run-dir <path>` is a no-op on an existing run). Otherwise `runs.mjs create <slug> --title <task title> --workflow esp-go --repo <owner/name or repo path>`. The run is owned when it was created here or is an escalation hand-off. Resolve the base: `pr.base`, else the repository default branch. Run `go.mjs init --request <request text> --base <base> --project-dir <repo-root>` with the flags that were given (omit `--request` for an escalation hand-off or a resume). A second call prints the state.
-5. **Loop**: run `go.mjs next` and act on `action` (see Task State). For `run`, spawn the phase (see Phase Subagents), or run the review wait (see The Review Wait and the Pull Request Rounds). Between phases, handle operator messages and the interactive checkpoints. Loop until `next` returns `result`.
+3. **Preflight**: a git repository with a clean working tree (`git status --porcelain` prints nothing); with the `pr` phase, `gh auth status` succeeds. Otherwise report it and stop with `status: failed`.
+4. **Resolve the run**: with `--run-dir`, use it (`runs.mjs create --run-dir <path>` is a no-op on an existing run). Otherwise `runs.mjs create <slug> --title <task title> --workflow esp-go --repo <owner/name or repo path>`. The run is owned when it was created here or is an escalation hand-off. Resolve the base: `pr.base`, else the repository default branch. Run `go.mjs init --request <request text> --base <base> --project-dir <repo-root>` with the long form of each option that was given (omit `--request` for an escalation hand-off or a resume). Done when `go.mjs init` prints the state.
+5. **Loop**: run `go.mjs next` and act on `action` (see Task State). For `run`, spawn the phase (see Phase Subagents), or run the review wait (see The Review Wait and the Pull Request Rounds). Between phases, handle operator messages and the interactive checkpoints. Done when `next` returns `result`.
 6. **Result**: `go.mjs result` piped into `runs.mjs result go --run-dir <run-dir>`. Pass `--summary` when the default one does not say enough.
-7. **Summary and run status**: write `<run-dir>/summary.md` per the summary template (`workflow: esp-go`; `status` is the result status), from the result block and `decisions.jsonl`, and validate it with `runs.mjs validate`. In an owned run, set `runs.mjs update --status` to the result status (`merged`, `done`, `awaiting-human`, `halted`, `failed`). With a caller-owned run, leave both to the caller.
-8. **Report** (see Output Guidance), ending with the line printed by `runs.mjs result` as the final output line, copied exactly: never shorten or rewrite it.
+7. **Summary and run status**: write `<run-dir>/summary.md` per the summary template (`workflow: esp-go`; `status` is the result status), from the result block and `decisions.jsonl`, until `runs.mjs validate` passes on it. In an owned run, set `runs.mjs update --status` to the result status (`merged`, `done`, `awaiting-human`, `halted`, `failed`). With a caller-owned run, leave both to the caller.
+8. **Report** (see Output Guidance), ending with the line printed by `runs.mjs result` as the final output line, copied verbatim.
 
 ## Output Guidance
 

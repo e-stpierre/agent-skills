@@ -1,24 +1,20 @@
 # Feature Plan Reference
 
-## Planning Approach
-
-Feature plans focus on comprehensive design with incremental delivery. Each milestone should be independently valuable and testable. Architecture decisions should align with existing codebase patterns.
-
 ## Plan Sections
 
 A feature plan follows [plan format 1](../../../../references/plan-format.md). Use these context sections between `## Overview` and `## Milestones`:
 
 - `## Requirements`: functional and non-functional requirements (performance, security, UX)
-- `## Architecture`: high-level design, the existing patterns it follows, integration points, data models and API contracts
-- `## Testing Strategy`: unit, integration and end-to-end coverage the milestones add
+- `## Architecture`: high-level design, the existing patterns it follows, integration points, data models and API contracts, and the key technical decisions
+- `## Testing Strategy`: the unit, integration and end-to-end coverage the milestones add
 
 Put feature-level validation in the acceptance criteria of the last milestone that completes it.
 
-## Requirements Gathering
+## Requirements Questions
 
-If requirements cannot be inferred from context, ask the user about:
+Settle these from the context and the exploration; when one stays open, follow Asking and Deciding in the skill:
 
-- Feature title and overview
+- The feature title and overview
 - Functional requirements (what it should do)
 - Non-functional requirements (performance, security, etc.)
 - User experience expectations
@@ -27,47 +23,21 @@ If requirements cannot be inferred from context, ask the user about:
 
 ## Architecture Considerations
 
-When designing the feature:
-
-- Study existing patterns in the codebase
-- Identify integration points with existing code
-- Define data models and API contracts
-- Consider component reusability
-- Plan for extensibility without over-engineering
-- Document key technical decisions
+- Follow the existing patterns of the codebase and reuse its components
+- Define data models and API contracts at the integration points
+- Design for the stated requirements, with extensibility only where they call for it
 
 ## Milestone Design
 
-Break features into logical milestones:
-
-- Each milestone should deliver visible progress
-- Milestones should be testable independently
+- Each milestone delivers visible progress and is testable on its own
 - Order by dependency (foundational first)
-- Keep each milestone one coherent, reviewable commit
 - Typically 2-5 milestones per feature
+- Write tasks as specific, actionable steps with the file paths they change, and put the tests beside the implementation they cover
 
-**Common milestone patterns:**
+Common milestone patterns:
 
-1. Core infrastructure/data models
+1. Core infrastructure and data models
 2. Basic functionality (happy path)
 3. Edge cases and error handling
 4. Polish and optimization
 5. Documentation and cleanup
-
-## Task Decomposition
-
-Within each milestone:
-
-- Tasks should be specific and actionable
-- Include file paths where changes are needed
-- Consider testing tasks alongside implementation
-- Note any dependencies between tasks
-
-## Testing Strategy
-
-Plan testing at multiple levels:
-
-- **Unit Tests**: Individual functions and components
-- **Integration Tests**: Component interactions
-- **E2E Tests**: Full user flows
-- **Manual Testing**: Exploratory and edge cases

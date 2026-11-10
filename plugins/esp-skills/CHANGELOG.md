@@ -33,7 +33,8 @@
 - `esp-fix-review` in internal mode keeps one state file per review round (`fix-review-<N>.json`) under a run directory, apart from the PR rounds
 - Added `esp-recap` skill: recaps runs from every root in `recap.roots` (filters `--since`, `--until`, `--last`, `--repo`, `--status`, `--risk`), reports high-risk decisions, critical findings and stopped runs (`--risks`), and answers questions with sources in the order decisions, summaries, git log and blame, PR descriptions and comments; above `recap.fan_out_threshold` runs it digests them in parallel subagents
 - Added `scripts/recap.mjs` (`collect`, `show`, `risks`, `sources`); `recap` is now an active config key
-- Skill templates allow valued options (`[--name <value>]`) for harness and orchestration inputs such as `--run-dir <path>`
+- **Breaking**: every skill takes arguments as named options with a short and a long name (`-t|--type <type>`), and flags gain short names; only trailing free text stays positional. For example `/esp-skills:esp-branch my-feature fix 12` -> `/esp-skills:esp-branch --slug my-feature --type fix --issue 12`, `/esp-skills:esp-fix-review 42` -> `/esp-skills:esp-fix-review --pr 42`, `/esp-skills:esp-analyze security` -> `/esp-skills:esp-analyze --type security`. `esp-create-skill` and the skill template define the convention, reserved short letters, and the plugin-wide letters (`-d` run dir, `-c` config snapshot, `-i` interactive, `-r` reviewers, `-p` PR or plan, `-u` resume)
+- Skill prompts reviewed for clarity: tighter descriptions, sharper completion criteria, fewer restatements
 
 ## 0.6.0
 

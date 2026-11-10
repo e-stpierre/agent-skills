@@ -6,22 +6,24 @@ A single plugin bundling every skill in this repository: standardized git workfl
 
 Every skill is invoked as `/esp-skills:<skill>`. Unqualified names (`/esp-commit`, `/esp-qna`) also work as long as no other installed plugin provides a skill with the same name.
 
-- `/esp-skills:esp-branch feature add-oauth 123` - Create a branch with standardized naming
+Arguments work like a standard CLI: discrete values are named options with a short and a long name (`-t|--type <type>`), and only trailing free text is positional (see [Complete Examples](#complete-examples)).
+
+- `/esp-skills:esp-branch --slug add-oauth --issue 123` - Create a branch with standardized naming
 - `/esp-skills:esp-commit` - Commit changes with a structured message
 - `/esp-skills:esp-pr` - Create a pull request with a contextual description
-- `/esp-skills:esp-await-review --reviewers codex 42` - Wait in the background until Codex has reviewed the head commit of PR 42
-- `/esp-skills:esp-fix-review --reviewers codex 42` - Fix, reply to, or defer Codex's comments and failing CI on PR 42, re-review included
+- `/esp-skills:esp-await-review --reviewers codex --pr 42` - Wait in the background until Codex has reviewed the head commit of PR 42
+- `/esp-skills:esp-fix-review --reviewers codex --pr 42` - Fix, reply to, or defer Codex's comments and failing CI on PR 42, re-review included
 - `/esp-skills:esp-fix-review --internal --run-dir <run>` - Apply the findings of the last `esp-review` of a run, without a PR
-- `/esp-skills:esp-merge 42` - Merge PR 42 once its checks, threads, reviews and branch protection allow it, with the method the repo allows
-- `/esp-skills:esp-review PR 123` - Review a pull request across correctness, security, tests and conventions, with classified findings
-- `/esp-skills:esp-plan feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
+- `/esp-skills:esp-merge --pr 42` - Merge PR 42 once its checks, threads, reviews and branch protection allow it, with the method the repo allows
+- `/esp-skills:esp-review --target "PR 123"` - Review a pull request across correctness, security, tests and conventions, with classified findings
+- `/esp-skills:esp-plan --type feature Add OAuth login` - Plan a feature as parseable milestones in a run directory
 - `/esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login` - Build the plan, one verified commit per milestone
 - `/esp-skills:esp-go Add OAuth login with Google` - Take a feature from request to merged PR: plan, one commit per milestone, internal review, bot review fixes, merge
-- `/esp-skills:esp-go-light Add a --json flag to the status command` - Take a small task from request to merged PR in one session, escalating when it is not small
+- `/esp-skills:esp-go-light Add a JSON output option to the status command` - Take a small task from request to merged PR in one session, escalating when it is not small
 - `/esp-skills:esp-recap --last 7d` - Recap the runs of the last week; `--risks` lists high-risk decisions and critical findings, and a question gets an answer with sources
-- `/esp-skills:esp-analyze security` - Analyze the codebase for security issues
+- `/esp-skills:esp-analyze --type security` - Analyze the codebase for security issues
 - `/esp-skills:esp-qna How does OAuth 2.0 work?` - Get a concise answer without code changes
-- `/esp-skills:esp-config set pr.draft true` - Change a configuration default
+- `/esp-skills:esp-config set --key pr.draft true` - Change a configuration default
 
 ## Agents
 
@@ -191,10 +193,10 @@ The SDLC skills (`esp-plan`, `esp-analyze`) accept an optional `[context]` argum
 
 ```bash
 # With context - minimal prompts
-/esp-skills:esp-plan bug "Login fails on Safari when using OAuth."
+/esp-skills:esp-plan --type bug Login fails on Safari when using OAuth.
 
 # Without context - interactive prompts
-/esp-skills:esp-plan --interactive plan bug
+/esp-skills:esp-plan --interactive plan --type bug
 ```
 
 The `esp-review` skill produces markdown and a result block and performs no write-side effects on the repository. Routing the review (stdout, PR comment, file, CI annotation) is the caller's responsibility.
@@ -343,38 +345,38 @@ Workflow skills and agents share these references at the plugin root, reached th
 
 ## Complete Examples
 
+Arguments follow CLI conventions: every discrete value is a named option with a short and a long name (`-t|--type <type>`, also `--type=<value>`), flags are switches (`-w|--draft`), and only trailing free text (`[context]`, `<question>`) is positional. Repeatable options (`-r|--reviewers <name>...`) take the option several times (`-r claude -r codex`) or a comma-separated value (`-r claude,codex`). Quote a value that contains spaces.
+
 ### /esp-skills:esp-branch
 
 **Arguments:**
 
-- `<branch-name>` - Short kebab-case description (required)
-- `[category]` - Branch type: feature (default), fix, chore, doc, poc, refactor
-- `[issue-id]` - GitHub issue number
-- `[base]` - Base branch to create from (defaults to current location)
-
-When only one argument is provided, it is treated as the branch-name with category defaulting to `feature`.
+- `-s|--slug <slug>` - Short kebab-case description (required)
+- `[-t|--type <type>]` - Branch type: feature (default: `branch.default_category`), fix, chore, doc, poc, refactor
+- `[-g|--issue <id>]` - GitHub issue number
+- `[-b|--base <branch>]` - Base branch to create from (defaults to current location)
 
 **Examples:**
 
 ```bash
 # Simple branch (defaults to feature/add-dark-mode)
-/esp-skills:esp-branch add-dark-mode
+/esp-skills:esp-branch --slug add-dark-mode
 
-# With category
-/esp-skills:esp-branch hotfix login-timeout
+# With a type
+/esp-skills:esp-branch --slug login-timeout --type fix
 
 # With issue reference
-/esp-skills:esp-branch feature add-oauth 123
+/esp-skills:esp-branch --slug add-oauth --type feature --issue 123
 
-# Branch from a specific base branch
-/esp-skills:esp-branch feature add-oauth 123 develop
+# Branch from a specific base branch, with short names
+/esp-skills:esp-branch -s add-oauth -t feature -g 123 -b develop
 ```
 
 ### /esp-skills:esp-commit
 
 **Arguments:**
 
-- `[message]` - Override commit title (auto-generated if not provided)
+- `[-m|--message <title>]` - Override commit title (auto-generated if not provided)
 
 **Examples:**
 
@@ -383,16 +385,17 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-commit
 
 # With custom message
-/esp-skills:esp-commit Fix login timeout on Safari
+/esp-skills:esp-commit --message "Fix login timeout on Safari"
+/esp-skills:esp-commit -m "Fix login timeout on Safari"
 ```
 
 ### /esp-skills:esp-pr
 
 **Arguments:**
 
-- `[base-branch]` - Target branch for the PR (defaults to main/master)
-- `[--draft]` - Create the PR as a draft
-- `[--run-dir <path>]` - Run directory: the body is built from its artifacts (`pr.body_from_run`) and the PR URL is recorded
+- `[-w|--draft]` - Create the PR as a draft
+- `[-b|--base <branch>]` - Target branch for the PR (defaults to `pr.base`, or the repository default branch)
+- `[-d|--run-dir <path>]` - Run directory: the body is built from its artifacts (`pr.body_from_run`) and the PR URL is recorded
 
 **Examples:**
 
@@ -401,10 +404,10 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-pr
 
 # Create PR to specific branch
-/esp-skills:esp-pr develop
+/esp-skills:esp-pr --base develop
 
-# Create draft PR
-/esp-skills:esp-pr --draft
+# Create draft PR to a specific branch, with short names
+/esp-skills:esp-pr -w -b develop
 
 # Build the body from a run's plan, decisions and review resolution
 /esp-skills:esp-pr --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
@@ -414,11 +417,11 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `<action>` - `init`, `show`, `get`, `set`, `unset`, `validate`, or `sources` (required)
-- `[key]` - Section or dotted key for `get`, `set`, `unset`; a file path for `validate`
-- `[value]` - Value for `set`, parsed as JSON when valid, otherwise a string
-- `[--project]` - Target `<repo>/.esp-skills/config.json` instead of the user file
-- `[--force]` - Overwrite an existing file on `init`
+- `<action>` - `init`, `show`, `get`, `set`, `unset`, `validate`, or `sources` (required, leading positional)
+- `[-P|--project]` - Target `<repo>/.esp-skills/config.json` instead of the user file
+- `[-f|--force]` - Overwrite an existing file on `init`
+- `[-k|--key <key>]` - Section or dotted key for `get`, `set`, `unset`; a file path for `validate`
+- `[value]` - Value for `set` (trailing free text), parsed as JSON when valid, otherwise a string
 
 **Examples:**
 
@@ -426,23 +429,23 @@ When only one argument is provided, it is treated as the branch-name with catego
 # Create ~/.esp-skills/config.json
 /esp-skills:esp-config init
 
-# Create a project config in the current repository
-/esp-skills:esp-config --project init
+# Create a project config in the current repository, overwriting an existing one
+/esp-skills:esp-config init --project --force
 
 # Show the merged config, or one section or key
 /esp-skills:esp-config show
-/esp-skills:esp-config get pr
-/esp-skills:esp-config get defaults.models.reviewer
+/esp-skills:esp-config get --key pr
+/esp-skills:esp-config get --key defaults.models.reviewer
 
 # Change a value for every repository, or only this one
-/esp-skills:esp-config set pr.draft true
-/esp-skills:esp-config --project set pr.base develop
-/esp-skills:esp-config set merge.preference '["squash","merge"]'
+/esp-skills:esp-config set --key pr.draft true
+/esp-skills:esp-config set -P -k pr.base develop
+/esp-skills:esp-config set --key merge.preference '["squash","merge"]'
 
 # Remove a key, validate all layers or one file, list layers
-/esp-skills:esp-config unset pr.draft
+/esp-skills:esp-config unset --key pr.draft
 /esp-skills:esp-config validate
-/esp-skills:esp-config validate ./candidate-config.json
+/esp-skills:esp-config validate --key ./candidate-config.json
 /esp-skills:esp-config sources
 ```
 
@@ -450,13 +453,14 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `[--internal]` (optional) - Fix the findings of an `esp-review` run (`review-<N>.json`) instead of PR comments, without pushing
-- `[--rounds <n>]` (optional) - Maximum fix rounds across invocations (default: `fix-review.max_rounds`)
-- `[--reviewers <names>]` (optional) - Only handle, and wait for, these reviewers (names from `await-review.reviewers`, or logins)
-- `[--interactive <mode>]` (optional) - `off`, `plan` or `all` (`all` asks about B-Decide and B-Scope items and shows a recap before pushing)
-- `[--run-dir <path>]` (optional) - Keep the state in the run, log every resolution, record step `fix-review`
-- `[--config-snapshot <path>]` (optional) - Read this config snapshot instead of the user and project layers
-- `[target]` (optional) - Pull request number, `#<n>` or URL (default: the PR of the current branch); with `--internal`, a findings file
+- `[-l|--internal]` - Fix the findings of an `esp-review` run (`review-<N>.json`) instead of PR comments, without pushing
+- `[-m|--rounds <n>]` - Maximum fix rounds across invocations (default: `fix-review.max_rounds`)
+- `[-r|--reviewers <name>...]` - Only handle, and wait for, these reviewers (names from `await-review.reviewers`, or logins)
+- `[-i|--interactive <mode>]` - `off`, `plan` or `all` (`all` asks about B-Decide and B-Scope items and shows a recap before pushing)
+- `[-p|--pr <pr>]` - Pull request number, `#<n>` or URL (default: the PR of the current branch)
+- `[-e|--findings <path>]` - With `--internal`, the findings file to apply (default: the latest `review-<N>.json` of the run)
+- `[-d|--run-dir <path>]` - Keep the state in the run, log every resolution, record step `fix-review`
+- `[-c|--config-snapshot <path>]` - Read this config snapshot instead of the user and project layers
 
 **Examples:**
 
@@ -465,27 +469,28 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-fix-review
 
 # Handle only Codex's comments on PR 42, in one round
-/esp-skills:esp-fix-review --reviewers codex --rounds 1 42
+/esp-skills:esp-fix-review --rounds 1 --reviewers codex --pr 42
+/esp-skills:esp-fix-review -m 1 -r codex -p 42
 
 # Settle B-Decide and B-Scope comments with the user
-/esp-skills:esp-fix-review --interactive all https://github.com/o/r/pull/42
+/esp-skills:esp-fix-review --interactive all --pr https://github.com/o/r/pull/42
 
 # Apply the latest esp-review findings of a run, or a given findings file
 /esp-skills:esp-fix-review --internal --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
-/esp-skills:esp-fix-review --internal /tmp/esp-review-x1/review-1.json
+/esp-skills:esp-fix-review --internal --findings /tmp/esp-review-x1/review-1.json
 ```
 
 ### /esp-skills:esp-await-review
 
 **Arguments:**
 
-- `[--trigger]` (optional) - Post the trigger comment of each pending reviewer that has one, once per head commit
-- `[--no-trigger]` (optional) - Never post trigger comments, even with `await-review.auto_trigger`
-- `[--reviewers <names>]` (optional) - Reviewer names from `await-review.reviewers`, or raw logins (default: `go.default_reviewers`)
-- `[--timeout <minutes>]` (optional) - Give up after this many minutes (default: `await-review.timeout_minutes`)
-- `[--run-dir <path>]` (optional) - Record the wait in a run directory, as step `await-review`
-- `[--config-snapshot <path>]` (optional) - Read this config snapshot instead of the user and project layers
-- `[pr]` (optional) - Pull request number, `#<n>` or URL (default: the PR of the current branch)
+- `[-t|--trigger]` - Post the trigger comment of each pending reviewer that has one, once per head commit
+- `[-T|--no-trigger]` - Never post trigger comments, even with `await-review.auto_trigger`
+- `[-r|--reviewers <name>...]` - Reviewer names from `await-review.reviewers`, or raw logins (default: `go.default_reviewers`)
+- `[-m|--timeout <minutes>]` - Give up after this many minutes (default: `await-review.timeout_minutes`)
+- `[-p|--pr <pr>]` - Pull request number, `#<n>` or URL (default: the PR of the current branch)
+- `[-d|--run-dir <path>]` - Record the wait in a run directory, as step `await-review`
+- `[-c|--config-snapshot <path>]` - Read this config snapshot instead of the user and project layers
 
 **Examples:**
 
@@ -494,25 +499,26 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-await-review
 
 # Wait for Codex and Claude on PR 42, asking Codex for a review after a push
-/esp-skills:esp-await-review --reviewers codex,claude --trigger 42
+/esp-skills:esp-await-review --trigger --reviewers codex --reviewers claude --pr 42
+/esp-skills:esp-await-review -t -r codex,claude -p 42
 
 # Wait at most 10 minutes for a custom bot
-/esp-skills:esp-await-review --reviewers my-bot[bot] --timeout 10 https://github.com/o/r/pull/42
+/esp-skills:esp-await-review --reviewers my-bot[bot] --timeout 10 --pr https://github.com/o/r/pull/42
 
 # Record the wait in a workflow run
-/esp-skills:esp-await-review --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login 42
+/esp-skills:esp-await-review --pr 42 --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
 ```
 
 ### /esp-skills:esp-merge
 
 **Arguments:**
 
-- `[--dry-run]` (optional) - Check the conditions and resolve the method without rebasing or merging
-- `[--method <method>]` (optional) - `repo`, `squash`, `rebase` or `merge`; errors when the repository does not allow it (default: `merge.method`)
-- `[--interactive <mode>]` (optional) - `off`, `plan` or `all`; `all` asks before merging (default: `defaults.interactive`)
-- `[--run-dir <path>]` (optional) - Read halt signals from a run directory, log the decision, record step `merge`
-- `[--config-snapshot <path>]` (optional) - Read this config snapshot instead of the user and project layers
-- `[pr]` (optional) - Pull request number, `#<n>` or URL (default: the PR of the current branch)
+- `[-n|--dry-run]` - Check the conditions and resolve the method without rebasing or merging
+- `[-m|--method <method>]` - `repo`, `squash`, `rebase` or `merge`; errors when the repository does not allow it (default: `merge.method`)
+- `[-i|--interactive <mode>]` - `off`, `plan` or `all`; `all` asks before merging (default: `defaults.interactive`)
+- `[-p|--pr <pr>]` - Pull request number, `#<n>` or URL (default: the PR of the current branch)
+- `[-d|--run-dir <path>]` - Read halt signals from a run directory, log the decision, record step `merge`
+- `[-c|--config-snapshot <path>]` - Read this config snapshot instead of the user and project layers
 
 **Examples:**
 
@@ -521,25 +527,26 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-merge
 
 # See what would happen on PR 42, without merging
-/esp-skills:esp-merge --dry-run 42
+/esp-skills:esp-merge --dry-run --pr 42
+/esp-skills:esp-merge -n -p 42
 
 # Force a rebase merge, and confirm before merging
-/esp-skills:esp-merge --method rebase --interactive all https://github.com/o/r/pull/42
+/esp-skills:esp-merge --method rebase --interactive all --pr https://github.com/o/r/pull/42
 
 # Merge as a workflow step: halts in the run block the merge
-/esp-skills:esp-merge --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login 42
+/esp-skills:esp-merge --pr 42 --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
 ```
 
 ### /esp-skills:esp-review
 
 **Arguments:**
 
-- `[--focus <area>]` - Comma-separated dimensions to review (`security,tests`), or a concern to weigh more heavily
-- `[--plan <path>]` - Plan the diff implements, for `plan-conformance` (default with `--run-dir`: the run's latest plan)
-- `[--interactive <mode>]` - `off`, `plan` or `all`; `all` settles B-Decide and B-Scope findings with you (default: `defaults.interactive`)
-- `[--run-dir <path>]` - Save `review-<N>.diff`, `.md` and `.json` in a run and record step `review-<N>` (default: a temporary directory, no run)
-- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
-- `[target]` - What to review. Omit for local changes (or the branch against the default branch when the tree is clean). Accepts `staged`, `unstaged`, a ref (`main`, `origin/main`), a range (`main..HEAD`), or a PR (`PR 123`, `#123`, a PR URL).
+- `[-a|--focus <area>]` - Comma-separated dimensions to review (`security,tests`), or a concern to weigh more heavily
+- `[-p|--plan <path>]` - Plan the diff implements, for `plan-conformance` (default with `--run-dir`: the run's latest plan)
+- `[-t|--target <target>]` - What to review. Omit for local changes (or the branch against the default branch when the tree is clean). Accepts `staged`, `unstaged`, a ref (`main`, `origin/main`), a range (`main..HEAD`), or a PR (`"PR 123"`, `#123`, a PR URL)
+- `[-i|--interactive <mode>]` - `off`, `plan` or `all`; `all` settles B-Decide and B-Scope findings with you (default: `defaults.interactive`)
+- `[-d|--run-dir <path>]` - Save `review-<N>.diff`, `.md` and `.json` in a run and record step `review-<N>` (default: a temporary directory, no run)
+- `[-c|--config-snapshot <path>]` - Config snapshot from a harness or parent run
 
 **Examples:**
 
@@ -548,22 +555,22 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-review
 
 # Review only staged changes, e.g. as a pre-commit sanity check
-/esp-skills:esp-review staged
+/esp-skills:esp-review --target staged
 
 # Review the current branch against main, or an explicit range
-/esp-skills:esp-review main
-/esp-skills:esp-review origin/main..HEAD
+/esp-skills:esp-review --target main
+/esp-skills:esp-review -t origin/main..HEAD
 
 # Review a GitHub pull request (requires gh to be authenticated)
-/esp-skills:esp-review PR 123
-/esp-skills:esp-review #123
+/esp-skills:esp-review --target "PR 123"
+/esp-skills:esp-review --target #123
 
 # Review only security and tests, or weigh a concern more heavily
-/esp-skills:esp-review --focus security,tests main
-/esp-skills:esp-review --focus "token refresh" PR 123
+/esp-skills:esp-review --focus security,tests --target main
+/esp-skills:esp-review --focus "token refresh" --target "PR 123"
 
 # Check the build of a run against its plan, saving the review in the run
-/esp-skills:esp-review --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login main
+/esp-skills:esp-review --target main --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
 
 # Settle B-Decide and B-Scope findings interactively
 /esp-skills:esp-review --interactive all
@@ -573,24 +580,24 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `[--amend]` - Amend the latest plan in `--run-dir`; `[context]` is the amendment (text or file)
-- `[--interactive <mode>]` - `off`, `plan` or `all` (default: `defaults.interactive`)
-- `[--type <type>]` - `feature`, `bug`, `chore` or `auto` (default: `plan.default_type`); a leading bare type word also works
-- `[--run-dir <path>]` - Use an existing run directory (default: a new run under `runs.root`)
-- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
+- `[-a|--amend]` - Amend the latest plan in `--run-dir`; `[context]` is the amendment (text or file)
+- `[-t|--type <type>]` - `feature`, `bug`, `chore` or `auto` (default: `plan.default_type`)
+- `[-i|--interactive <mode>]` - `off`, `plan` or `all` (default: `defaults.interactive`)
+- `[-d|--run-dir <path>]` - Use an existing run directory (default: a new run under `runs.root`)
+- `[-c|--config-snapshot <path>]` - Config snapshot from a harness or parent run
 - `[context]` - Task description, issue URL or document path
 
 **Examples:**
 
 ```bash
 # Plan a feature with context
-/esp-skills:esp-plan feature Add user authentication with OAuth for Google and GitHub
+/esp-skills:esp-plan --type feature Add user authentication with OAuth for Google and GitHub
 
 # Plan a bug fix from an issue
 /esp-skills:esp-plan --type bug https://github.com/acme/web/issues/42
 
-# Plan a chore
-/esp-skills:esp-plan chore Update all npm dependencies to latest versions
+# Plan a chore, with short names
+/esp-skills:esp-plan -t chore Update all npm dependencies to latest versions
 
 # Auto-detect type, and approve the plan before it is final
 /esp-skills:esp-plan --interactive plan Fix the login timeout issue
@@ -603,14 +610,14 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `[--resume]` - Continue an existing build from `state.json`
-- `[--parallel]` - Run milestones with disjoint files in parallel worktrees (default: `build.parallel`)
-- `[--milestone <id>]` - Run one milestone and exit; `next` picks the next runnable one
-- `[--model <alias>]` - Builder model for every milestone (`opus`, `sonnet`, `haiku`, `fable`)
-- `[--interactive <mode>]` - `off`, `plan` or `all` (default: `defaults.interactive`)
-- `[--run-dir <path>]` - Run directory that holds the plan (default: the plan's directory, or a new run)
-- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
-- `[plan]` - Plan file (default: the latest plan version in the run directory)
+- `[-u|--resume]` - Continue an existing build from `state.json`
+- `[-l|--parallel]` - Run milestones with disjoint files in parallel worktrees (default: `build.parallel`)
+- `[-m|--milestone <id>]` - Run one milestone and exit; `next` picks the next runnable one
+- `[-a|--model <alias>]` - Builder model for every milestone (`opus`, `sonnet`, `haiku`, `fable`)
+- `[-p|--plan <path>]` - Plan file (default: the latest plan version in the run directory)
+- `[-i|--interactive <mode>]` - `off`, `plan` or `all` (default: `defaults.interactive`)
+- `[-d|--run-dir <path>]` - Run directory that holds the plan (default: the plan's directory, or a new run)
+- `[-c|--config-snapshot <path>]` - Config snapshot from a harness or parent run
 
 **Examples:**
 
@@ -619,28 +626,28 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-build --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
 
 # Build from a plan path, with sonnet as the builder
-/esp-skills:esp-build --model sonnet ~/.esp-skills/runs/2026-11-10-add-oauth-login/plan.md
+/esp-skills:esp-build --model sonnet --plan ~/.esp-skills/runs/2026-11-10-add-oauth-login/plan.md
 
 # Run only the next milestone, as a loop iteration would
 /esp-skills:esp-build --milestone next --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
 
-# Resume an interrupted build, running independent milestones in parallel
-/esp-skills:esp-build --resume --parallel --run-dir ~/.esp-skills/runs/2026-11-10-add-oauth-login
+# Resume an interrupted build, running independent milestones in parallel, with short names
+/esp-skills:esp-build -u -l -d ~/.esp-skills/runs/2026-11-10-add-oauth-login
 ```
 
 ### /esp-skills:esp-go
 
 **Arguments:**
 
-- `[--interactive <mode>]` - `off`, `plan` (approve the plan) or `all` (also review findings, PR rounds and merge) (default: `defaults.interactive`)
-- `[--worktree]` - Build in a task worktree (default: `go.worktree`)
-- `[--reviewers <names>]` - Reviewers to wait for and fix (default: `go.default_reviewers`)
-- `[--no-pr]` - Stop after the internal review
-- `[--no-merge]` - Stop after the PR review fixes, with the PR open
-- `[--max-rounds <n>]` - PR fix rounds (default: `fix-review.max_rounds`)
-- `[--resume]` - Continue the run in `--run-dir` from `go.json`
-- `[--run-dir <path>]` - Run directory: a harness or parent run, or an `esp-go-light` escalation to pick up (default: a new run under `runs.root`)
-- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
+- `[-u|--resume]` - Continue the run in `--run-dir` from `go.json`
+- `[-w|--worktree]` - Build in a task worktree (default: `go.worktree`)
+- `[-P|--no-pr]` - Stop after the internal review
+- `[-M|--no-merge]` - Stop after the PR review fixes, with the PR open
+- `[-r|--reviewers <name>...]` - Reviewers to wait for and fix (default: `go.default_reviewers`)
+- `[-m|--max-rounds <n>]` - PR fix rounds (default: `fix-review.max_rounds`)
+- `[-i|--interactive <mode>]` - `off`, `plan` (approve the plan) or `all` (also review findings, PR rounds and merge) (default: `defaults.interactive`)
+- `[-d|--run-dir <path>]` - Run directory: a harness or parent run, or an `esp-go-light` escalation to pick up (default: a new run under `runs.root`)
+- `[-c|--config-snapshot <path>]` - Config snapshot from a harness or parent run
 - `[context]` - The feature: a description, an issue URL or `#<number>`, or a file path
 
 **Examples:**
@@ -650,10 +657,11 @@ When only one argument is provided, it is treated as the branch-name with catego
 /esp-skills:esp-go Add OAuth login with Google
 
 # Approve the plan first, then run on its own, in a separate worktree
-/esp-skills:esp-go --interactive plan --worktree https://github.com/o/r/issues/31
+/esp-skills:esp-go --worktree --interactive plan https://github.com/o/r/issues/31
 
 # Stop with the PR open, waiting for Codex
 /esp-skills:esp-go --no-merge --reviewers codex Add a session store
+/esp-skills:esp-go -M -r codex Add a session store
 
 # Pick up a task that esp-go-light escalated
 /esp-skills:esp-go --run-dir ~/.esp-skills/runs/2026-11-10-status-json
@@ -666,18 +674,18 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `[--stop-before-wait]` - End once the PR is open; the caller waits, fixes and merges
-- `[--reviewers <names>]` - Reviewers to wait for and fix (default: `go.default_reviewers`)
-- `[--interactive <mode>]` - `off`, `plan` (confirm the approach) or `all` (also review fixes and merge) (default: `defaults.interactive`)
-- `[--run-dir <path>]` - Run directory owned by a harness or a parent skill (default: a new run under `runs.root`)
-- `[--config-snapshot <path>]` - Config snapshot from a harness or parent run
+- `[-s|--stop-before-wait]` - End once the PR is open; the caller waits, fixes and merges
+- `[-r|--reviewers <name>...]` - Reviewers to wait for and fix (default: `go.default_reviewers`)
+- `[-i|--interactive <mode>]` - `off`, `plan` (confirm the approach) or `all` (also review fixes and merge) (default: `defaults.interactive`)
+- `[-d|--run-dir <path>]` - Run directory owned by a harness or a parent skill (default: a new run under `runs.root`)
+- `[-c|--config-snapshot <path>]` - Config snapshot from a harness or parent run
 - `[context]` - The task: a description, an issue URL or `#<number>`, or a file path
 
 **Examples:**
 
 ```bash
 # Implement, open the PR, fix the bot review and merge
-/esp-skills:esp-go-light Add a --json flag to the status command
+/esp-skills:esp-go-light Add a JSON output option to the status command
 
 # Work from an issue, waiting for Codex instead of the default reviewers
 /esp-skills:esp-go-light --reviewers codex https://github.com/o/r/issues/12
@@ -685,22 +693,22 @@ When only one argument is provided, it is treated as the branch-name with catego
 # Confirm the approach before any code is written
 /esp-skills:esp-go-light --interactive plan Fix the off-by-one in the pager
 
-# Stop once the PR is open, as a harness workflow step
-/esp-skills:esp-go-light --stop-before-wait --run-dir ~/.esp-skills/runs/2026-11-10-status-json Add a --json flag
+# Stop once the PR is open, as a harness workflow step, with short names
+/esp-skills:esp-go-light -s -d ~/.esp-skills/runs/2026-11-10-status-json Add a JSON output option
 ```
 
 ### /esp-skills:esp-recap
 
 **Arguments:**
 
-- `[--risks]` - Risk report: high-risk decisions, critical findings, halted and waiting runs
-- `[--all]` - No date filter (default: the last `recap.default_range_days` days)
-- `[--since <date>]`, `[--until <date>]` - Date range, `YYYY-MM-DD`, on the run directory date
-- `[--last <span>]` - Shortcut for `--since`: `<N>d`, `<N>w` or `<N>h`
-- `[--repo <name>]` - Only runs of this repository
-- `[--status <list>]` - Only runs with these statuses, comma-separated
-- `[--risk <level>]` - Only runs whose `max_risk` is at least `low`, `medium` or `high`
-- `[--config-snapshot <path>]` - Config snapshot from a harness
+- `[-k|--risks]` - Risk report: high-risk decisions, critical findings, halted and waiting runs
+- `[-a|--all]` - No date filter (default: the last `recap.default_range_days` days)
+- `[-s|--since <date>]`, `[-e|--until <date>]` - Date range, `YYYY-MM-DD`, on the run directory date
+- `[-l|--last <span>]` - Shortcut for `--since`: `<N>d`, `<N>w` or `<N>h`
+- `[-g|--repo <name>]` - Only runs of this repository
+- `[-t|--status <status>...]` - Only runs with these statuses
+- `[-x|--risk <level>]` - Only runs whose `max_risk` is at least `low`, `medium` or `high`
+- `[-c|--config-snapshot <path>]` - Config snapshot from a harness
 - `[context]` - Empty for a recap, a run ID or path for one run, or a question for Q&A
 
 **Examples:**
@@ -711,6 +719,7 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 # Recap the merged and halted runs of one repository this month
 /esp-skills:esp-recap --since 2026-11-01 --repo api --status merged,halted
+/esp-skills:esp-recap -s 2026-11-01 -g api -t merged -t halted
 
 # Recap one run
 /esp-skills:esp-recap 2026-11-10-add-token-refresh
@@ -726,28 +735,28 @@ When only one argument is provided, it is treated as the branch-name with catego
 
 **Arguments:**
 
-- `<type>` - Analysis type: `bug`, `debt`, `doc`, `security`, or `style` (required)
+- `-t|--type <type>` - Analysis type: `bug`, `debt`, `doc`, `security`, or `style` (required)
 - `[context]` - Focus areas or directories to analyze
 
 **Examples:**
 
 ```bash
 # Bug analysis
-/esp-skills:esp-analyze bug
-/esp-skills:esp-analyze bug Focus on error handling in API routes
-/esp-skills:esp-analyze bug src/api/ src/services/
+/esp-skills:esp-analyze --type bug
+/esp-skills:esp-analyze --type bug Focus on error handling in API routes
+/esp-skills:esp-analyze -t bug src/api/ src/services/
 
 # Documentation analysis
-/esp-skills:esp-analyze doc Check API documentation accuracy
+/esp-skills:esp-analyze --type doc Check API documentation accuracy
 
 # Technical debt analysis
-/esp-skills:esp-analyze debt Focus on database access patterns
+/esp-skills:esp-analyze --type debt Focus on database access patterns
 
 # Style analysis
-/esp-skills:esp-analyze style Check naming conventions in React components
+/esp-skills:esp-analyze --type style Check naming conventions in React components
 
 # Security analysis
-/esp-skills:esp-analyze security Focus on authentication and session management
+/esp-skills:esp-analyze --type security Focus on authentication and session management
 ```
 
 ### /esp-skills:esp-qna
@@ -798,15 +807,15 @@ This skill takes no arguments. It is automatically invoked when creating, editin
 
 **Arguments:**
 
-- `<skill-name>` - Name for the new skill in kebab-case (e.g., `review-code`, `analyze-deps`)
+- `-s|--skill <name>` - Name for the new skill in kebab-case (e.g., `review-code`, `analyze-deps`) (required)
 - `[context]` - Additional context about what the skill should do
 
 **Examples:**
 
 ```bash
 # Create a skill with just a name
-/esp-skills:esp-create-skill deploy-staging
+/esp-skills:esp-create-skill --skill deploy-staging
 
-# Create a skill with context
-/esp-skills:esp-create-skill review-pr A skill that reviews pull requests for code quality and security issues
+# Create a skill with context, with the short name
+/esp-skills:esp-create-skill -s review-pr A skill that reviews pull requests for code quality and security issues
 ```

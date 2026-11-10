@@ -13,7 +13,6 @@ Check documentation for:
 
 ## Core Principles
 
-- Only report REAL issues - good documentation is a success
 - Verify claims against code before marking as incorrect
 - Provide actionable fixes with correct information
 - Consider documentation might be ahead of code (planned features)

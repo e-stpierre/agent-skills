@@ -1,22 +1,22 @@
 ---
 name: esp-pr
 description: Create a pull request with contextual title and description
-argument-hint: "[--draft] [--run-dir <path>] [base-branch]"
+argument-hint: "[-w|--draft] [-b|--base <branch>] [-d|--run-dir <path>]"
 ---
 
 # Git PR
 
 ## Overview
 
-Create a pull request with a title and description sized appropriately to the scope and impact of the changes using the GitHub CLI. Always includes AI attribution at the end of the body. With a run directory and `pr.body_from_run`, the body is built from the run artifacts (plan milestones, decisions, review resolution, follow-ups) instead of being written from the diff.
+Create a pull request with the GitHub CLI, with a title and description sized to the scope and impact of the changes and an AI attribution line at the end of the body. With a run directory and `pr.body_from_run`, the body is rendered from the run artifacts (plan milestones, decisions, review resolution, follow-ups) instead of being written from the diff.
 
 ## Arguments
 
 ### Definitions
 
-- **`[--draft]`** (optional): Create the PR as a draft. Defaults to `pr.draft` (`false`).
-- **`[--run-dir <path>]`** (optional): Run directory of the task (from `esp-go`, `esp-build` or a harness). With `pr.body_from_run`, the body is rendered from its artifacts, and the pull request URL is recorded in its `run.json`.
-- **`[base-branch]`** (optional): Target branch for the PR. Defaults to `pr.base`, or the repository default branch when `pr.base` is `null`.
+- **`[-w|--draft]`** (optional): Present as `-w` or `--draft`: create the PR as a draft. Defaults to `pr.draft` (`false`).
+- **`[-b|--base <branch>]`** (optional): Read from `-b` or `--base`. Target branch of the PR. Defaults to `pr.base`, or the repository default branch when `pr.base` is `null`.
+- **`[-d|--run-dir <path>]`** (optional): Read from `-d` or `--run-dir`. Run directory of the task (from `esp-go`, `esp-build` or a harness). With `pr.body_from_run`, the body is rendered from its artifacts, and the PR URL is recorded in its `run.json`. Defaults to none.
 
 ### Values
 
@@ -24,11 +24,9 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- PR size dictates description length - small changes get small descriptions
-- Title should clearly convey the primary change
-- Description focuses on WHY and context, not WHAT (diff shows the what)
-- Use `gh pr create` for PR creation
-- Include AI attribution at the end of the body, unless `pr.attribution` is `false`
+- The PR size sets the description length: a small change gets a small description
+- The title conveys the primary change; the description gives the why and the context, since the diff already shows the what
+- The body ends with the AI attribution line, unless `pr.attribution` is `false`
 - Arguments override configuration; missing configuration falls back to the defaults below
 
 ## Skill-Specific Guidelines
@@ -53,46 +51,48 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 | `pr.body_from_run`  | `true`                                                          | With `--run-dir`: build the body from the run artifacts                                         |
 | `pr.body_sections`  | `summary, milestones, decisions, review-resolution, follow-ups` | Sections of a body built from the run, in order                                                 |
 
+### Size Categories
+
+| Size    | Scope                                    | Body                                            |
+| ------- | ---------------------------------------- | ----------------------------------------------- |
+| Trivial | <10 lines, single file, style/typo fix   | One-line description, then attribution          |
+| Small   | <50 lines, focused change                | One-line description, then attribution          |
+| Medium  | 50-200 lines, feature or significant fix | `## Summary` and `## Details`, then attribution |
+| Large   | >200 lines, major feature or refactor    | `## Summary` and `## Details`, then attribution |
+
+Trivial or small:
+
+```bash
+gh pr create --title "Fix typo in README" --body "Corrects spelling error
+
+🤖 Generated with [Claude Code](https://claude.com/product/claude-code)"
+```
+
+Medium or large:
+
+```bash
+gh pr create --title "<title>" --body "## Summary
+<1-2 sentence overview>
+
+## Details
+- <Key change 1 with context>
+- <Key change 2 with context>
+
+🤖 Generated with [Claude Code](https://claude.com/product/claude-code)"
+```
+
 ## Instructions
 
-1. Load the `pr` configuration (see Configuration) and resolve the base branch: the `[base-branch]` argument, else `pr.base`, else the repository default branch
-2. Verify current branch is not the base branch
-3. Push current branch to remote if needed
-4. Fetch the latest remote base branch: `git fetch origin <base>`
-5. Run `git log origin/<base>..HEAD --oneline` to get commits in this PR
-6. Run `git diff origin/<base>...HEAD --stat` to assess change scope
-7. Determine PR size category:
-   - **Trivial**: <10 lines, single file, style/typo fix
-   - **Small**: <50 lines, focused change
-   - **Medium**: 50-200 lines, feature or significant fix
-   - **Large**: >200 lines, major feature or refactor
-8. **Body from the run** (only with `--run-dir` and `pr.body_from_run`): write a 1-2 sentence summary of why the change exists, then render the body with `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" pr-body --run-dir <path> --summary "<summary>" --out <run-dir>/pr-body.md`. It applies `pr.body_sections` and `pr.attribution`. Create the PR with `gh pr create --title "<title>" --body-file <run-dir>/pr-body.md` (add `--draft` per step 9), then go to step 11. Otherwise, construct the PR content based on size:
-
-   **Trivial/Small**: Brief description with attribution
-
-   ```bash
-   gh pr create --title "Fix typo in README" --body "Corrects spelling error
-
-   🤖 Generated with [Claude Code](https://claude.com/product/claude-code)"
-   ```
-
-   **Medium/Large**: Structured description with attribution
-
-   ```bash
-   gh pr create --title "<title>" --body "## Summary
-   <1-2 sentence overview>
-
-   ## Details
-   - <Key change 1 with context>
-   - <Key change 2 with context>
-
-   🤖 Generated with [Claude Code](https://claude.com/product/claude-code)"
-   ```
-
-9. If the `--draft` flag is specified or `pr.draft` is `true`, add `--draft` to the gh command. Drop the attribution line when `pr.attribution` is `false`
-10. Execute `gh pr create` with constructed content
-11. With `--run-dir`, record the URL: `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" update --run-dir <path> --pr <url>`
-12. Report the PR URL
+1. Load the `pr` configuration (see Configuration) and resolve the base branch per the `--base` Definition.
+2. Verify the current branch is not the base branch; when it is, report it and stop.
+3. Push the current branch to the remote if it has no upstream or has unpushed commits.
+4. Fetch the base and read the scope: `git fetch origin <base>`, `git log origin/<base>..HEAD --oneline`, and `git diff origin/<base>...HEAD --stat`.
+5. Write the title and body in `defaults.language`:
+   - **From the run** (with `--run-dir` and `pr.body_from_run`): write a 1-2 sentence summary of why the change exists, then render the body with `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" pr-body --run-dir <path> --summary "<summary>" --out <path>/pr-body.md`. It applies `pr.body_sections` and `pr.attribution`.
+   - **From the diff** (otherwise): pick the size category from the stat and write the body per Size Categories. Drop the attribution line when `pr.attribution` is `false`.
+6. Create the PR with `gh pr create --base <base> --title "<title>"`, plus `--body-file <path>/pr-body.md` for a body from the run or `--body "<body>"` otherwise, plus `--draft` when `-w`/`--draft` is present or `pr.draft` is `true`. Done when `gh` prints the PR URL.
+7. With `--run-dir`, record the URL: `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" update --run-dir <path> --pr <url>`.
+8. Report the PR URL and title.
 
 ## Output Guidance
 

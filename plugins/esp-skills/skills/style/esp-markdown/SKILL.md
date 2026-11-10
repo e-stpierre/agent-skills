@@ -9,27 +9,31 @@ description: >-
 
 ## Overview
 
-Use this skill when creating, editing, or reviewing markdown files. It ensures all markdown output follows the project's formatting conventions and lint rules. Formatting is handled by markdownlint-cli2 and prettier, but non-auto-fixable rules must be respected during generation.
+Keep every markdown file the agent creates, edits, or reviews within the project's formatting conventions. markdownlint-cli2 and prettier fix most formatting automatically; the rules below are the ones they cannot fix, so they are respected while writing.
+
+## Additional Resources
+
+- For a complete document in the preferred style, see [example.md](references/example.md): read it before creating a new markdown file
 
 ## Core Principles
 
-- **Auto-formatting**: markdownlint-cli2 and prettier auto-format markdown files on save. Run `pnpm format` to apply prettier formatting. Try to match the expected format when generating markdown, but minor formatting issues will be auto-fixed.
-- **Non-auto-fixable rules are mandatory**: The rules listed below and lint rules that are not auto-fixable must be respected, because they will not be corrected automatically.
-- Follow the markdown style shown in the Example section as the reference for well-formatted documents.
+- **Auto-fixable formatting**: prettier and markdownlint-cli2 correct spacing, table alignment and trailing whitespace. Match the expected format while writing; the formatter settles the rest
+- **Non-auto-fixable rules are mandatory**: every rule under Skill-Specific Guidelines, and any lint rule that is not auto-fixable, holds in the file as written
 
 ## Skill-Specific Guidelines
 
 ### Blank line after headings (MD022)
 
-Every heading must be followed by a blank line before any content. This is not auto-fixable and will cause lint errors if missing.
+Every heading is followed by a blank line before any content. This is not auto-fixable.
 
-```md
+```text
 <!-- Bad: no blank line after heading -->
 
 ## Configuration
-
 Configure the settings.
+```
 
+```md
 <!-- Good -->
 
 ## Configuration
@@ -39,29 +43,29 @@ Configure the settings.
 
 ### Format tables with aligned columns
 
-Tables must be formatted with consistent column widths. Pad each cell so that the pipe characters (`|`) align vertically and the separator row uses dashes matching the column width. This makes tables readable in source form.
+Pad each cell so the pipe characters (`|`) align vertically, and make each separator row's dashes match the column width, so the table reads in source form.
 
-```md
+```text
 <!-- Bad: unaligned, minimal separators -->
 
-| Component | Technology    | Notes              |
-| --------- | ------------- | ------------------ |
-| Backend   | NestJS        | Same as production |
-| Database  | PostgreSQL 16 | Docker             |
-| ORM       | Prisma        | Type-safe queries  |
+| Component | Technology | Notes |
+|---|---|---|
+| Backend | NestJS | Same as production |
+| Database | PostgreSQL 16 | Docker |
+```
 
+```md
 <!-- Good: aligned columns with consistent width -->
 
 | Component | Technology    | Notes              |
 | --------- | ------------- | ------------------ |
 | Backend   | NestJS        | Same as production |
 | Database  | PostgreSQL 16 | Docker             |
-| ORM       | Prisma        | Type-safe queries  |
 ```
 
-### Don't use number and parenthesis in header
+### Number headings without parentheses
 
-Headers must not combine a number with a parenthesis. Numbers without parenthesis are accepted.
+A numbered heading uses a number and a period, or no number at all.
 
 ```md
 <!-- Bad -->
@@ -75,35 +79,37 @@ Headers must not combine a number with a parenthesis. Numbers without parenthesi
 ### 1. Section Name
 ```
 
-### Limit emoji usage
+### Use emojis only when they carry information
 
-Emojis are accepted but must serve a functional purpose. Don't use emojis just for decoration.
+Emojis must serve a functional purpose.
 
 **Valid uses:**
 
 - Check and cross marks for pros/cons or allowed/disallowed in tables or short lists
 - Warning symbols for important warnings or notices
 - Color circles or squares to indicate criticality levels (green/yellow/orange/red)
-- Other emojis are accepted when they serve a clear functional purpose - the above list is not exhaustive
+- Other emojis with a clear functional purpose: the list above is not exhaustive
 
 **Invalid uses:**
 
-- Number emojis instead of plain numbers - just use `1.`, `2.`, `3.`
-- Emojis in headers (e.g., `# Structure`, `## Principles`) - headers must be plain text unless there is an exceptional reason
-- Decorative emojis on every section to make it "look nice"
-- Repeated check marks on every item in a list - just use a regular list
+- Number emojis in place of plain numbers: write `1.`, `2.`, `3.`
+- Emojis in headings: headings are plain text unless there is an exceptional reason
+- Decorative emojis on every section
+- A check mark on every item of a list: a plain list says the same
 
-```md
-<!-- Bad -->
+```text
+<!-- Bad: a decorative emoji and a number emoji in headings, counts written as headings -->
 
-# Mono-Repo Structure
+# [rocket emoji] Mono-Repo Structure
 
-### 1. Apps Are Deployable Units
+### [keycap-1 emoji] Apps Are Deployable Units
 
 ### 1 root package.json
 
 ### 1 package.json per app
+```
 
+```md
 <!-- Good -->
 
 # Mono-Repo Structure
@@ -114,9 +120,9 @@ Emojis are accepted but must serve a functional purpose. Don't use emojis just f
 - 1 package.json per app
 ```
 
-### Don't use ASCII diagrams
+### Draw diagrams with arrows or Mermaid
 
-Documentation should be easily consumable by LLMs. ASCII box diagrams with special box-drawing characters are hard to parse and maintain.
+Documentation is consumed by LLMs, and ASCII box diagrams with box-drawing characters are hard to parse and maintain.
 
 - For simple flows, use arrow notation on separate lines
 - For real diagrams that need structure, use Mermaid code blocks
@@ -148,11 +154,9 @@ graph TD
 ```
 ````
 
-### Don't overuse horizontal rules
+### Separate sections with headings, not horizontal rules
 
-Horizontal rules (`---`) must not be used to separate normal sections. Headings already provide visual and semantic separation.
-
-Reserve `---` for cases where a deliberate break is meaningful, such as separating frontmatter, marking a distinct shift in context within a section, or separating appendix content.
+Headings already provide visual and semantic separation. Reserve `---` for a deliberate break: frontmatter, a distinct shift in context within a section, or appendix content.
 
 ```md
 <!-- Bad: --- between every section -->
@@ -167,12 +171,6 @@ Install the package.
 
 Configure the settings.
 
----
-
-## Usage
-
-Run the command.
-
 <!-- Good: headings are sufficient -->
 
 ## Installation
@@ -182,15 +180,11 @@ Install the package.
 ## Configuration
 
 Configure the settings.
-
-## Usage
-
-Run the command.
 ```
 
 ### Indent content inside list items
 
-Content that belongs to a list item (code blocks, paragraphs, nested lists) must be indented to align with the item text. Unindented content breaks the list and causes MD029 lint errors on the next item, because the numbering restarts.
+Content that belongs to a list item (code blocks, paragraphs, nested lists) is indented to align with the item text. Unindented content breaks the list, and the next item restarts its numbering (MD029).
 
 ````md
 <!-- Bad: code block breaks the list, second item restarts at 1 -->
@@ -216,7 +210,7 @@ Code block
 
 ### Specify language on code blocks (MD040)
 
-Fenced code blocks must have a language identifier. This enables syntax highlighting and helps tools parse the content correctly.
+Every fenced code block has a language identifier, for syntax highlighting and for tools that parse the content.
 
 ````md
 <!-- Bad -->
@@ -232,9 +226,9 @@ sudo apt install curl
 ```
 ````
 
-### Don't use emphasis as heading (MD036)
+### Use headings, not bold text, for sections (MD036)
 
-Bold text must not be used as a substitute for headings. Use proper heading syntax instead, which provides semantic structure and enables navigation.
+A section title is a heading, which provides semantic structure and navigation; bold text on its own line is not.
 
 ```md
 <!-- Bad: bold text acting as a heading -->
@@ -254,74 +248,18 @@ Bold text must not be used as a substitute for headings. Use proper heading synt
 
 ### Document structure
 
-Follow this general structure for markdown documents:
-
 - Start with a top-level heading (`# Title`)
 - Use hierarchical headings (`##`, `###`, `####`) for sections
 - Separate sections with a single blank line
-- Use fenced code blocks with a language identifier when applicable
 - Use tables for structured comparisons
 - Place references and links at the end of the document
 
 ## Instructions
 
-1. **When reviewing or fixing a markdown file**: Run `pnpm format` first to auto-fix formatting issues (table alignment, spacing, trailing whitespace). Then check for non-auto-fixable rule violations and fix or flag them.
-2. **When creating a markdown file**: Follow the document structure guidelines and all rules listed above. Use the example below as a style reference. Run `pnpm format` after writing the file.
-3. **When editing a markdown file**: Read the file first, then apply changes while preserving the existing style and respecting all rules. Run `pnpm format` after editing.
-
-### Example
-
-The following example shows the preferred markdown format style.
-
-````md
-# Project Setup Guide
-
-## Description
-
-### API Framework
-
-The API framework handles routing, middleware, and request processing. It supports RESTful endpoints, WebSocket connections, and GraphQL queries out of the box.
-
-### Database Layer
-
-Reliable and scalable storage designed for high-throughput workloads. Provides connection pooling, automatic failover, and read replicas for horizontal scaling.
-
-### Storage Types
-
-#### Block Storage
-
-- **Type**: Block storage
-- **Access**: Presents virtual block devices to clients
-- **Use Cases**: Ideal for virtual machine disks, databases, and applications requiring raw block devices
-
-#### Summary Comparison
-
-| Feature      | Block Storage                     | File Storage                      |
-| ------------ | --------------------------------- | --------------------------------- |
-| Storage Type | Block device                      | File system                       |
-| Access Mode  | RWO; RWX with `Block` volume mode | RWX with `Filesystem` volume mode |
-
-## Quick Start
-
-### Installation
-
-```bash
-npm install my-package
-npm run setup
-```
-
-### Cleanup
-
-```bash
-npm run teardown
-rm -rf ./data
-```
-
-## References
-
-- [Getting Started](https://example.com/docs/getting-started)
-- [API Reference](https://example.com/docs/api-reference)
-````
+1. **Creating a file**: read [example.md](references/example.md), then write the file following the document structure and every rule above.
+2. **Editing a file**: read the file first, then apply the changes, preserving its existing style and every rule above.
+3. **Reviewing a file**: run the formatter on the file first (step 4), then check the file against every rule above and fix or flag each violation.
+4. **Format**: after creating or editing, run the project's formatter on the file (e.g., `pnpm exec prettier --write <file>`). Done when the formatter has run and no rule above is violated in the file.
 
 ## Output Guidance
 

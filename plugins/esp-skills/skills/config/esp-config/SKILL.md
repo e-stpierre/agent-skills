@@ -1,7 +1,7 @@
 ---
 name: esp-config
 description: Initialize, show, get, set, and validate esp-skills configuration
-argument-hint: "[--project] [--force] <action> [key] [value]"
+argument-hint: "<action> [-P|--project] [-f|--force] [-k|--key <key>] [value]"
 disable-model-invocation: true
 ---
 
@@ -9,24 +9,24 @@ disable-model-invocation: true
 
 ## Overview
 
-Manage the esp-skills configuration through the plugin's `config.mjs` script. Use it to create a starter config file, inspect the merged configuration, read or change one key, and validate config files. Configuration is never required: every skill falls back to the built-in defaults when no file exists.
+Manage the esp-skills configuration through the plugin's `config.mjs` script: create a starter config file, inspect the merged configuration, read or change one key, and validate config files. Configuration is optional: every skill falls back to the built-in defaults when no file exists.
 
 ## Arguments
 
 ### Definitions
 
-- **`[--project]`** (optional): Target the project file (`<repo>/.esp-skills/config.json`) instead of the user file (`~/.esp-skills/config.json`) for `init`, `set`, and `unset`.
-- **`[--force]`** (optional): Overwrite an existing file on `init`.
-- **`<action>`** (required): One of:
+- **`<action>`** (required): The leading word, one of:
   - `init` - Create a starter config file
   - `show` - Print the full merged config
   - `get` - Print one section or dotted key (e.g., `pr`, `pr.draft`, `defaults.models.reviewer`)
   - `set` - Set a key to a value in the user or project file
   - `unset` - Remove a key from the user or project file
-  - `validate` - Validate every layer, or one file when `[key]` is a file path
+  - `validate` - Validate every layer, or one file when `--key` is a file path
   - `sources` - List the config layers and which ones are in use
-- **`[key]`** (optional): Section or dotted key for `get`, `set`, `unset`. A file path for `validate`.
-- **`[value]`** (optional): Value for `set`. Parsed as JSON when valid (`true`, `3`, `null`, `["a"]`), otherwise used as a plain string.
+- **`[-P|--project]`** (optional): Present as `-P` or `--project`: target the project file (`<repo>/.esp-skills/config.json`) instead of the user file (`~/.esp-skills/config.json`) for `init`, `set`, and `unset`.
+- **`[-f|--force]`** (optional): Present as `-f` or `--force`: overwrite an existing file on `init`.
+- **`[-k|--key <key>]`** (optional): Read from `-k` or `--key`. Section or dotted key for `get`, `set`, `unset` (required by those three). A file path for `validate`.
+- **`[value]`** (optional): The trailing free text, the value for `set`. Parsed as JSON when valid (`true`, `3`, `null`, `["a"]`), otherwise used as a plain string.
 
 ### Values
 
@@ -34,10 +34,10 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- Always go through `config.mjs`; never edit config files by hand in this skill, so every write is validated first
-- Never store secrets in config files (tokens, passwords, API keys)
-- A failed `set` leaves the file unchanged; report the script's error as is, it names the key path and the expected type
-- Only write files for `init`, `set`, and `unset`; every other action is read-only
+- Every read and write goes through `config.mjs`, which validates each write before saving it; config files are never edited by hand in this skill
+- Config files hold no secrets (tokens, passwords, API keys)
+- A failed `set` leaves the file unchanged; report the script's error verbatim, it names the key path and the expected type
+- Only `init`, `set`, and `unset` write files; every other action is read-only
 
 ## Skill-Specific Guidelines
 
@@ -59,25 +59,25 @@ Files are validated against `${CLAUDE_PLUGIN_ROOT}/references/config.schema.json
 ## Instructions
 
 1. Parse the arguments into the action, the flags, the key and the value. If the action is missing or unknown, list the valid actions and stop.
-2. Build the command:
+2. Build the command; the script takes the key and the value as positionals:
 
    ```bash
    node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" <action> [key] [value] [--project] [--force]
    ```
 
    - Quote the value so the shell passes it as one argument (e.g., `'["squash","merge"]'`)
-   - For `validate` with a file path, pass the path as the key
+   - For `validate` with a file path, pass the path in the key position
 
 3. Run the command from the current working directory so the project layer resolves to the current repository.
-4. Check the exit code:
+4. Read the exit code:
    - `0`: success, the output is JSON
    - `1`: invalid config or failed operation, the error names the file, key path and expected type
    - `2`: usage error (unknown action, unknown key, missing value)
-5. Report the result following the Output Guidance.
+5. Report the result per the Output Guidance, with the JSON the script printed for a read action.
 
 ## Output Guidance
 
-Keep the output short and show the JSON the script printed when the action reads config.
+Keep the output short.
 
 **On `get` or `show`:**
 

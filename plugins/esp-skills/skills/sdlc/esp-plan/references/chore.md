@@ -1,69 +1,29 @@
 # Chore Plan Reference
 
-## Planning Approach
-
-Chore plans focus on maintenance tasks with clear scope boundaries. Understanding what's included and excluded prevents scope creep during implementation.
-
 ## Plan Sections
 
 A chore plan follows [plan format 1](../../../../references/plan-format.md). Use these context sections between `## Overview` and `## Milestones`:
 
-- `## Scope`: what is included, in specific terms (what is excluded goes in `## Out of Scope`)
+- `## Scope`: what is included, in specific terms
 - `## Current State`: the versions, files or patterns the chore starts from, when it helps the builder
 
-## Requirements Gathering
+Scope is the chore's main risk: list what is excluded in `## Out of Scope`, including related work that is intentionally deferred, so the build cannot creep.
 
-If chore details cannot be inferred from context, ask the user about:
+## Requirements Questions
 
-- What is the chore title?
-- What needs to be done?
-- What is in scope and out of scope?
-- Any specific files or areas to focus on?
+Settle these from the context and the exploration; when one stays open, follow Asking and Deciding in the skill:
 
-## Scope Definition
-
-Clear scope prevents scope creep:
-
-- **In Scope**: Explicitly list what will be done
-- **Out of Scope**: Explicitly list what will NOT be done
-- Be specific about boundaries
-- Note any related work that is intentionally deferred
+- The chore title and what needs to be done
+- What is in scope and out of scope
+- The files or areas to focus on
 
 ## Common Chore Types
 
-**Dependency Updates:**
-
-- Update package versions
-- Fix breaking changes
-- Update lock files
-- Verify compatibility
-
-**Refactoring:**
-
-- Improve code organization
-- Apply consistent patterns
-- Remove duplication
-- Improve naming
-
-**Cleanup:**
-
-- Remove dead code
-- Delete unused files
-- Clean up imports
-- Remove deprecated features
-
-**Configuration:**
-
-- Update build configs
-- Modify CI/CD settings
-- Update environment settings
-- Adjust tooling
+- **Dependency updates**: package versions, the breaking changes they bring, lock files, compatibility checks
+- **Refactoring**: code organization, consistent patterns, duplication, naming
+- **Cleanup**: dead code, unused files, imports, deprecated features
+- **Configuration**: build configs, CI/CD settings, environment settings, tooling
 
 ## Task Organization
 
-Chore tasks should be:
-
-- Ordered logically (dependencies first)
-- Specific and actionable
-- Focused on the defined scope
-- Verifiable when complete
+Order tasks by dependency, and keep each one inside the defined scope and verifiable when complete.

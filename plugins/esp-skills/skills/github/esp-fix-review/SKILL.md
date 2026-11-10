@@ -1,7 +1,7 @@
 ---
 name: esp-fix-review
 description: Fix, reply to, or defer PR review comments and failing CI checks, or esp-review findings
-argument-hint: "[--internal] [--rounds <n>] [--reviewers <names>] [--interactive <mode>] [--run-dir <path>] [--config-snapshot <path>] [target]"
+argument-hint: "[-l|--internal] [-m|--rounds <n>] [-r|--reviewers <name>...] [-i|--interactive <mode>] [-p|--pr <pr>] [-e|--findings <path>] [-d|--run-dir <path>] [-c|--config-snapshot <path>]"
 disable-model-invocation: true
 metadata: { af-contract: 1, af-level: steerable }
 ---
@@ -16,13 +16,16 @@ Resolve review feedback under the decision policy, in a bounded number of rounds
 
 ### Definitions
 
-- **`[--internal]`** (optional): Fix the findings of an `esp-review` run instead of pull request comments. `[target]` is then the findings file (`review-<N>.json`); with `--run-dir` it defaults to the latest one in the run. Nothing is pushed and nothing is posted on GitHub.
-- **`[--rounds <n>]`** (optional): Maximum number of fix rounds, counted across invocations on the same run or state file. Defaults to `fix-review.max_rounds` (3). `--rounds 1` fixes once and returns without waiting for a re-review.
-- **`[--reviewers <names>]`** (optional): Comma-separated reviewer names from `await-review.reviewers` (`claude`, `codex`) or raw GitHub logins. Only their comments are handled, and only they are waited for between rounds. Without it, comments from every author except yourself are handled, and the wait targets the `go.default_reviewers` that commented on the pull request.
-- **`[--interactive <mode>]`** (optional): `off`, `plan` or `all`. Only `all` stops to settle B-Decide and B-Scope items with the user and shows a recap before pushing. `--interactive=<mode>` also works. Defaults to `defaults.interactive` (`off`). Headless sessions always use `off`.
-- **`[--run-dir <path>]`** (optional): Run directory owned by a harness or a parent skill. The state is `<run-dir>/fix-review.json`, every resolution is logged in `decisions.jsonl`, and the result block is recorded as step `fix-review` (`fix-review-<N>` in internal mode, after `review-<N>`). Without it, the state goes to a temporary directory and no run is created.
-- **`[--config-snapshot <path>]`** (optional): Config snapshot from a harness or parent run, passed to every script call.
-- **`[target]`** (optional): Pull request number, `#<number>`, or URL. Defaults to the pull request of the current branch. With `--internal`: the path of an `esp-review` findings file.
+Read each option by its short or its long name (`-m 2`, `--rounds 2` or `--rounds=2`).
+
+- **`[-l|--internal]`** (optional): Fix the findings of an `esp-review` run instead of pull request comments. Nothing is pushed and nothing is posted on GitHub.
+- **`[-m|--rounds <n>]`** (optional): Maximum number of fix rounds, counted across invocations on the same run or state file. Defaults to `fix-review.max_rounds` (3). `--rounds 1` fixes once and returns without waiting for a re-review.
+- **`[-r|--reviewers <name>...]`** (optional): Reviewer names from `await-review.reviewers` (`claude`, `codex`) or raw GitHub logins. Repeat the option (`-r claude -r codex`) or give a comma-separated list (`-r claude,codex`). Only their comments are handled, and only they are waited for between rounds. Without it, comments from every author except yourself are handled, and the wait targets the `go.default_reviewers` that commented on the pull request.
+- **`[-i|--interactive <mode>]`** (optional): `off`, `plan` or `all`. Only `all` stops to settle B-Decide and B-Scope items with the user and shows a recap before pushing. Defaults to `defaults.interactive` (`off`). Headless sessions always use `off`.
+- **`[-p|--pr <pr>]`** (optional): Pull request number, `#<number>`, or URL. Defaults to the pull request of the current branch. Ignored with `--internal`.
+- **`[-e|--findings <path>]`** (optional): With `--internal`, the `esp-review` findings file (`review-<N>.json`). Defaults to the latest one in `--run-dir`; required with `--internal` when there is no `--run-dir`.
+- **`[-d|--run-dir <path>]`** (optional): Run directory owned by a harness or a parent skill. The state is `<run-dir>/fix-review.json`, every resolution is logged in `decisions.jsonl`, and the result block is recorded as step `fix-review` (`fix-review-<N>` in internal mode, after `review-<N>`). Without it, the state goes to a temporary directory and no run is created.
+- **`[-c|--config-snapshot <path>]`** (optional): Config snapshot from a harness or parent run, passed to every script call.
 
 ### Values
 
@@ -38,14 +41,14 @@ Arguments: $ARGUMENTS
 ## Core Principles
 
 - Classify every item before acting on it, with the decision policy. When an item fits several classes, the most restrictive one wins
-- Read every affected file before changing it. Validate each comment against the current code: a comment on an older revision, or one that the code already handles, is a Reject with the reason
-- Never apply a B-Scope item autonomously. Defer it per `fix-review.deferred_items`, and return it as a discovered item
-- Fix production bugs that tests reveal. Never silence, skip or weaken a test to make CI pass
-- Run the gates locally before every commit. Do not push code that fails them
-- Review fixes are their own commits, never an amend of a milestone commit. Never force-push, never rewrite pushed history
+- Validate each comment against the current code: a comment on an older revision, or one that the code already handles, is a Reject with the reason
+- Outside `all` mode, a B-Scope item is deferred per `fix-review.deferred_items` and returned as a discovered item, never applied
+- Fix production bugs that tests reveal. A test changes only when the code change it covers was intended; silencing, skipping or weakening a test to make CI pass is never a fix
+- Run the gates locally before every commit, and push only code that passes them
+- Review fixes are new commits on top of the branch, pushed with a plain `git push`: no amend of a milestone commit, no force-push, no rewrite of pushed history
 - Record every resolution with `fix-review.mjs record` when it is made. A handled item is never processed again, and the round limit is never exceeded
-- Run every script with Bash, with the literal `"${CLAUDE_PLUGIN_ROOT}/scripts/..."` path. Never post replies or resolve threads by hand, and never build the result block by hand
-- In GitHub replies, never write `#<number>` for a finding: GitHub links it to an issue. Write `item 4` or `finding 4`
+- Run every script with Bash, with the literal `"${CLAUDE_PLUGIN_ROOT}/scripts/..."` path. Replies, thread resolutions and the result block always go through `fix-review.mjs`
+- In GitHub replies, name a finding `item 4` or `finding 4`: GitHub links `#<number>` to an issue
 
 ## Skill-Specific Guidelines
 
@@ -74,14 +77,18 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 
 ### Scripts
 
-`scripts/fix-review.mjs` keeps the state. Every call takes `--run-dir <path>`, or `--state <file>` without a run (a file in a new `mktemp -d` directory, the same for the whole invocation), plus `--config-snapshot <path>` when given:
+`scripts/fix-review.mjs` keeps the state. Every call takes the same state options for the whole invocation, plus `--config-snapshot <path>` when given:
+
+- Pull request mode with `--run-dir`: `--run-dir <path>` (state in `<run-dir>/fix-review.json`).
+- Internal mode with `--run-dir`: `--run-dir <path> --state <run-dir>/fix-review-<N>.json`, N from the findings file `review-<N>.json`, so each internal round keeps its own round counter, apart from the pull request rounds.
+- Without `--run-dir`: `--state <dir>/fix-review.json`, in a new `mktemp -d` directory.
 
 | Moment              | Command                                                                            |
 | ------------------- | ---------------------------------------------------------------------------------- |
 | Start a round       | `fix-review.mjs round [--max-rounds <n>]` (`{ round, exhausted, last }`)           |
-| Pull request items  | `fix-review.mjs fetch [pr] [--reviewers <names>]`                                  |
-| Internal items      | `fix-review.mjs internal [findings]`                                               |
-| CI checks           | `fix-review.mjs checks [pr]` (`{ failing, pending, passing }`)                     |
+| Pull request items  | `fix-review.mjs fetch [<pr>] [--reviewers <a,b>]`                                  |
+| Internal items      | `fix-review.mjs internal [<findings>]`                                             |
+| CI checks           | `fix-review.mjs checks [<pr>]` (`{ failing, pending, passing }`)                   |
 | Record a resolution | `fix-review.mjs record --json '<resolution>'`                                      |
 | Replies and threads | `fix-review.mjs respond`                                                           |
 | Result block        | `fix-review.mjs result [--remaining <n>]`                                          |
@@ -141,7 +148,7 @@ When `fix-review.fix_ci` is on, in pull request mode, after the comments of a ro
 
 1. Run `fix-review.mjs checks`. With checks pending, wait for them in the background like `esp-await-review` does (`gh pr checks <n> --watch`, with a timeout of `merge.checks_timeout_minutes`, 30 by default), then run `checks` again.
 2. For each failing check not yet `handled`: read its log (`gh run view <run-id> --log-failed`, the run ID from the check `link`), find the root cause, reproduce it locally with the matching project command, and fix it.
-3. Lint and format failures: run the project's auto-fix command when it has one. Test failures: fix the production code when the test reveals a real bug, the test only when the code change was intended.
+3. Lint and format failures: run the project's auto-fix command when it has one. Test failures: fix them as Core Principles says for tests.
 4. Record each check with its `check:` ID: `fixed` with the commit, or `open` with the diagnosis when you cannot fix it.
 
 ### The Round Loop
@@ -149,7 +156,7 @@ When `fix-review.fix_ci` is on, in pull request mode, after the comments of a ro
 A round is: fetch, classify, fix, commit, push, respond. Between rounds, the bots re-review the new head:
 
 - Wait only when the round pushed a commit, the limit is not reached (`last` is false), and there are reviewers to wait for: the `--reviewers`, else the `go.default_reviewers` in `reviewers_seen`.
-- Wait with `wait-for-review.mjs <pr> --reviewers <names> --run-dir <path>` (or `--state <file>`), launched in the background as `esp-await-review` describes. Do not record its output as a step. Pass `--trigger` when `await-review.auto_trigger` is on.
+- Wait with `wait-for-review.mjs <pr> --reviewers <names> --run-dir <path>` (or `--state <file>`), launched in the background as `esp-await-review` describes. The wait belongs to this step: keep only its status, with no `runs.mjs result` call. Pass `--trigger` when `await-review.auto_trigger` is on.
 - Stop the loop when the wait ends `awaiting-human` or `failed`, when a fetch returns no items and no failing check, or when `round` returns `exhausted: true`. Count the items still unhandled at that point: they are `--remaining <n>` for `result`.
 
 ### Interactive Fix-Review
@@ -164,16 +171,16 @@ Record each answer with `source: operator`. In every other mode, apply the auton
 
 ## Instructions
 
-1. **Parse arguments**: read the flags and `[target]`. Resolve the interactive mode (the flag, else `defaults.interactive`, `off` when headless).
+1. **Parse arguments**: read every option by its short or long name, and collect the reviewer names of every `-r|--reviewers` value. Resolve the interactive mode (`-i|--interactive`, else `defaults.interactive`, `off` when headless).
 2. **Load configuration** (see Configuration).
 3. **Check prerequisites**: in pull request mode, `gh auth status` must succeed and the pull request must exist and be open. The working tree must be clean and on the pull request branch (internal mode: on the branch that was reviewed). Otherwise report it and stop.
-4. **Prepare the state**: with `--run-dir`, use it. In internal mode, also pass `--state <run-dir>/fix-review-<N>.json` to every call (N from the findings file `review-<N>.json`): each internal round then keeps its own round counter, apart from the pull request rounds in `fix-review.json`. Without `--run-dir`, create a temporary directory and pass `--state <dir>/fix-review.json` to every call.
+4. **Prepare the state**: pick the state options of the mode (see Scripts), creating the temporary directory when there is no `--run-dir`. Every later `fix-review.mjs` call carries them.
 5. **Read operator messages**: the injected `## Operator Messages` section, plus `runs.mjs messages` with `--run-dir`. They override comments they contradict. Deliver them with `runs.mjs deliver` once applied.
-6. **Start a round**: run `fix-review.mjs round` with `--max-rounds` from `--rounds`. If it returns `exhausted: true`, go to step 12.
-7. **Fetch items**: `fix-review.mjs fetch [pr] [--reviewers]`, or `fix-review.mjs internal [findings]` with `--internal`. If `pending_github` is not empty, run `fix-review.mjs respond` first: a previous run stopped before replying.
-8. **Classify and resolve** (see Classifying Items): read the code each item points at, decide its class, apply the fixes, and record each resolution. Record noise as `skipped` in one call.
-9. **Fix CI** (pull request mode, `fix_ci` on, see CI Checks).
-10. **Commit, push and respond** (see Committing Fixes): commit, then record the fixed items with their commit. In pull request mode, `git push` (never forced), then `fix-review.mjs respond`. In `all` mode, show the recap before pushing. Internal mode never pushes.
+6. **Start a round**: run `fix-review.mjs round`, with `--max-rounds <n>` when `-m|--rounds` is given. If it returns `exhausted: true`, go to step 12.
+7. **Fetch items**: `fix-review.mjs fetch [<pr>] [--reviewers <a,b>]` (the `--pr` value, the reviewer names joined with commas), or `fix-review.mjs internal [<findings>]` (the `--findings` value) with `--internal`. If `pending_github` is not empty, run `fix-review.mjs respond` first: a previous run stopped before replying.
+8. **Classify and resolve** (see Classifying Items): read the code each item points at, decide its class, apply the fixes, and record each resolution. Record noise as `skipped` in one call. The step is done when every fetched item has a recorded resolution.
+9. **Fix CI** (pull request mode, `fix_ci` on, see CI Checks): done when every failing check is recorded `fixed` or `open`.
+10. **Commit, push and respond** (see Committing Fixes): commit, then record the fixed items with their commit. In pull request mode, `git push`, then `fix-review.mjs respond`. In `all` mode, show the recap before pushing. Internal mode never pushes.
 11. **Next round** (see The Round Loop): wait for the re-review and go back to step 6, or stop.
 12. **Write the result block**: `fix-review.mjs result --remaining <n>`. With `--run-dir`, pipe it into `runs.mjs result <step>` (`fix-review`, or `fix-review-<N>` in internal mode for findings `review-<N>.json`), which records it and prints the final line.
 13. **Report** (see Output Guidance), then the result line as the final output line.

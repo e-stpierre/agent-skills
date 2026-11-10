@@ -35,12 +35,10 @@ Look for technical debt indicators:
 
 ## Core Principles
 
-- Focus on REAL debt - not everything needs refactoring
 - Working code has value - perfect is the enemy of good
 - Prioritize by impact - frequently touched code > rarely touched
-- Avoid over-engineering and premature abstractions
 - Understand why patterns exist before flagging them - some "debt" is intentional
-- Base recommendations on concrete requirements, not hypothetical future needs
+- Base recommendations on concrete requirements, with no premature abstraction for hypothetical future needs
 
 ## Severity Guidelines
 

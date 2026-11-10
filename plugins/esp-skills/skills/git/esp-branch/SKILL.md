@@ -1,23 +1,23 @@
 ---
 name: esp-branch
 description: Create a branch with standardized naming convention
-argument-hint: "<branch-name> [category] [issue-id] [base]"
+argument-hint: "-s|--slug <slug> [-t|--type <type>] [-g|--issue <id>] [-b|--base <branch>]"
 ---
 
 # Git Branch
 
 ## Overview
 
-Create and checkout a new branch with consistent naming that links to issue tracking when available. Uses the naming convention: `[category]/[issue-id]_[branch-name]` or `[category]/[branch-name]` when no issue ID is provided.
+Create and check out a new branch whose name follows the configured pattern and links to the issue when one is known: `<type>/<issue>_<slug>`, or `<type>/<slug>` without an issue.
 
 ## Arguments
 
 ### Definitions
 
-- **`<branch-name>`** (required): Short kebab-case description of the work.
-- **`[category]`** (optional): Branch type. Common values: poc, feature, fix, chore, doc, refactor. Accepts any value. Defaults to `branch.default_category` (`feature`).
-- **`[issue-id]`** (optional): GitHub issue number associated with this work.
-- **`[base]`** (optional): Base branch to create from. If not provided, branch from current location.
+- **`-s|--slug <slug>`** (required): Read from `-s` or `--slug`. Short kebab-case description of the work. When absent, derive it from the task in the conversation.
+- **`[-t|--type <type>]`** (optional): Read from `-t` or `--type`. Branch type (the `{category}` of the pattern). Common values: `poc`, `feature`, `fix`, `chore`, `doc`, `refactor`; any value is accepted. Defaults to the type inferred from the work, else `branch.default_category` (`feature`).
+- **`[-g|--issue <id>]`** (optional): Read from `-g` or `--issue`. GitHub issue number of this work. Defaults to an issue referenced in the conversation (`#123`, `issue 123`), else none.
+- **`[-b|--base <branch>]`** (optional): Read from `-b` or `--base`. Branch to create from. Defaults to the current location.
 
 ### Values
 
@@ -25,11 +25,8 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- Use kebab-case for branch names (lowercase, hyphens)
-- Keep branch names concise but descriptive
-- Include issue ID when context provides one
-- Never prompt interactively - extract from context or use defaults
-- Accept any category value provided
+- Run without prompting: every missing value comes from the conversation context or the defaults
+- Branch names are concise kebab-case (lowercase, hyphens)
 - Arguments override configuration; missing configuration falls back to the defaults below
 
 ## Skill-Specific Guidelines
@@ -44,30 +41,20 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get branch
 
 If the command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                            | Default                                   | Effect                                                 |
-| ------------------------------ | ----------------------------------------- | ------------------------------------------------------ |
-| `branch.pattern`               | `{category}/{issue}_{name}`               | Branch name when an issue ID is known                  |
-| `branch.pattern_without_issue` | `{category}/{name}`                       | Branch name when no issue ID is known                  |
-| `branch.default_category`      | `feature`                                 | Category when none is given or inferred                |
-| `branch.categories`            | `feature, fix, chore, doc, refactor, poc` | Suggested categories when inferring; others still work |
+| Key                            | Default                                   | Effect                                                     |
+| ------------------------------ | ----------------------------------------- | ---------------------------------------------------------- |
+| `branch.pattern`               | `{category}/{issue}_{name}`               | Branch name when an issue ID is known                      |
+| `branch.pattern_without_issue` | `{category}/{name}`                       | Branch name when no issue ID is known                      |
+| `branch.default_category`      | `feature`                                 | Type when none is given or inferred                        |
+| `branch.categories`            | `feature, fix, chore, doc, refactor, poc` | Suggested types when inferring; other `--type` values work |
 
 ## Instructions
 
-1. Load the `branch` configuration (see Configuration)
-2. Parse the provided arguments to extract category, branch-name, issue-id, and base (if present)
-3. If arguments are incomplete, infer from conversation context:
-   - Look for GitHub issue references (#123, issue 123)
-   - Derive branch name from the task description
-   - Pick the category from `branch.categories` that fits the work
-4. Use the provided or inferred category, or default to `branch.default_category`
-5. Determine base branch:
-   - If base is provided, checkout that branch first
-   - Otherwise branch from current location
-6. Construct the branch name by replacing `{category}`, `{issue}` and `{name}`:
-   - With issue: `branch.pattern` (default `<category>/<issue-id>_<branch-name>`)
-   - Without issue: `branch.pattern_without_issue` (default `<category>/<branch-name>`)
-7. Execute: `git checkout -b <constructed-branch-name>` (from base if provided)
-8. Report the created branch name
+1. Load the `branch` configuration (see Configuration).
+2. Resolve the slug, type, issue and base from the options, filling each missing one per its Definition (pick an inferred type from `branch.categories`).
+3. Build the name: replace `{category}` with the type, `{issue}` with the issue and `{name}` with the slug in `branch.pattern` when an issue is known, else in `branch.pattern_without_issue`.
+4. Create it: with a base, `git checkout -b <name> <base>`; otherwise `git checkout -b <name>`. Done when `git branch --show-current` prints the new name.
+5. Report the created branch name.
 
 ## Output Guidance
 

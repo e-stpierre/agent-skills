@@ -15,7 +15,8 @@ A skill is a directory containing at minimum a SKILL.md file. Optional directori
 Keep file references one level deep from SKILL.md. Avoid deeply nested reference chains.
 
 YAML FRONTMATTER:
-Every skill requires YAML frontmatter between `---` markers at the top of SKILL.md.
+Every skill requires YAML frontmatter between `---` markers, starting on line 1 of SKILL.md
+with no blank line inside (the blank lines below come from this template being markdown).
 
 Agent Skills Standard Fields:
 | Field         | Required | Description                                                                                 |
@@ -42,34 +43,27 @@ Claude Code Specific Fields:
 | paths                    | No       | Glob patterns limiting when skill activates. Comma-separated or YAML list.                  |
 | shell                    | No       | Shell for !`command` blocks. Options: bash (default), powershell.                           |
 
-ARGUMENT-HINT CONVENTIONS:
-- Use `<arg>` for required positional arguments (angle brackets)
-- Use `[arg]` for optional positional arguments (square brackets)
-- Use `[--flag]` for boolean flags (always optional - flags toggle behavior)
-- Use `[arg...]` for variadic arguments (accepts multiple values)
-- Argument order: flags first, then required args, then optional args
-- The `[context]` argument must ALWAYS come last when present
+ARGUMENT CONVENTIONS (standard CLI structure; full rules in esp-create-skill SKILL.md):
+- Notation: `<value>` required placeholder, `[...]` optional, `a|b` alternatives, `...` repeatable
+- Every discrete value is an option with a short and a long name: `-t|--type <type>`.
+  `--type=<value>` works too. Short names are one letter, unique within the skill
+- Required options are bare (`-t|--type <type>`), optional ones bracketed (`[-b|--base <branch>]`)
+- Boolean flags are optional and take a short name too (`[-w|--draft]`)
+- Repeatable values: `[-r|--reviewers <name>...]`; a comma-separated value is accepted too
+- Free text the user types is the only positional: one trailing `<question>` or `[context]`
+- A skill that is a set of actions takes the action as a leading positional (`<action>`)
+- Order: subcommand, flags, required options, optional options, free text
+- The hint is display text only; the body says how to read each option by both names
+- Reserved letters: -h help, -v verbose, -q quiet, -f force, -o output, -n dry-run, -y yes
+- Plugin-wide letters: -d run-dir, -c config-snapshot, -i interactive, -r reviewers,
+  -p pr or plan, -u resume
 - Examples:
-  - `<context>` - required context only
-  - `<type> [context]` - required type, optional context
-  - `[--verbose] <type> [context]` - flag, required type, optional context
-  - `[--draft] [--dry-run] <file> [format]` - flags first, then positional
-  - `[--amend] [--run-dir <path>] [context]` - flag, valued option, then positional
-
-ARGUMENT-HINT VALIDATION RULES:
-- Flags (`[--flag]`) must come first, before all positional arguments
-- Required arguments (`<arg>`) must precede optional arguments (`[arg]`)
-- Flags are boolean (presence/absence toggles) by default
-- Prefer positional arguments with descriptive names for user-facing values
-- Exception, valued options: `[--name <value>]` is allowed for inputs passed by a harness
-  or an orchestrating skill (`[--run-dir <path>]`, `[--config-snapshot <path>]`), and for
-  modes of workflow skills that a positional would make ambiguous (`[--interactive <mode>]`).
-  Valued options are always optional, come after boolean flags and before positionals,
-  and are documented in Definitions with their values and default
-- Wrong: `--level <level> --step <name>` (user-facing values as options)
-- Correct: `<level> <step>` (positional arguments)
-- Wrong: `--type critical` (flag taking a value)
-- Correct: `<type>` with valid values documented in Definitions
+  - `<question>` - free text only
+  - `-t|--type <type> [context]` - required option, free text
+  - `[-w|--draft] [-b|--base <branch>]` - flag, optional option
+  - `[-a|--amend] [-t|--type <type>] [-d|--run-dir <path>] [context]` - flag, options, free text
+- Wrong: `<type> [base]` (discrete values as positionals)
+- Correct: `-t|--type <type> [-b|--base <branch>]`
 
 STRING SUBSTITUTIONS:
 Claude Code replaces these variables in skill content before sending to the model:
@@ -83,11 +77,9 @@ Claude Code replaces these variables in skill content before sending to the mode
 | ${CLAUDE_SKILL_DIR}    | Directory containing this SKILL.md. Use in !`command` to reference bundled     |
 |                        | scripts/files regardless of working directory.                                 |
 
-POSITIONAL ARGUMENT ACCESS:
-When a skill needs to reference individual arguments, use $ARGUMENTS[N] or the $N shorthand:
-- `/my-skill SearchBar React Vue` -> $0=SearchBar, $1=React, $2=Vue
-- $ARGUMENTS still contains the full string "SearchBar React Vue"
-- If $ARGUMENTS is not present in content, arguments are appended as `ARGUMENTS: <value>`
+ARGUMENT ACCESS:
+Read options by name from `Arguments: $ARGUMENTS`. $ARGUMENTS[N] and $N are positional and
+shift when an option is added or omitted, so options-based skills do not use them.
 
 DYNAMIC CONTEXT INJECTION:
 - Use `!`command`` syntax to run shell commands before skill content is sent to Claude.
@@ -119,7 +111,7 @@ VALIDATION RULES:
 
 name: {{skill-name}}
 description: {{skill-description}}
-argument-hint: {{argument-pattern}}
+argument-hint: "{{argument-pattern}}"
 
 ---
 
@@ -147,12 +139,11 @@ Instructions:
 <!--
 Instructions:
 - Replace {{argument_definitions}} with a bullet-point list defining each argument
-- Format: **`<argument-name>`** (required): Description
-- Format: **`[argument-name]`** (optional): Description. Defaults to `value`.
-- List required arguments before optional arguments (matching argument-hint order)
-- Include default values where applicable
-- The [context] argument should always come last
-- Reference positional index when the skill uses $ARGUMENTS[N] or $N shorthand
+- Format: **`-t|--type <type>`** (required): Description, with the valid values
+- Format: **`[-b|--base <branch>]`** (optional): Description. Defaults to `value`.
+- Format: **`[-w|--draft]`** (optional): What the flag turns on
+- Format: **`[context]`** (optional): The free text, always last
+- List them in argument-hint order
 - Omit this section entirely if the skill takes no arguments
 -->
 
@@ -167,7 +158,6 @@ Instructions:
   is interpreted as a LaTeX/math delimiter by some renderers
 - The $ARGUMENTS placeholder is automatically replaced with all arguments passed when invoking the skill
 - If $ARGUMENTS is not present in the content, arguments are appended as `ARGUMENTS: <value>`
-- Use $ARGUMENTS[N] or $N shorthand in the skill body to reference specific positional arguments
 - Do not modify this subsection
 -->
 

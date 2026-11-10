@@ -1,7 +1,7 @@
 ---
 name: esp-review
-description: Review a diff, branch or PR in a fresh context and return verified, classified findings
-argument-hint: "[--focus <area>] [--plan <path>] [--interactive <mode>] [--run-dir <path>] [--config-snapshot <path>] [target]"
+description: Code review in a fresh context, returning verified findings classified for a fixer. Use when asked to review local changes, a branch, a ref range or a pull request.
+argument-hint: "[-a|--focus <area>] [-p|--plan <path>] [-t|--target <target>] [-i|--interactive <mode>] [-d|--run-dir <path>] [-c|--config-snapshot <path>]"
 metadata: { af-contract: 1, af-level: reporting }
 ---
 
@@ -15,17 +15,18 @@ Review a set of code changes in a fresh context and report verified, classified 
 
 ### Definitions
 
-- **`[--focus <area>]`** (optional): What to weigh most. A comma-separated list of dimension names (`security,tests`) reviews only those dimensions. Any other text (`token refresh`) is a concern the reviewer weighs more heavily, on the configured dimensions.
-- **`[--plan <path>]`** (optional): Plan the diff implements, for the `plan-conformance` dimension. With `--run-dir`, defaults to the latest plan of the run (`runs.mjs plan`). Without a plan, `plan-conformance` is skipped.
-- **`[--interactive <mode>]`** (optional): `off`, `plan` or `all`. Only `all` stops after the review to settle B-Decide and B-Scope findings with the user. `--interactive=<mode>` also works. Defaults to `defaults.interactive` (`off`). Headless sessions always use `off`.
-- **`[--run-dir <path>]`** (optional): Run directory owned by a harness or a parent skill. The diff, the review and the findings are saved there, and the result block is recorded as step `review-<N>`. Without it, the skill writes them to a temporary directory and creates no run.
-- **`[--config-snapshot <path>]`** (optional): Config snapshot from a harness or parent run, passed to every `config.mjs` and `runs.mjs` call.
-- **`[target]`** (optional): What to review:
-  - Omitted: local changes (staged, unstaged and untracked, against HEAD). When the tree is clean, the current branch against its merge base with the default branch
+Read each option by its short or its long name (`-t main`, `--target main` or `--target=main`). Quote a value with spaces (`-t "PR 42"`).
+
+- **`[-a|--focus <area>]`** (optional): What to weigh most. A comma-separated list of dimension names (`security,tests`) reviews only those dimensions. Any other text (`token refresh`) is a concern the reviewer weighs more heavily, on the configured dimensions.
+- **`[-p|--plan <path>]`** (optional): Plan the diff implements, for the `plan-conformance` dimension. With `--run-dir`, defaults to the latest plan of the run (`runs.mjs plan`). Without a plan, `plan-conformance` is skipped.
+- **`[-t|--target <target>]`** (optional): What to review. Defaults to the local changes (staged, unstaged and untracked, against HEAD), or, when the tree is clean, the current branch against its merge base with the default branch. Values:
   - `staged` or `unstaged`: only those changes
   - `<ref>` (`main`, `origin/main`): commits on HEAD that are not on `<ref>`, from the merge base
   - `<base>..<head>` or `<base>...<head>`: an explicit range
   - `PR <number>`, `#<number>`, or a pull request URL: a GitHub pull request, through `gh`
+- **`[-i|--interactive <mode>]`** (optional): `off`, `plan` or `all`. Only `all` stops after the review to settle B-Decide and B-Scope findings with the user. Defaults to `defaults.interactive` (`off`). Headless sessions always use `off`.
+- **`[-d|--run-dir <path>]`** (optional): Run directory owned by a harness or a parent skill. The diff, the review and the findings are saved there, and the result block is recorded as step `review-<N>`. Without it, the skill writes them to a temporary directory and creates no run.
+- **`[-c|--config-snapshot <path>]`** (optional): Config snapshot from a harness or parent run, passed to every `config.mjs` and `runs.mjs` call.
 
 ### Values
 
@@ -40,13 +41,10 @@ Arguments: $ARGUMENTS
 ## Core Principles
 
 - Review only the diff. Pre-existing issues outside the changed lines are not findings; a serious one becomes a discovered item
-- High signal only: every finding survives a verify pass that tries to prove it wrong, unless `review.verify_findings` is off
+- High signal only: every finding survives a verify pass that tries to prove it wrong, unless `review.verify_findings` is off. The review holds findings and rejected candidates, nothing else: no praise, no general observations
 - Every finding carries a location, a dimension, a severity, a class and a fix precise enough to apply without asking
-- Produce text and a result block. Never decide where the review goes: no PR comments, no inline-comment API calls, no files outside the run or temporary directory
-- Never change the repository: no edits, commits or pushes
-- The review itself needs only file reading and search, so it runs on any runtime. Spawning the reviewer subagent is an optimization, not a requirement
-- Run every script with Bash, with the literal `"${CLAUDE_PLUGIN_ROOT}/scripts/..."` path. Never count findings or write result files by hand
-- No positives, no praise, no general observations
+- The skill is read-only and routes nothing: it produces text and a result block, and writes only into the run or temporary directory. The caller decides where the review goes (no PR comments, no inline-comment API calls)
+- Run every script with Bash, with the literal `"${CLAUDE_PLUGIN_ROOT}/scripts/..."` path. Counts, result files and the result block always come from `review.mjs` and `runs.mjs`
 
 ## Skill-Specific Guidelines
 
@@ -77,7 +75,7 @@ The available dimensions are `correctness`, `security`, `plan-conformance`, `tes
 
 | Moment           | Command                                                                                                                |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Resolve target   | `review.mjs target [target] --project-dir <repo-root> [--run-dir <path>]`                                              |
+| Resolve target   | `review.mjs target [<target>] --project-dir <repo-root> [--run-dir <path>]` (`<target>`: the `--target` value)         |
 | Latest plan      | `runs.mjs plan` (`{ path, version }`, version 0 when there is none)                                                    |
 | Pending messages | `runs.mjs messages`, then `runs.mjs deliver <id>...` once applied                                                      |
 | Reviewer model   | `runs.mjs update --model reviewer=<alias>[:<effort>]`                                                                  |
@@ -98,7 +96,7 @@ Build one self-contained prompt for the reviewer:
 - The convention files to honor: `AGENTS.md` and `CLAUDE.md` at the repo root and in every ancestor directory of a changed file
 - Operator messages, as an `## Operator Messages` section
 
-Then run it in a fresh context. The choice depends only on the runtime, never on the size of the diff: a small diff still goes to the subagent, because the fresh context keeps the review from being anchored on this session.
+Then run it in a fresh context. The choice depends only on the runtime, never on the size of the diff: a small diff still goes to the subagent, because the fresh context keeps the review from being anchored on this session. The review itself needs only file reading and search, so the inline branch works on any runtime.
 
 - **Subagent available** (the session has a subagent tool and is not itself a subagent): spawn `esp-skills:esp-reviewer` in the foreground with the `model` and `effort` from `defaults.models.reviewer`, and wait for its reply before the next step. With `--run-dir`, record the model with `runs.mjs update --model reviewer=<alias>[:<effort>]` before spawning.
 - **Otherwise** (a runtime without subagents, or already inside a subagent): read `agents/esp-reviewer.md` in the plugin root and follow its Methodology and Output Guidance in this session, read-only.
@@ -117,14 +115,14 @@ In every other mode the review settles nothing: the fixer applies the classes wi
 
 ## Instructions
 
-1. **Parse arguments**: read the flags and `[target]`. Resolve the interactive mode (the flag, else `defaults.interactive`, `off` when headless).
+1. **Parse arguments**: read every option by its short or long name. Resolve the interactive mode (`-i|--interactive`, else `defaults.interactive`, `off` when headless).
 2. **Load configuration** (see Configuration).
-3. **Resolve the target**: run `review.mjs target`. On exit code 2, report the usage error and stop. If `empty` is true, report that there is nothing to review, end with the result block `{"contract_version":1,"status":"done","summary":"Nothing to review: the diff is empty.","max_risk":"low","outputs":{"findings":0}}` (through `runs.mjs result <step>` with `--run-dir`), and stop.
+3. **Resolve the target**: run `review.mjs target` with the `--target` value. On exit code 2, report the usage error and stop. If `empty` is true, report that there is nothing to review, end with the result block `{"contract_version":1,"status":"done","summary":"Nothing to review: the diff is empty.","max_risk":"low","outputs":{"findings":0}}` (through `runs.mjs result <step>` with `--run-dir`), and stop.
 4. **Resolve the plan**: `--plan`, else with `--run-dir` the path from `runs.mjs plan` when its version is above 0, else none.
 5. **Resolve the dimensions**: when every comma-separated item of `--focus` is a dimension name, use those; otherwise use `review.dimensions` and pass `--focus` as the focus text. Remove `plan-conformance` when there is no plan.
 6. **Read operator messages**: the injected `## Operator Messages` section, plus `runs.mjs messages` with `--run-dir`.
-7. **Run the reviewer** (see Running the Reviewer) and save its reply to `review_path`. Deliver the inbox messages you passed with `runs.mjs deliver`.
-8. **Parse and filter**: run `review.mjs parse` with `--md-out` and `--out`. If it exits 1, correct only the reported headings and lines in `review_path` to the finding format, without changing what the findings say, and parse again. If it still fails, end with `status: failed` and the errors in the summary.
+7. **Run the reviewer** (see Running the Reviewer). Done when its reply is saved verbatim to `review_path` and every inbox message you passed is delivered with `runs.mjs deliver`.
+8. **Parse and filter**: run `review.mjs parse` with `--md-out` and `--out` (see Scripts). If it exits 1, correct only the reported headings and lines in `review_path` to the finding format, without changing what the findings say, and parse again. If it still fails, end with `status: failed` and the errors in the summary.
 9. **Interactive review** (`all` only, see Interactive Review).
 10. **Write the result block**: run the step 8 `parse` command again with `--result`. With `--run-dir`, pipe it into `runs.mjs result <step>` (the `step` from `target`), which records it and prints the final line.
 11. **Report**: print the content of `review_path`, then the result line as the final output line.
