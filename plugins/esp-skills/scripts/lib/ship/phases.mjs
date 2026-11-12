@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { expandHome } from "../../config.mjs";
 import { readPlan } from "../../plan.mjs";
 import { appendEvent, cmdUpdate, latestPlan, now } from "../../runs.mjs";
+import { finalGatesState, gatesFor } from "./gates.mjs";
 import { reviewLoop } from "./review-loop.mjs";
 import { prOptions } from "./tail.mjs";
 import {
@@ -47,6 +48,7 @@ export const PHASE_ROLES = {
   branch: "mechanical",
   implement: null,
   build: null,
+  "final-gates": null,
   review: "reviewer",
   "review-fix": "fixer",
   pr: "mechanical",
@@ -60,6 +62,7 @@ const SKILLS = {
   branch: "esp-branch",
   implement: null,
   build: null,
+  "final-gates": null,
   review: "esp-review",
   "review-fix": "esp-fix-review",
   pr: "esp-pr",
@@ -448,6 +451,22 @@ export function dispatch(dir, state, at, config) {
     base.milestone_loop = true;
     base.build_resume = existsSync(join(dir, "state.json"));
     base.plan_path = state.plan_path;
+  }
+  if (phase === "final-gates") {
+    const fg = finalGatesState(state);
+    const { gates, sources, commands } = gatesFor({
+      projectDir: cwd,
+      snapshot: state.config_snapshot,
+      scope: "full"
+    });
+    Object.assign(base, {
+      gates,
+      sources,
+      commands,
+      runs: fg.runs,
+      fix_rounds: fg.fix_rounds,
+      max_fix_rounds: fg.max_fix_rounds
+    });
   }
   if (phase === "fix-review") base.rounds = state.pr_rounds.done + 1;
   if (phase === "pr") Object.assign(base, prOptions(state, config));

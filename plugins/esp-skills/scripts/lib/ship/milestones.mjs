@@ -514,11 +514,23 @@ const shipSnapshot = (dir) => shipJson(dir)?.config_snapshot ?? null;
 
 export function cmdMilestoneGates(options) {
   let snapshot = stringOption(options["config-snapshot"]) ?? undefined;
-  if (!snapshot && options["run-dir"]) {
+  let planPath = stringOption(options.plan);
+  planPath = planPath ? resolve(expandHome(planPath)) : null;
+  if (options["run-dir"]) {
     const dir = runDirOf(options);
-    snapshot = existsSync(statePath(dir))
-      ? readMilestoneState(dir).config_snapshot
-      : (shipSnapshot(dir) ?? undefined);
+    const milestoneState = existsSync(statePath(dir))
+      ? readMilestoneState(dir)
+      : null;
+    snapshot ??=
+      milestoneState?.config_snapshot ?? shipSnapshot(dir) ?? undefined;
+    planPath ??= milestoneState?.plan_path ?? shipPlanPath(dir);
   }
-  return gatesFor({ projectDir: options["project-dir"], snapshot });
+  return gatesFor({
+    projectDir: options["project-dir"],
+    snapshot,
+    scope: options.scope,
+    milestone: options.milestone,
+    files: options.files,
+    planPath
+  });
 }

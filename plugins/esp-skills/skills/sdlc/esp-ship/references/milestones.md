@@ -7,7 +7,7 @@ The `build` phase of the orchestrated track. `ship.mjs next` returns `phase: bui
 1. `phase build --status started`.
 2. `milestone init --base <git rev-parse HEAD>` (in the working directory `cwd` from `next`). It creates `state.json` from the plan, or syncs it with an amended plan and keeps the done milestones. It is safe to repeat, so a resume runs it too.
 3. Parse the plan once with `node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" parse <plan_path>` and keep the milestone blocks.
-4. `milestone gates --project-dir <cwd>` once (see gates.md).
+4. `milestone gates --project-dir <cwd>` once for the full gates, then `milestone gates --milestone <id> --project-dir <cwd>` for each milestone: its `commands` are the scoped checks of its builder and verifier (see gates.md).
 
 ## Loop
 
@@ -33,8 +33,8 @@ An attempt interrupted while `in-progress` comes back from `next` as a `retry` a
 
 Spawn each subagent with the Agent tool, with the `model` and `effort` from `milestone models <id>` (they override the agent frontmatter), in the foreground. Keep each prompt self-contained, and keep only each final result line. A subagent that returns no valid result line is a failed attempt with reason `no result block`.
 
-- **Builder** (`esp-skills:esp-builder`): the milestone block from `plan.mjs parse` (ID, title, goal, tasks, files, acceptance criteria, validation), `--run-dir <run-dir>`, step `build-<id>`, the gate commands, `--config-snapshot <state.config_snapshot>`, and the working directory. On a retry, add the commit to amend (`next.amend`) and the verifier failures (`outputs.failures` and `blockers` of the last `verify-<id>` result). Add pending operator messages as an `## Operator Messages` section
-- **Verifier** (`esp-skills:esp-verifier`): the milestone ID, the acceptance criteria and the validation commands, the expected commit (the builder's `commit`), the base (from `milestone start`), the expected commit count (`1`), the gate commands (the builder's `outputs.gate_commands`, else the resolved gates), `--run-dir <run-dir>` and step `verify-<id>`
+- **Builder** (`esp-skills:esp-builder`): the milestone block from `plan.mjs parse` (ID, title, goal, tasks, files, acceptance criteria, validation), `--run-dir <run-dir>`, step `build-<id>`, the scoped gate commands of the milestone (`commands` from `milestone gates --milestone <id>`), `--config-snapshot <state.config_snapshot>`, and the working directory. On a retry, add the commit to amend (`next.amend`) and the verifier failures (`outputs.failures` and `blockers` of the last `verify-<id>` result). Add pending operator messages as an `## Operator Messages` section
+- **Verifier** (`esp-skills:esp-verifier`): the milestone ID, the acceptance criteria and the validation commands, the expected commit (the builder's `commit`), the base (from `milestone start`), the expected commit count (`1`), the gate commands (the builder's `outputs.gate_commands`, else the scoped commands of the milestone), `--run-dir <run-dir>` and step `verify-<id>`
 
 The builder writes `steps/<NN>-build-<id>/result.json` and the verifier `steps/<NN>-verify-<id>/result.json`. A retry reuses both step directories.
 

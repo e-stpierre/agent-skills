@@ -20,7 +20,7 @@ Before each inline phase:
 ## Implement
 
 1. `phase implement --status started`. Make the change and its tests.
-2. Resolve the gates once and run them (see gates.md). When a gate fails, run `ship.mjs gate-failure --reason "<gate>: <first error>"`: on `retry`, fix and run the gates again. On `escalate`, escalate (`gates`). On `halt`, `ship.mjs halt --key gates-exhausted`.
+2. While implementing, run only the checks that cover the change (its tests, plus `ship.gates.always`). Then resolve the gates once and run the full gates before the commit (see gates.md). When a gate fails, run `ship.mjs gate-failure --reason "<gate>: <first error>"`: on `retry`, fix and run the gates again. On `escalate`, escalate (`gates`). On `halt`, `ship.mjs halt --key gates-exhausted`.
 3. When every gate passes, run `ship.mjs scope`. On `action: escalate`, escalate (`files`).
 4. Make exactly one commit with `esp-commit` (it reads `commit.style`). Invoke the skill when the runtime has a skill tool, otherwise follow its `SKILL.md`.
 5. `phase implement --status done --commit <sha> --gates '{"test":"pass",...}'`.

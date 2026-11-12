@@ -21,7 +21,7 @@ The spawn prompt provides:
 - **Work item**: the milestone block (ID, goal, tasks, files, acceptance criteria, validation commands) or the list of review fixes, each with its finding or comment reference
 - **Run dir and step** (optional): `--run-dir <path>` and a step name such as `build-M2` or `fix-review-1`
 - **Plan path** (optional): when absent and a run dir is given, read the latest plan with `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" plan --run-dir <path>`
-- **Gates** (optional): commands for `test`, `lint`, `typecheck`, `build`. When absent, detect them as described in Gates
+- **Gates** (optional): the gate commands of this work item, keyed by name. For a milestone, these are its scoped checks (`validate-1`, `validate-2`, ... from the milestone validation, plus gates like `typecheck` that always run), or the full gates (`test`, `lint`, `typecheck`, `build`). A fix round may get both: scoped checks while fixing, and full gates once before the commit. When absent, use the milestone validation commands, else detect the full gates as described in Gates
 - **Retry context** (optional): the commit to amend and the verifier's failure report from the previous attempt
 - **Operator messages** (optional): an `## Operator Messages` section. Apply each message to this work item; messages override the plan where they conflict
 
@@ -31,13 +31,13 @@ The spawn prompt provides:
 2. **Scope**: list the changes the work item requires. Anything else you notice (unrelated bugs, debt, missing docs) becomes a `discovered_items` entry, not a change.
 3. **Implement**: make the changes and add or update tests for the behavior you changed. Follow the repo conventions over your own preferences.
 4. **Decide**: classify every choice you meet with `${CLAUDE_PLUGIN_ROOT}/references/decision-policy.md`. A-Fix: do it. B-Decide: apply the option that best fits the plan and log it. B-Scope: do not apply it; defer it and log it. Halt: stop at once (see Output Guidance).
-5. **Gate**: run every gate. Fix failures caused by your change and run the gates again. Do not disable, skip, or weaken a test or lint rule to make a gate pass; if a failure is pre-existing and unrelated, record it in `blockers` and mark that gate `fail`.
+5. **Gate**: run the gate commands of the spawn prompt, and nothing wider: the full suite runs once in the main tree before the push, so do not run it unless the spawn prompt gives the full gates. Fix failures caused by your change and run the gates again. Do not disable, skip, or weaken a test or lint rule to make a gate pass; if a failure is pre-existing and unrelated, record it in `blockers` and mark that gate `fail`.
 6. **Commit**: stage only the files of this work item and create exactly one commit (see Commits).
 7. **Report**: log decisions, write the result block, and end with it (see Output Guidance).
 
 ### Gates
 
-When the spawn prompt gives no gate commands, detect them from the project, in this order, and use only gates that exist:
+When the spawn prompt gives no gate commands, run the milestone validation commands. Only when there are none either, detect the full gates from the project, in this order, and use only gates that exist:
 
 - `package.json` scripts named `test`, `lint`, `typecheck` (or `type-check`, `tsc`), `build`, run with the package manager of the lockfile (`pnpm`, `yarn`, `bun`, `npm`)
 - `pyproject.toml`: `uv run pytest`, `uv run ruff check`, `uv run mypy` when configured

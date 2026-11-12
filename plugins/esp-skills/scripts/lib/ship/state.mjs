@@ -46,6 +46,7 @@ export const PHASES = [
   "branch",
   "implement",
   "build",
+  "final-gates",
   "review",
   "pr",
   "await-review",
@@ -58,7 +59,14 @@ export const TAIL_PHASES = ["pr", "await-review", "fix-review", "merge"];
 export const WAIT_PHASES = ["await-review", "fix-review", "merge"];
 export const TRACK_PHASES = {
   inline: ["context", "branch", "implement", ...TAIL_PHASES],
-  orchestrated: ["plan", "branch", "build", "review", ...TAIL_PHASES]
+  orchestrated: [
+    "plan",
+    "branch",
+    "build",
+    "final-gates",
+    "review",
+    ...TAIL_PHASES
+  ]
 };
 /** The phase a track cannot drop. */
 export const CORE_PHASE = { inline: "implement", orchestrated: "build" };
@@ -207,7 +215,9 @@ export function shipSettings(config, track = "orchestrated") {
     // sequential until the batch detection decides it.
     parallel: ship.parallel === "on",
     commit_per_milestone: ship.commit_per_milestone ?? true,
-    gates: ship.gates ?? {}
+    gates: ship.gates ?? {},
+    gates_scope: ship.gates_scope ?? "milestone",
+    gates_always: ship.gates?.always ?? []
   };
 }
 

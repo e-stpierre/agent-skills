@@ -289,6 +289,7 @@ describe("resolvePhases", () => {
     const { phases } = resolvePhases("orchestrated", [
       "merge",
       "build",
+      "final-gates",
       "plan",
       "pr",
       "review",
@@ -300,6 +301,7 @@ describe("resolvePhases", () => {
       "plan",
       "branch",
       "build",
+      "final-gates",
       "review",
       "pr",
       "await-review",
@@ -315,7 +317,13 @@ describe("resolvePhases", () => {
 
   test("applies --no-pr, --no-merge, --stop-before-wait and internal_review_rounds 0", () => {
     const noPr = resolvePhases("orchestrated", undefined, { noPr: true });
-    assert.deepEqual(noPr.phases, ["plan", "branch", "build", "review"]);
+    assert.deepEqual(noPr.phases, [
+      "plan",
+      "branch",
+      "build",
+      "final-gates",
+      "review"
+    ]);
     assert.equal(noPr.skipped.merge, "--no-pr");
     assert.equal(
       resolvePhases("orchestrated", undefined, { noMerge: true }).phases.at(
@@ -413,6 +421,7 @@ describe("init", () => {
       "plan",
       "branch",
       "build",
+      "final-gates",
       "review",
       "pr",
       "await-review",
@@ -562,7 +571,7 @@ describe("next and phase", () => {
   test("orchestrated: dispatches the review loop and the pull request phases", () => {
     init();
     examplePlan();
-    for (const p of ["plan", "branch", "build"])
+    for (const p of ["plan", "branch", "build", "final-gates"])
       ship("phase", p, "--status", "done");
     let next = ship("next").json();
     assert.equal(next.phase, "review");

@@ -48,7 +48,7 @@ Arguments: $ARGUMENTS
 - For the internal review loop, see [review.md](references/review.md)
 - For the pull request, the review wait, the fix rounds and the merge, see [pr-tail.md](references/pr-tail.md)
 - For the branch, the worktree and the preflight of the tree, see [workspace.md](references/workspace.md)
-- For the gate commands, see [gates.md](references/gates.md)
+- For the gate commands, the scoped checks and the final gates, see [gates.md](references/gates.md)
 - For the classes, the stop conditions and asking under a harness, see [decision-policy.md](../../../references/decision-policy.md)
 - For the subagent models, see [model-selection.md](../../../references/model-selection.md)
 - For `summary.md`, see [summary-template.md](../../../references/summary-template.md)
@@ -88,7 +88,7 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 - **`ship.budgets.inline.max_wall_minutes`** (`60`), **`ship.budgets.orchestrated.max_wall_minutes`** (`240`) and **`ship.budgets.orchestrated.max_milestones`** (`12`): budgets checked at each phase boundary
 - **`ship.halt_on`** (all five stop conditions): the stop conditions honored (see decision-policy.md)
 - **`ship.max_retries_per_milestone`** (`2`), **`ship.parallel`** (`auto`), **`ship.commit_per_milestone`** (`true`): the milestone loop
-- **`ship.gates.<test|lint|typecheck|build>`** (`null`: detected): the gate commands
+- **`ship.gates.<test|lint|typecheck|build>`** (`null`: detected), **`ship.gates.always`** (`[]`) and **`ship.gates_scope`** (`milestone`): the gate commands, and the checks each builder, verifier and fixer runs (see gates.md)
 - **`fix-review.max_rounds`** (`3`) and **`fix-review.wait.default_reviewers`** (`["claude"]`): the pull request rounds and the reviewers waited for
 - **`pr.base`** (`null`: the repository default branch), **`pr.draft`** (`false`), **`pr.body_from_run`** (`true`) and **`pr.body_sections`**: the pull request
 - **`defaults.models.<role>`** (see model-selection.md) and **`defaults.interactive`** (`off`)
@@ -104,6 +104,7 @@ The phase skills read their own sections (`plan`, `review`, `fix-review`, `merge
 - **`phase <name> --status started|done|skipped|failed`**: record a phase and its facts (`--plan`, `--branch`, `--base-sha`, `--commit`, `--pr`, `--summary`, `--gates`)
 - **`budget`**, **`scope`**, **`gate-failure`**, **`switch-track`**, **`escalate`**: the inline limits and the move to the orchestrated track (see inline.md)
 - **`workspace`**, **`worktree`**: pick and apply the workspace of the branch phase, or create a task worktree directly (see workspace.md)
+- **`final-gates --result pass|fail`**: record a run of the full gates after the build (see gates.md)
 - **`review-loop`**, **`pr-loop`**: the internal review rounds and the pull request rounds
 - **`milestone init|next|start|finish|models|gates|show`**: the milestone loop (see milestones.md)
 - **`stop`**, **`halt`**: record a stop, or halt under a `ship.halt_on` key (exit 20)
@@ -123,6 +124,7 @@ The phase skills read their own sections (`plan`, `review`, `fix-review`, `merge
 - **`plan`** (orchestrated track): see [plan.md](references/plan.md)
 - **`branch`**: see [workspace.md](references/workspace.md)
 - **`build`** (orchestrated track): the milestone loop in this session, see [milestones.md](references/milestones.md)
+- **`final-gates`** (orchestrated track): the full gates once in this session, see [gates.md](references/gates.md)
 - **`review`** with `sub: review` or `sub: review-fix`: see [review.md](references/review.md)
 - **`pr`**, **`await-review`**, **`fix-review`**, **`merge`**: see [pr-tail.md](references/pr-tail.md)
 

@@ -52,6 +52,7 @@ import {
   cmdPrLoop,
   cmdResult
 } from "./lib/ship/tail.mjs";
+import { cmdFinalGates } from "./lib/ship/gates.mjs";
 import { cmdTriage } from "./lib/ship/triage.mjs";
 import { cmdWorkspace, cmdWorktree } from "./lib/ship/workspace.mjs";
 import { now } from "./runs.mjs";
@@ -76,6 +77,9 @@ Commands:
   phase <name>         Record a phase: --status started|done|skipped|failed, and its facts
                        (--plan <file>, --branch, --base, --base-sha, --commit, --pr, --summary,
                        --gates <json>, --reason)
+  final-gates          Record one run of the full gates in the main tree (--result pass|fail
+                       [--gates <json>] [--reason <text>]): continue, fix (one fixer round),
+                       halt (gates-exhausted) or continue-failing
   review-loop          Internal review loop state: review, fix, done, stop or halt
   pr-loop              Pull request rounds after a phase (--after await|fix): await, fix, merge or stop
   workspace            Branch phase: pick the workspace (checkout, existing-branch, worktree) from
@@ -103,7 +107,10 @@ Commands:
     start <id>         Begin an attempt of a milestone (emits iteration.started)
     finish <id>        End the attempt: --status done|failed|halted [--commit <sha>] [--reason <text>]
     models <id>        Builder and verifier { model, effort } (--model <alias> [--effort <level>])
-    gates              Gate commands: configured, else detected from --project-dir
+    gates              Gate commands: configured, else detected from --project-dir, and the
+                       checks of a scope: --milestone <id> (its validation commands plus
+                       ship.gates.always, else the full gates) or --files <a,b> (a fix round:
+                       the milestones covering those files); --scope milestone|full
     show               Print state.json
 
 Options:
@@ -205,6 +212,8 @@ export function run(argv, env = process.env) {
       return { output: cmdNext(options, env) };
     case "phase":
       return { output: cmdPhase(args[0], options, env) };
+    case "final-gates":
+      return { output: cmdFinalGates(options, env) };
     case "review-loop": {
       const dir = runDirOf(options);
       return { output: reviewLoop(dir, readState(dir)) };
