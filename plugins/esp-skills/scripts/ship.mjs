@@ -52,6 +52,7 @@ import {
   cmdPrLoop,
   cmdResult
 } from "./lib/ship/tail.mjs";
+import { cmdTriage } from "./lib/ship/triage.mjs";
 import { cmdWorktree } from "./lib/ship/workspace.mjs";
 import { now } from "./runs.mjs";
 
@@ -60,6 +61,12 @@ export { ShipError };
 const USAGE = `Usage: node ship.mjs <command> [args] --run-dir <path> [options]
 
 Commands:
+  triage               Before init: detect the request (--request <text|path|issue>) and pick the
+                       plan source and the track: { input_kind, plan_source, track, nothing_to_do,
+                       needs_judgment, packages, ... }. --track pins the track; for a prompt or an
+                       issue, --judged-track inline|orchestrated --estimate <files> --reason <text>
+                       passes the model's judgment. --record (needs --run-dir) logs one decision
+                       per choice and writes the triage step result
   init                 Create ship.json (--request <text> --track inline|orchestrated --base <branch>);
                        resolves the phases of the track and freezes the config. A second call
                        prints the state; --resume lifts an awaiting-human stop, or takes over
@@ -100,7 +107,9 @@ Options:
   --run-dir <path>          Run directory (required except by milestone gates)
   --config-snapshot <path>  Config snapshot (init; later commands use the frozen one)
   --project-dir <dir>       Repository root (default: recorded at init, else the git root)
-  --track <track>           init: inline or orchestrated (default: orchestrated)
+  --track <track>           init, triage: inline or orchestrated (init default: orchestrated)
+  --request <text>          init, triage: the task, an issue reference or a file path
+  --record                  triage: log the decisions and write the triage step result
   --caller-owned            init: the caller owns the run, so an inline escalation ends with exit 30
   --plan-source <source>    init: reuse, import, generate or synthesize the plan (default: reuse
                             a plan in the run directory, else generate)
@@ -120,6 +129,7 @@ const BOOLEAN_FLAGS = new Set([
   "resume",
   "stop-before-wait",
   "caller-owned",
+  "record",
   "keep-tree",
   "parallel",
   "help"
@@ -181,6 +191,8 @@ export function run(argv, env = process.env) {
   if (options.help || !command)
     return { output: USAGE, exitCode: options.help ? 0 : 2 };
   switch (command) {
+    case "triage":
+      return { output: cmdTriage(options, env) };
     case "init":
       return { output: cmdInit(options, env) };
     case "show":

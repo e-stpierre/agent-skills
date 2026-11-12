@@ -6,6 +6,9 @@ Plan format 1 is the machine-consumable plan that `esp-plan` writes and that `es
 node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" parse <run-dir>/plan.md   # plan as JSON
 node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" lint <run-dir>/plan.md    # plan-lint
 node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" diff <previous> <next> --run-dir <run-dir>  # amendment check
+node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" tasks <file>                              # task list as JSON
+node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" import <file> --run-dir <run-dir>         # task list -> plan.md
+node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" synthesize --run-dir <run-dir> --title <t> --goal <g> --validation <cmd>
 ```
 
 ## Files and Versions
@@ -24,7 +27,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" diff <previous> <next> --run-dir <
 | `type`        | Yes      | `feature`, `bug` or `chore`                             |
 | `version`     | Yes      | Plan version, `1` for `plan.md`, `N` for `plan.v<N>.md` |
 | `task`        | No       | The task as the user stated it, in one line             |
-| `source`      | No       | Issue URL or document path the task came from           |
+| `source`      | No       | Issue URL, document or task list path the task came from |
 | `created`     | No       | Date the version was written (`YYYY-MM-DD`)             |
 
 Values are flat scalars (quote strings that contain `:` or `#`). Other keys are invalid, except `x-` extension keys.
@@ -126,6 +129,13 @@ An amendment changes only the remaining milestones:
 2. Write `plan.v<N+1>.md` with `version: N+1`. Copy every completed milestone block unchanged. Change, add or remove only remaining milestones, and give new milestones new IDs
 3. Run `plan.mjs diff <previous> <next> --run-dir <run-dir>`. It fails when a completed milestone changed or disappeared, when the version is not the next one, or when the new plan does not lint. Its `affects` list holds the changed, added and removed IDs
 4. Log it with `runs.mjs amend --run-dir <run-dir> --text <amendment> --affects <affects>`, which appends to `amendments.jsonl`, emits `amendment.applied` and logs an operator decision
+
+## Plans Without a Planning Model
+
+Two commands write `plan.md` with no model and no codebase exploration. Both write `--out <file>`, else `<run-dir>/plan.md`, else print the plan. They refuse to overwrite an existing file, and print the lint report of the written file.
+
+- **`import <file>`**: converts a task list into a plan draft. A task list has a checkbox progress list whose items start with a package ID (`- [ ] FRC-02: Health probe`, `- [x] ORC-001 Scheduler loop`) and one heading per package at any level (`#### FRC-02: Health probe`). Each unchecked package becomes one milestone, in dependency order, titled `<package ID> <title>`. The package's `**Goal**`, `**Complexity**` (default `medium`), `**Depends**` (package IDs, mapped to milestone IDs; dependencies on checked packages are dropped) and `**Files**` fields, and its Tasks, Acceptance Criteria and Validation lists (as subsections or bold labels), become the milestone's. Checked packages go to `## Out of Scope`, a `## Packages` context section maps milestone IDs to package IDs, and `source` holds the path. A field the source lacks stays empty, so the lint errors name what is left to fill. `tasks <file>` prints the parsed task list
+- **`synthesize`**: a one-milestone plan from `--title`, `--goal` and at least one `--validation <command>` (repeat it for more), with optional `--files <a,b>` (default `.`, the whole repository), `--task`, `--acceptance`, `--complexity` and `--type`
 
 ## Plan-Lint
 
