@@ -252,6 +252,7 @@ describe("cli", () => {
       "phase <name>",
       "review-loop",
       "pr-loop",
+      "workspace",
       "worktree",
       "budget",
       "scope",

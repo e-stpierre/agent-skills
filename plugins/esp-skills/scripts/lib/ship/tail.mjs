@@ -207,6 +207,7 @@ export function baseOutputs(state, dir) {
     pr: state.pr,
     plan_path: state.plan_path,
     worktree: state.worktree,
+    workspace: state.workspace ?? null,
     phases: state.phase_status,
     gate_failures: state.gate_failures,
     stop_before_wait: state.stop_before_wait,

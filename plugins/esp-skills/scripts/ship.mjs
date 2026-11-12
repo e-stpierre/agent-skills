@@ -53,7 +53,7 @@ import {
   cmdResult
 } from "./lib/ship/tail.mjs";
 import { cmdTriage } from "./lib/ship/triage.mjs";
-import { cmdWorktree } from "./lib/ship/workspace.mjs";
+import { cmdWorkspace, cmdWorktree } from "./lib/ship/workspace.mjs";
 import { now } from "./runs.mjs";
 
 export { ShipError };
@@ -78,6 +78,9 @@ Commands:
                        --gates <json>, --reason)
   review-loop          Internal review loop state: review, fix, done, stop or halt
   pr-loop              Pull request rounds after a phase (--after await|fix): await, fix, merge or stop
+  workspace            Branch phase: pick the workspace (checkout, existing-branch, worktree) from
+                       --branch <name>, the current branch, the dirty files and ship.dirty_tree,
+                       and apply it; without a branch name it may return action name-branch
   worktree             Create the task worktree on --branch <name> (from --from, default origin/<base>)
   budget               Elapsed wall time vs the track's max_wall_minutes
   scope                Inline track: changed files since the base vs max_files_changed
@@ -117,6 +120,7 @@ Options:
   --stop-before-wait        init: leave await-review, fix-review and merge to the caller
   --resume                  init: resume the run (see init)
   --worktree                init: work in a task worktree (default: ship.worktree)
+  --branch <name>           workspace: the task branch (checked out, tracked from origin or created)
   --max-rounds <n>          init: pull request fix rounds (default: fix-review.max_rounds)
   --interactive <mode>      init: off, plan or all (default: defaults.interactive)
   --reviewers <names>       init: reviewers to wait for and fix
@@ -207,6 +211,8 @@ export function run(argv, env = process.env) {
     }
     case "pr-loop":
       return { output: cmdPrLoop(options, env) };
+    case "workspace":
+      return { output: cmdWorkspace(options, env) };
     case "worktree":
       return { output: cmdWorktree(options, env) };
     case "budget":
