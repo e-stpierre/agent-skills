@@ -31,7 +31,7 @@ Arguments: $ARGUMENTS
 
 ## Additional Resources
 
-- For the Halt class and the `go.halt_on` stop conditions, see [decision-policy.md](../../../references/decision-policy.md)
+- For the Halt class and the `ship.halt_on` stop conditions, see [decision-policy.md](../../../references/decision-policy.md)
 - For the background wait pattern, see [esp-await-review](../esp-await-review/SKILL.md)
 - For how the script resolves the method and holds the harness merge lock, see [merge-script.md](references/merge-script.md)
 - For the result block and exit codes, see [contract-notes.md](../../../references/contract-notes.md)
@@ -84,7 +84,7 @@ Every `merge-ready.mjs` call takes the `--pr` value as `<pr>` (omitted without i
 | Wait for checks    | `merge-ready.mjs check [<pr>] --wait` (polls every 30 s up to `checks_timeout_minutes`)            |
 | Merge              | `merge-ready.mjs merge [<pr>] [--method <m>] [--dry-run]` (result block)                           |
 | Halt               | `merge-ready.mjs merge [<pr>] --halt "<reason>"` (logs a Halt decision, never merges)              |
-| Gates after rebase | `build.mjs gates --project-dir <repo>` prints the gate commands (configured or detected); run each |
+| Gates after rebase | `ship.mjs milestone gates --project-dir <repo>` prints the gate commands (configured or detected); run each |
 
 Each condition in the report is `pass`, `fail` or `pending`, with a reason. The outcomes:
 
@@ -107,7 +107,7 @@ When the outcome is `behind` or `conflict`, and the pull request is not from a f
 1. The working tree must be clean and on the pull request head branch (`gh pr checkout <pr>` otherwise; in a worktree, work there).
 2. `git fetch origin <base>`, then `git rebase origin/<base>`.
 3. On conflicts: resolve them only when both sides are clear (for example a changelog or a lockfile, or independent edits) and you can explain the result. Otherwise `git rebase --abort`, then `merge-ready.mjs merge --halt "rebase conflict with <base> in <files>"`, and go to the report.
-4. Run every gate command that `build.mjs gates` prints. If a gate fails because of the rebase and you cannot fix it in the rebased commits, halt the same way with the failing gate as the reason.
+4. Run every gate command that `ship.mjs milestone gates` prints. If a gate fails because of the rebase and you cannot fix it in the rebased commits, halt the same way with the failing gate as the reason.
 5. `git push --force-with-lease`, then wait for the checks of the new head (see Waiting for Checks) and check again.
 
 Rebase at most 3 times per invocation: a base that keeps moving ends with the `behind` outcome of the last check. A fork pull request is never rebased: the merge reports `behind` or `conflict`.

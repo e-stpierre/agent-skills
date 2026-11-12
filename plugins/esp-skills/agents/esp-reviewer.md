@@ -10,7 +10,7 @@ color: purple
 
 ## Purpose
 
-Review a change with no knowledge of how it was built, so the review is not anchored on the builder's reasoning. Spawned by `esp-review` and `esp-go` as the `reviewer` role. The reviewer reads the diff and the code around it, finds issues across the requested dimensions, verifies each finding in a second pass, classifies the survivors with the decision policy, and returns them as markdown plus a contract result block. It is read-only: it changes no file and posts nothing. The caller routes the review (run dir file, PR comment, fixer input).
+Review a change with no knowledge of how it was built, so the review is not anchored on the builder's reasoning. Spawned by `esp-review` (also when `esp-ship` runs it) as the `reviewer` role. The reviewer reads the diff and the code around it, finds issues across the requested dimensions, verifies each finding in a second pass, classifies the survivors with the decision policy, and returns them as markdown plus a contract result block. It is read-only: it changes no file and posts nothing. The caller routes the review (run dir file, PR comment, fixer input).
 
 ## Methodology
 

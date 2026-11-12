@@ -7,17 +7,14 @@
   "additionalProperties": false,
   "properties": {
     "$schema": { "type": "string" },
-    "version": {
-      "description": "Configuration format version.",
-      "const": 1
-    },
+    "version": { "description": "Configuration format version.", "const": 1 },
     "defaults": {
       "description": "Settings shared by every skill.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "interactive": {
-          "description": "Read by esp-plan, esp-review, esp-go-light (later also esp-go): when the skill stops to ask the user. off: never, plan: after planning, all: at every decision.",
+          "description": "Read by esp-plan, esp-review and esp-ship: when the skill stops to ask the user. off: never, plan: after planning, all: at every decision.",
           "enum": ["off", "plan", "all"]
         },
         "language": {
@@ -68,7 +65,7 @@
       }
     },
     "worktrees": {
-      "description": "esp-build --parallel: git worktree location (root). esp-merge: worktree removal after the merge (cleanup).",
+      "description": "esp-ship: git worktree location for task and parallel milestone worktrees (root). esp-merge: worktree removal after the merge (cleanup).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -146,11 +143,11 @@
           "type": "boolean"
         },
         "body_from_run": {
-          "description": "esp-go, esp-go-light, and esp-pr with a run directory: build the PR body from run artifacts.",
+          "description": "esp-ship, and esp-pr with a run directory: build the PR body from run artifacts.",
           "type": "boolean"
         },
         "body_sections": {
-          "description": "esp-go, esp-go-light, and esp-pr with a run directory: sections of a PR body built from run artifacts, in order.",
+          "description": "esp-ship, and esp-pr with a run directory: sections of a PR body built from run artifacts, in order.",
           "type": "array",
           "items": {
             "enum": [
@@ -195,27 +192,6 @@
         }
       }
     },
-    "build": {
-      "description": "esp-build: milestone loop, retries, parallelism and gate commands.",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "parallel": { "type": "boolean" },
-        "max_retries_per_milestone": { "type": "integer", "minimum": 0 },
-        "commit_per_milestone": { "type": "boolean" },
-        "gates": {
-          "description": "Gate commands. null auto-detects the command from the project.",
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "test": { "$ref": "#/$defs/gateCommand" },
-            "lint": { "$ref": "#/$defs/gateCommand" },
-            "typecheck": { "$ref": "#/$defs/gateCommand" },
-            "build": { "$ref": "#/$defs/gateCommand" }
-          }
-        }
-      }
-    },
     "review": {
       "description": "esp-review: review dimensions, minimum severity and finding verification.",
       "type": "object",
@@ -240,34 +216,8 @@
         "verify_findings": { "type": "boolean" }
       }
     },
-    "await-review": {
-      "description": "esp-await-review: bot reviewers, trigger comments and waiting.",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "reviewers": {
-          "description": "Reviewers by short name.",
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["login"],
-            "properties": {
-              "login": { "type": "string", "minLength": 1 },
-              "trigger": {
-                "description": "Comment that triggers a review. null when the reviewer runs on its own.",
-                "type": ["string", "null"]
-              }
-            }
-          }
-        },
-        "timeout_minutes": { "type": "integer", "minimum": 1 },
-        "poll_seconds": { "type": "integer", "minimum": 5 },
-        "auto_trigger": { "type": "boolean" }
-      }
-    },
     "fix-review": {
-      "description": "esp-fix-review: review fix rounds, CI fixes, replies and deferrals.",
+      "description": "esp-fix-review: review fix rounds, CI fixes, replies, deferrals, and the wait for the reviews and the checks (wait).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
@@ -277,6 +227,46 @@
         "deferred_items": {
           "description": "follow-up: record a follow-up item, reply and resolve. block: leave open, block the merge.",
           "enum": ["follow-up", "block"]
+        },
+        "wait": {
+          "description": "esp-fix-review --wait and the esp-ship pull request tail: bot reviewers, trigger comments, and waiting for the reviews and the CI checks of the head commit.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reviewers": {
+              "description": "Reviewers by short name.",
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["login"],
+                "properties": {
+                  "login": { "type": "string", "minLength": 1 },
+                  "trigger": {
+                    "description": "Comment that triggers a review. null when the reviewer runs on its own.",
+                    "type": ["string", "null"]
+                  }
+                }
+              }
+            },
+            "default_reviewers": {
+              "description": "Reviewer short names from fix-review.wait.reviewers, used when --reviewers is not given.",
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            },
+            "timeout_minutes": { "type": "integer", "minimum": 1 },
+            "poll_seconds": { "type": "integer", "minimum": 5 },
+            "auto_trigger": {
+              "description": "Post the trigger comment of each reviewer that has one.",
+              "type": "boolean"
+            },
+            "checks_grace_seconds": {
+              "description": "After the head commit, an empty check list counts as pending for this long (checks not registered yet), then as no checks.",
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         }
       }
     },
@@ -303,43 +293,76 @@
         "checks_timeout_minutes": { "type": "integer", "minimum": 1 }
       }
     },
-    "go": {
-      "description": "esp-go: full workflow (phases, internal review rounds, worktree, draft PR, budgets). default_reviewers and halt_on are also read by esp-await-review, esp-fix-review and esp-go-light.",
+    "ship": {
+      "description": "esp-ship: tracks, phases, plan and review modes, the milestone loop, workspace, gates, builder reuse and budgets. halt_on is also read by esp-fix-review.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "phases": {
+          "description": "Phases to run, filtered per track. Absent: every phase of the track. The core phase of the track (implement or build) is required, and the orchestrated track always plans.",
           "type": "array",
           "items": {
             "enum": [
+              "context",
               "plan",
               "branch",
+              "implement",
               "build",
+              "final-gates",
               "review",
               "pr",
-              "await-review",
               "fix-review",
               "merge"
             ]
           },
           "uniqueItems": true
         },
-        "default_reviewers": {
-          "description": "Reviewer short names from await-review.reviewers.",
-          "type": "array",
-          "items": { "type": "string", "minLength": 1 },
-          "uniqueItems": true
+        "plan_mode": {
+          "description": "auto: plan only when the request needs it. skip: no planning model (reuse, import, inline, or a synthesized one-milestone plan). always: generate a plan even for a small prompt.",
+          "enum": ["auto", "skip", "always"]
         },
-        "internal_review_rounds": { "type": "integer", "minimum": 0 },
-        "worktree": { "type": "boolean" },
-        "pr_draft_until_reviewed": { "type": "boolean" },
-        "budgets": {
+        "review_mode": {
+          "description": "auto: decide the internal review from the real diff, keep the pull request review. internal, pr, both: the reviews to run. none: no review (the merge still needs green checks).",
+          "enum": ["auto", "internal", "pr", "both", "none"]
+        },
+        "auto": {
+          "description": "Thresholds of review_mode auto: the internal review is skipped only within both limits.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "max_milestones": { "type": "integer", "minimum": 1 },
-            "max_wall_minutes": { "type": "integer", "minimum": 1 }
+            "review_max_files": { "type": "integer", "minimum": 0 },
+            "review_max_lines": { "type": "integer", "minimum": 0 }
           }
+        },
+        "review": {
+          "description": "Review rules that override review_mode auto.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "always_paths": {
+              "description": "Glob patterns: a changed path that matches one always gets the internal review.",
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            }
+          }
+        },
+        "internal_review_rounds": {
+          "description": "Internal review and fix rounds before the pull request. 0 acts like review_mode pr.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "worktree": {
+          "description": "Work in a task worktree under worktrees.root when --worktree is not given.",
+          "type": "boolean"
+        },
+        "dirty_tree": {
+          "description": "A dirty working tree: worktree runs the task in a task worktree and leaves the changes untouched, fail stops the run.",
+          "enum": ["worktree", "fail"]
+        },
+        "pr_draft_until_reviewed": {
+          "description": "Open the pull request as a draft and mark it ready once its body is in place.",
+          "type": "boolean"
         },
         "halt_on": {
           "type": "array",
@@ -353,36 +376,99 @@
             ]
           },
           "uniqueItems": true
-        }
-      }
-    },
-    "go-light": {
-      "description": "esp-go-light: single-session fast track (phases, escalation limits, budget).",
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "phases": {
-          "type": "array",
-          "items": {
-            "enum": [
-              "context",
-              "branch",
-              "implement",
-              "pr",
-              "await-review",
-              "fix-review",
-              "merge"
-            ]
-          },
-          "uniqueItems": true
         },
-        "max_files_changed": { "type": "integer", "minimum": 1 },
-        "escalate_to_go": { "type": "boolean" },
-        "budgets": {
+        "inline": {
+          "description": "Inline track limits.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "max_wall_minutes": { "type": "integer", "minimum": 1 }
+            "max_files_changed": {
+              "description": "More changed files (estimated or actual) escalates to the orchestrated track.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "escalate": {
+              "description": "false: never escalate. Over the file limit, continue and log it; a second gate failure halts.",
+              "type": "boolean"
+            }
+          }
+        },
+        "budgets": {
+          "description": "Budgets per track, checked at each phase boundary.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "inline": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "max_wall_minutes": { "type": "integer", "minimum": 1 }
+              }
+            },
+            "orchestrated": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "max_wall_minutes": { "type": "integer", "minimum": 1 },
+                "max_milestones": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        },
+        "max_retries_per_milestone": {
+          "description": "Builder retries after a failed verification before the build halts.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "parallel": {
+          "description": "Parallel milestone batches in worktrees. auto: on when the plan has a batch of two or more and worktrees.root is usable.",
+          "enum": ["auto", "on", "off"]
+        },
+        "max_parallel": {
+          "description": "Most milestones built at the same time.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "commit_per_milestone": {
+          "description": "false squashes the milestone commits into one commit when the build ends.",
+          "type": "boolean"
+        },
+        "gates_scope": {
+          "description": "milestone: builders and verifiers run the validation commands of their milestone plus gates.always, and the full gates run once before the push. full: the full gates everywhere.",
+          "enum": ["milestone", "full"]
+        },
+        "gates": {
+          "description": "Gate commands (null auto-detects the command from the project), and the gates that always run in scoped validation (always).",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "test": { "$ref": "#/$defs/gateCommand" },
+            "lint": { "$ref": "#/$defs/gateCommand" },
+            "typecheck": { "$ref": "#/$defs/gateCommand" },
+            "build": { "$ref": "#/$defs/gateCommand" },
+            "always": {
+              "type": "array",
+              "items": { "enum": ["test", "lint", "typecheck", "build"] },
+              "uniqueItems": true
+            }
+          }
+        },
+        "reuse": {
+          "description": "Builder reuse: continue a builder with the next milestone while its estimated context stays within limit_tokens.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "limit_tokens": { "type": "integer", "minimum": 0 },
+            "cost": {
+              "description": "Estimated context tokens of a milestone per complexity.",
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "low": { "type": "integer", "minimum": 0 },
+                "medium": { "type": "integer", "minimum": 0 },
+                "high": { "type": "integer", "minimum": 0 }
+              }
+            }
           }
         }
       }
@@ -424,8 +510,6 @@
       "type": ["string", "null"],
       "minLength": 1
     },
-    "severity": {
-      "enum": ["low", "medium", "high", "critical"]
-    }
+    "severity": { "enum": ["low", "medium", "high", "critical"] }
   }
 }

@@ -8,7 +8,7 @@ argument-hint: "[-k|--risks] [-a|--all] [-s|--since <date>] [-e|--until <date>] 
 
 ## Overview
 
-Tell the user what happened across their runs, what was risky, or why a decision was made, with a source for every statement. The skill reads the run directories that `esp-go`, `esp-go-light`, `esp-build` and a harness leave behind (`run.json`, `summary.md`, `decisions.jsonl`, step results, review findings) under every root in `recap.roots`. It has three modes: recap (the default), risk report (`--risks`), and Q&A when `[context]` is a question. `scripts/recap.mjs` selects the runs and returns compact JSON with the path of each artifact, so the skill reads only what it needs.
+Tell the user what happened across their runs, what was risky, or why a decision was made, with a source for every statement. The skill reads the run directories that `esp-ship` and a harness leave behind (and older `esp-go`, `esp-go-light` and `esp-build` runs) (`run.json`, `summary.md`, `decisions.jsonl`, step results, review findings) under every root in `recap.roots`. It has three modes: recap (the default), risk report (`--risks`), and Q&A when `[context]` is a question. `scripts/recap.mjs` selects the runs and returns compact JSON with the path of each artifact, so the skill reads only what it needs.
 
 ## Arguments
 
@@ -116,7 +116,7 @@ Answer in plain markdown for the user, short and scannable. Lead with the answer
 
 ### o/api
 
-- **Add token refresh** (esp-go, merged, [#42](https://github.com/o/api/pull/42)): refresh is implemented in three commits. High-risk decision D001: tokens rotate on every use (`.../2026-11-08-add-token-refresh/decisions.jsonl:1`)
+- **Add token refresh** (esp-ship, merged, [#42](https://github.com/o/api/pull/42)): refresh is implemented in three commits. High-risk decision D001: tokens rotate on every use (`.../2026-11-08-add-token-refresh/decisions.jsonl:1`)
 
 ### o/web
 

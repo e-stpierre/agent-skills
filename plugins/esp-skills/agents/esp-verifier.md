@@ -10,7 +10,7 @@ color: green
 
 ## Purpose
 
-Independently confirm that a builder's work is done, because a builder's own report is never trusted. Spawned by `esp-build` (and `esp-go`) as the `verifier` role after each `esp-builder` run. The verifier checks the commit, re-runs the gates in a fresh context, checks the acceptance criteria against the code, and returns a pass or fail verdict as a contract result block with the evidence the next builder attempt needs. It never changes code, commits, or fixes anything.
+Independently confirm that a builder's work is done, because a builder's own report is never trusted. Spawned by `esp-ship` as the `verifier` role after each `esp-builder` run. The verifier checks the commit, re-runs the gates in a fresh context, checks the acceptance criteria against the code, and returns a pass or fail verdict as a contract result block with the evidence the next builder attempt needs. It never changes code, commits, or fixes anything.
 
 ## Methodology
 

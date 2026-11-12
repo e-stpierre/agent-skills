@@ -9,7 +9,7 @@ metadata: { af-contract: 1, af-level: steerable }
 
 ## Overview
 
-Explore the codebase and write an implementation plan that `esp-build` and a harness can parse: milestones with IDs, goals, complexity, dependencies, files, tasks, acceptance criteria and validation commands. Use it to plan a feature, bug fix or chore before building it, or with `--amend` to change the remaining milestones of an existing plan without touching completed ones. The plan is written to a run directory, never to the repository, and the skill ends with a contract result block.
+Explore the codebase and write an implementation plan that `esp-ship` and a harness can parse: milestones with IDs, goals, complexity, dependencies, files, tasks, acceptance criteria and validation commands. Use it to plan a feature, bug fix or chore before building it, or with `--amend` to change the remaining milestones of an existing plan without touching completed ones. The plan is written to a run directory, never to the repository, and the skill ends with a contract result block.
 
 ## Arguments
 
@@ -131,7 +131,7 @@ Decisions: 2 logged (type detected as feature; session store reused)
 Open questions: none
 Plan-lint: passed
 
-Next: /esp-skills:esp-build --run-dir <run-dir>
+Next: /esp-skills:esp-ship --run-dir <run-dir>
 {"contract_version":1,"status":"done","summary":"Planned Add OAuth login in 2 milestones.","outputs":{"plan_path":"...","plan_version":1,"plan_type":"feature","milestones":["M1","M2"],"milestones_remaining":["M1","M2"]}}
 ```
 

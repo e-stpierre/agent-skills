@@ -1008,7 +1008,7 @@ export function cmdResult(ctx, options) {
     remaining,
     status: options.status,
     summary: options.summary,
-    haltOn: config.go?.halt_on ?? [],
+    haltOn: config.ship?.halt_on ?? [],
     statePath,
     runDir
   });
@@ -1036,7 +1036,7 @@ Commands:
 Options:
   --run-dir <path>        Run directory: state in <run-dir>/fix-review.json, decisions logged
   --state <file>          State file without a run directory
-  --reviewers <a,b>       Only items from these reviewers (names from await-review.reviewers, or logins)
+  --reviewers <a,b>       Only items from these reviewers (names from fix-review.wait.reviewers, or logins)
   --max-rounds <n>        Round limit (default: fix-review.max_rounds)
   --include-handled       Also return items already handled
   --remaining <n>         result: unhandled items left when the loop stopped
@@ -1134,7 +1134,7 @@ export function buildContext(options, env = process.env, io = {}) {
   const reviewers = options.reviewers
     ? resolveReviewers(
         options.reviewers,
-        config["await-review"]?.reviewers ?? {}
+        config["fix-review"]?.wait?.reviewers ?? {}
       )
     : [];
   return {

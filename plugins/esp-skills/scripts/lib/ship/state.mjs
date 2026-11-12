@@ -179,45 +179,35 @@ export function freezeConfig(dir, { snapshot, projectDir } = {}) {
 }
 
 /**
- * esp-ship settings for a track, from the `ship` config section. Until the
- * section exists in every config, each key falls back to the key it replaces
- * (`go.*`, `go-light.*`, `build.*`), then to its default.
+ * esp-ship settings for a track, from the `ship` config section, each key
+ * falling back to its default.
  */
 export function shipSettings(config, track = "orchestrated") {
   const ship = config?.ship ?? {};
-  const go = config?.go ?? {};
-  const light = config?.["go-light"] ?? {};
-  const build = config?.build ?? {};
   const inline = track === "inline";
-  const budgets = ship.budgets?.[track] ?? {};
-  const oldBudgets = (inline ? light.budgets : go.budgets) ?? {};
-  const configuredGates = ship.gates ?? build.gates ?? {};
   return {
-    phases:
-      ship.phases ?? (inline ? light.phases : go.phases) ?? TRACK_PHASES[track],
-    internal_review_rounds:
-      ship.internal_review_rounds ?? go.internal_review_rounds ?? 2,
-    worktree: ship.worktree ?? go.worktree ?? false,
-    pr_draft_until_reviewed:
-      ship.pr_draft_until_reviewed ?? go.pr_draft_until_reviewed ?? true,
-    halt_on: ship.halt_on ?? go.halt_on ?? HALT_KEYS,
-    max_files_changed:
-      ship.inline?.max_files_changed ?? light.max_files_changed ?? 10,
-    escalate: ship.inline?.escalate ?? light.escalate_to_go ?? true,
+    // await-review is not a configurable phase: the review wait comes with
+    // fix-review.
+    phases: ship.phases
+      ? ship.phases.includes("fix-review")
+        ? [...ship.phases, "await-review"]
+        : ship.phases
+      : TRACK_PHASES[track],
+    internal_review_rounds: ship.internal_review_rounds ?? 2,
+    worktree: ship.worktree ?? false,
+    pr_draft_until_reviewed: ship.pr_draft_until_reviewed ?? true,
+    halt_on: ship.halt_on ?? HALT_KEYS,
+    max_files_changed: ship.inline?.max_files_changed ?? 10,
+    escalate: ship.inline?.escalate ?? true,
     max_wall_minutes:
-      budgets.max_wall_minutes ??
-      oldBudgets.max_wall_minutes ??
-      (inline ? 60 : 240),
-    max_milestones:
-      ship.budgets?.orchestrated?.max_milestones ??
-      go.budgets?.max_milestones ??
-      12,
-    max_retries_per_milestone:
-      ship.max_retries_per_milestone ?? build.max_retries_per_milestone ?? 2,
-    parallel: ship.parallel ?? build.parallel ?? false,
-    commit_per_milestone:
-      ship.commit_per_milestone ?? build.commit_per_milestone ?? true,
-    gates: configuredGates
+      ship.budgets?.[track]?.max_wall_minutes ?? (inline ? 60 : 240),
+    max_milestones: ship.budgets?.orchestrated?.max_milestones ?? 12,
+    max_retries_per_milestone: ship.max_retries_per_milestone ?? 2,
+    // ship.parallel is auto|on|off. Only on builds batches for now: auto stays
+    // sequential until the batch detection decides it.
+    parallel: ship.parallel === "on",
+    commit_per_milestone: ship.commit_per_milestone ?? true,
+    gates: ship.gates ?? {}
   };
 }
 

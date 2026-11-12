@@ -441,11 +441,11 @@ describe("init", () => {
 
   test("reads the config and the flags", () => {
     userConfig({
-      go: { internal_review_rounds: 1, worktree: true },
-      "go-light": {
-        max_files_changed: 3,
-        escalate_to_go: false,
-        phases: ["context", "implement", "pr", "merge"]
+      ship: {
+        internal_review_rounds: 1,
+        worktree: true,
+        inline: { max_files_changed: 3, escalate: false },
+        phases: ["context", "implement", "build", "review", "pr", "merge"]
       },
       "fix-review": { max_rounds: 5 }
     });
@@ -487,7 +487,7 @@ describe("init", () => {
     const snap = join(tmp, "snap.json");
     writeFileSync(
       snap,
-      JSON.stringify({ version: 1, "go-light": { max_files_changed: 2 } })
+      JSON.stringify({ version: 1, ship: { inline: { max_files_changed: 2 } } })
     );
     initInline("--config-snapshot", snap);
     assert.equal(state().config_snapshot, snap);
@@ -675,7 +675,7 @@ describe("next and phase", () => {
   });
 
   test("halts on the wall time budget", () => {
-    userConfig({ go: { budgets: { max_wall_minutes: 1 } } });
+    userConfig({ ship: { budgets: { orchestrated: { max_wall_minutes: 1 } } } });
     init();
     const later = cli(SCRIPT, ["next", "--run-dir", runDir], {
       ESP_RUNS_NOW: "2026-11-08T12:05:00.000Z"
@@ -899,41 +899,39 @@ describe("helpers", () => {
     );
   });
 
-  test("shipSettings reads ship.*, then the keys it replaces, then defaults", () => {
+  test("shipSettings reads ship.*, then defaults", () => {
     assert.equal(shipSettings({}, "inline").max_wall_minutes, 60);
     assert.equal(shipSettings({}).max_wall_minutes, 240);
-    const old = {
-      go: { internal_review_rounds: 1, budgets: { max_wall_minutes: 90 } },
-      "go-light": { max_files_changed: 4, budgets: { max_wall_minutes: 20 } },
-      build: { max_retries_per_milestone: 0, gates: { lint: "x" } }
-    };
-    assert.equal(shipSettings(old).internal_review_rounds, 1);
-    assert.equal(shipSettings(old).max_wall_minutes, 90);
-    assert.equal(shipSettings(old, "inline").max_wall_minutes, 20);
-    assert.equal(shipSettings(old).max_files_changed, 4);
-    assert.equal(shipSettings(old).max_retries_per_milestone, 0);
-    assert.deepEqual(shipSettings(old).gates, { lint: "x" });
-    const ship = {
-      ...old,
+    assert.equal(shipSettings({}).parallel, false);
+    const config = {
       ship: {
         internal_review_rounds: 3,
         inline: { max_files_changed: 6, escalate: false },
         budgets: { inline: { max_wall_minutes: 30 } },
-        max_retries_per_milestone: 1
+        max_retries_per_milestone: 1,
+        parallel: "on",
+        gates: { lint: "x" },
+        phases: ["plan", "build", "pr", "fix-review"]
       }
     };
-    assert.equal(shipSettings(ship).internal_review_rounds, 3);
-    assert.equal(shipSettings(ship).max_files_changed, 6);
-    assert.equal(shipSettings(ship).escalate, false);
-    assert.equal(shipSettings(ship, "inline").max_wall_minutes, 30);
-    assert.equal(shipSettings(ship).max_wall_minutes, 90);
-    assert.equal(shipSettings(ship).max_retries_per_milestone, 1);
+    const settings = shipSettings(config);
+    assert.equal(settings.internal_review_rounds, 3);
+    assert.equal(settings.max_files_changed, 6);
+    assert.equal(settings.escalate, false);
+    assert.equal(shipSettings(config, "inline").max_wall_minutes, 30);
+    assert.equal(settings.max_wall_minutes, 240);
+    assert.equal(settings.max_retries_per_milestone, 1);
+    assert.equal(settings.parallel, true);
+    assert.deepEqual(settings.gates, { lint: "x" });
+    assert.ok(settings.phases.includes("await-review"));
+    assert.equal(shipSettings({ ship: { parallel: "auto" } }).parallel, false);
+    assert.equal(shipSettings({ ship: { parallel: "off" } }).parallel, false);
   });
 });
 
 describe("inline limits", () => {
   test("scope counts tracked and untracked changes", () => {
-    userConfig({ "go-light": { max_files_changed: 2 } });
+    userConfig({ ship: { inline: { max_files_changed: 2 } } });
     initInline();
     writeFileSync(join(repo, "a.txt"), "changed\n");
     writeFileSync(join(repo, "b.txt"), "new\n");
@@ -1631,7 +1629,7 @@ describe("milestone init", () => {
     assert.equal(s.milestones.M1.status, "pending");
     assert.ok(existsSync(s.config_snapshot));
     assert.equal(
-      loadConfig({ snapshot: s.config_snapshot }).config.build
+      loadConfig({ snapshot: s.config_snapshot }).config.ship
         .max_retries_per_milestone,
       2
     );
@@ -1643,7 +1641,7 @@ describe("milestone init", () => {
       snap,
       JSON.stringify({
         version: 1,
-        build: { max_retries_per_milestone: 0, parallel: true }
+        ship: { max_retries_per_milestone: 0, parallel: "on" }
       })
     );
     init("--config-snapshot", snap);
@@ -1659,7 +1657,7 @@ describe("milestone init", () => {
     const snap = join(tmp, "snap.json");
     writeFileSync(
       snap,
-      JSON.stringify({ version: 1, build: { max_retries_per_milestone: 1 } })
+      JSON.stringify({ version: 1, ship: { max_retries_per_milestone: 1 } })
     );
     assert.equal(ship("milestone", "init", "--config-snapshot", snap).code, 0);
     assert.equal(milestones().config_snapshot, snap);
@@ -2081,7 +2079,7 @@ describe("milestone gates", () => {
       ".esp-skills/config.json",
       JSON.stringify({
         version: 1,
-        build: { gates: { lint: "npm run lint:strict" } }
+        ship: { gates: { lint: "npm run lint:strict" } }
       })
     );
     const r = cli(SCRIPT, ["milestone", "gates", "--project-dir", project]);

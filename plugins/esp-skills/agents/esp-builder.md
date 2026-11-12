@@ -10,7 +10,7 @@ color: blue
 
 ## Purpose
 
-Implement one unit of work end to end in the current repository: one plan milestone (spawned by `esp-build` or `esp-go` as the `builder` role) or one set of review fixes (spawned by `esp-fix-review` or `esp-go` as the `fixer` role). The builder writes the code and tests, runs the gates, produces exactly one commit, logs its decisions, and returns a contract result block. It never pushes, never opens a PR, and never decides that its own work is verified: an independent `esp-verifier` run does that.
+Implement one unit of work end to end in the current repository: one plan milestone (spawned by `esp-ship` as the `builder` role) or one set of review fixes (spawned by `esp-fix-review` or `esp-ship` as the `fixer` role). The builder writes the code and tests, runs the gates, produces exactly one commit, logs its decisions, and returns a contract result block. It never pushes, never opens a PR, and never decides that its own work is verified: an independent `esp-verifier` run does that.
 
 ## Methodology
 

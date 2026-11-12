@@ -9,7 +9,7 @@ metadata: { af-contract: 1, af-level: reporting }
 
 ## Overview
 
-Review a set of code changes in a fresh context and report verified, classified findings. The skill resolves the diff (local changes, a branch, a ref range, or a GitHub pull request), hands it to the read-only `esp-reviewer`, which checks it against the configured dimensions (correctness, security, plan conformance, tests, conventions, simplification, performance) in a find pass and a verify pass, and classifies every surviving finding as A, B-Decide or B-Scope with a severity and a fix. A fixer (`esp-fix-review --internal`, `esp-go`) can then act without asking. The skill produces text and a contract result block; the caller decides where the review goes (terminal, PR comment, file, CI log).
+Review a set of code changes in a fresh context and report verified, classified findings. The skill resolves the diff (local changes, a branch, a ref range, or a GitHub pull request), hands it to the read-only `esp-reviewer`, which checks it against the configured dimensions (correctness, security, plan conformance, tests, conventions, simplification, performance) in a find pass and a verify pass, and classifies every surviving finding as A, B-Decide or B-Scope with a severity and a fix. A fixer (`esp-fix-review --internal`, `esp-ship`) can then act without asking. The skill produces text and a contract result block; the caller decides where the review goes (terminal, PR comment, file, CI log).
 
 ## Arguments
 

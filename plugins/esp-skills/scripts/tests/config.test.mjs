@@ -84,6 +84,70 @@ describe("schema and defaults", () => {
       SCHEMA_URL.endsWith("/plugins/esp-skills/references/config.schema.json")
     );
   });
+
+  test("ship and fix-review.wait declare every esp-ship key with its default", () => {
+    const { ship, "fix-review": fixReview } = readJson(DEFAULTS_PATH);
+    assert.equal(ship.plan_mode, "auto");
+    assert.equal(ship.review_mode, "auto");
+    assert.deepEqual(ship.auto, { review_max_files: 3, review_max_lines: 150 });
+    assert.ok(ship.review.always_paths.length > 0);
+    assert.equal(ship.internal_review_rounds, 2);
+    assert.equal(ship.worktree, false);
+    assert.equal(ship.dirty_tree, "worktree");
+    assert.equal(ship.pr_draft_until_reviewed, true);
+    assert.equal(ship.halt_on.length, 5);
+    assert.deepEqual(ship.inline, { max_files_changed: 10, escalate: true });
+    assert.deepEqual(ship.budgets, {
+      inline: { max_wall_minutes: 60 },
+      orchestrated: { max_wall_minutes: 240, max_milestones: 12 }
+    });
+    assert.equal(ship.max_retries_per_milestone, 2);
+    assert.equal(ship.parallel, "auto");
+    assert.equal(ship.max_parallel, 3);
+    assert.equal(ship.commit_per_milestone, true);
+    assert.equal(ship.gates_scope, "milestone");
+    assert.deepEqual(ship.gates.always, []);
+    assert.equal(ship.gates.test, null);
+    assert.deepEqual(ship.reuse, {
+      limit_tokens: 250000,
+      cost: { low: 40000, medium: 70000, high: 120000 }
+    });
+    assert.equal(ship.phases, undefined);
+    assert.deepEqual(fixReview.wait.default_reviewers, ["claude"]);
+    assert.equal(fixReview.wait.reviewers.claude.login, "claude[bot]");
+    assert.equal(fixReview.wait.timeout_minutes, 30);
+    assert.equal(fixReview.wait.poll_seconds, 60);
+    assert.equal(fixReview.wait.auto_trigger, false);
+    assert.equal(fixReview.wait.checks_grace_seconds, 120);
+  });
+
+  test("the replaced sections are gone and await-review is not a ship phase", () => {
+    const schema = readJson(SCHEMA_PATH);
+    for (const key of ["go", "go-light", "build", "await-review"])
+      assert.equal(schema.properties[key], undefined, key);
+    const phases = schema.properties.ship.properties.phases.items.enum;
+    assert.ok(phases.includes("implement") && phases.includes("build"));
+    assert.ok(!phases.includes("await-review"));
+  });
+
+  test("ship enums reject unknown modes", () => {
+    const schema = readJson(SCHEMA_PATH);
+    for (const config of [
+      { ship: { plan_mode: "never" } },
+      { ship: { review_mode: "bots" } },
+      { ship: { parallel: true } },
+      { ship: { dirty_tree: "stash" } },
+      { ship: { gates_scope: "none" } },
+      { ship: { gates: { always: ["format"] } } },
+      { ship: { phases: ["await-review"] } },
+      { go: { worktree: true } }
+    ])
+      assert.notDeepEqual(
+        validate(schema, config).errors,
+        [],
+        JSON.stringify(config)
+      );
+  });
 });
 
 describe("helpers", () => {

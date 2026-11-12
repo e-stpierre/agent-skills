@@ -59,7 +59,7 @@ export function sameLogin(a, b) {
 
 /**
  * Resolve requested reviewer names to `{ name, login, trigger }`. A name found
- * in `await-review.reviewers` uses its login and trigger. Any other value is
+ * in `fix-review.wait.reviewers` uses its login and trigger. Any other value is
  * taken as a raw login with no trigger.
  */
 export function resolveReviewers(names, configured = {}) {
@@ -682,13 +682,13 @@ Waits until every reviewer has reviewed the head commit of a pull request.
 The last stdout line is a contract result block; progress goes to stderr.
 
 Options:
-  --reviewers <a,b>          Reviewer names from await-review.reviewers, or raw logins
-                             (default: go.default_reviewers)
-  --timeout-minutes <n>      Give up after n minutes (default: await-review.timeout_minutes)
-  --poll-seconds <n>         First poll interval (default: await-review.poll_seconds)
+  --reviewers <a,b>          Reviewer names from fix-review.wait.reviewers, or raw logins
+                             (default: fix-review.wait.default_reviewers)
+  --timeout-minutes <n>      Give up after n minutes (default: fix-review.wait.timeout_minutes)
+  --poll-seconds <n>         First poll interval (default: fix-review.wait.poll_seconds)
   --max-poll-seconds <n>     Backoff cap (default: 5 x poll seconds)
   --backoff <factor>         Interval multiplier while nothing changes (default 1.5)
-  --trigger / --no-trigger   Post trigger comments (default: await-review.auto_trigger)
+  --trigger / --no-trigger   Post trigger comments (default: fix-review.wait.auto_trigger)
   --once                     Check once and exit (0 done, 10 still pending)
   --state <file>             Progress file (default: <run-dir>/await-review.json)
   --run-dir <path>           Run directory: state file location and review.received events
@@ -759,7 +759,7 @@ export function resolveOptions(cli, positional, env = process.env) {
       throw new WaitError(err.message, err.exitCode ?? 1);
     throw err;
   }
-  const section = config["await-review"] ?? {};
+  const section = config["fix-review"]?.wait ?? {};
   const runDir = cli["run-dir"] ? resolve(cli["run-dir"]) : null;
   if (runDir && !existsSync(join(runDir, "run.json")))
     throw new WaitError(`Not a run directory (no run.json): ${runDir}`, 2);
@@ -771,7 +771,7 @@ export function resolveOptions(cli, positional, env = process.env) {
     projectDir,
     pr: prArgument(positional.join(" ")),
     reviewers: resolveReviewers(
-      cli.reviewers ?? config.go?.default_reviewers ?? [],
+      cli.reviewers ?? section.default_reviewers ?? [],
       section.reviewers ?? {}
     ),
     timeoutMinutes:

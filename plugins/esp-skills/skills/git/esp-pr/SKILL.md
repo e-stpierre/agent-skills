@@ -16,7 +16,7 @@ Create a pull request with the GitHub CLI, with a title and description sized to
 
 - **`[-w|--draft]`** (optional): Present as `-w` or `--draft`: create the PR as a draft. Defaults to `pr.draft` (`false`).
 - **`[-b|--base <branch>]`** (optional): Read from `-b` or `--base`. Target branch of the PR. Defaults to `pr.base`, or the repository default branch when `pr.base` is `null`.
-- **`[-d|--run-dir <path>]`** (optional): Read from `-d` or `--run-dir`. Run directory of the task (from `esp-go`, `esp-build` or a harness). With `pr.body_from_run`, the body is rendered from its artifacts, and the PR URL is recorded in its `run.json`. Defaults to none.
+- **`[-d|--run-dir <path>]`** (optional): Read from `-d` or `--run-dir`. Run directory of the task (from `esp-ship` or a harness). With `pr.body_from_run`, the body is rendered from its artifacts, and the PR URL is recorded in its `run.json`. Defaults to none.
 
 ### Values
 
