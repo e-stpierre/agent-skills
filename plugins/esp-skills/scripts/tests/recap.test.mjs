@@ -10,8 +10,7 @@ import { keywords, readSummary, resolveRange } from "../recap.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const RECAP = join(HERE, "..", "recap.mjs");
 const RUNS = join(HERE, "..", "runs.mjs");
-const GO = join(HERE, "..", "go.mjs");
-const LIGHT = join(HERE, "..", "go-light.mjs");
+const SHIP = join(HERE, "..", "ship.mjs");
 const NOW = "2026-11-10T12:00:00.000Z";
 
 let tmp;
@@ -477,8 +476,8 @@ describe("sources", () => {
   });
 });
 
-describe("runs written by esp-go-light and esp-go", () => {
-  test("recaps an escalated go-light run that esp-go took over", () => {
+describe("runs written by esp-ship", () => {
+  test("recaps an escalated inline run taken over on the orchestrated track", () => {
     const repo = join(tmp, "repo");
     mkdirSync(repo);
     const git = (...args) => {
@@ -506,23 +505,26 @@ describe("runs written by esp-go-light and esp-go", () => {
       "--title",
       "Add OAuth login",
       "--workflow",
-      "esp-go-light",
+      "esp-ship",
       "--repo",
       "o/api"
     ]);
-    const light = (...args) =>
-      cli(LIGHT, [...args, "--run-dir", dir], { project: repo });
-    const started = light(
+    const ship = (...args) =>
+      cli(SHIP, [...args, "--run-dir", dir], { project: repo });
+    const started = ship(
       "init",
       "--request",
       "Add OAuth login",
       "--base",
-      "main"
+      "main",
+      "--track",
+      "inline",
+      "--caller-owned"
     );
     assert.equal(started.code, 0, started.stderr);
-    light("phase", "branch", "--status", "done", "--branch", "feature/oauth");
+    ship("phase", "branch", "--status", "done", "--branch", "feature/oauth");
     writeFileSync(join(repo, "b.txt"), "work in progress\n");
-    const escalated = light(
+    const escalated = ship(
       "escalate",
       "--trigger",
       "files",
@@ -532,27 +534,24 @@ describe("runs written by esp-go-light and esp-go", () => {
     assert.equal(escalated.code, 30, escalated.stderr);
     runs([
       "result",
-      "go-light",
+      "ship",
       "--run-dir",
       dir,
       "--json",
       escalated.stdout.trim()
     ]);
     runs(["update", "--run-dir", dir, "--status", "halted"]);
-    const init = cli(GO, ["init", "--run-dir", dir], { project: repo });
-    assert.equal(init.code, 0, init.stderr);
-    const stop = cli(
-      GO,
-      ["stop", "--run-dir", dir, "--status", "halted", "--reason", "budget"],
-      { project: repo }
-    );
+    const resumed = ship("init", "--resume");
+    assert.equal(resumed.code, 0, resumed.stderr);
+    assert.equal(resumed.json().track, "orchestrated");
+    const stop = ship("stop", "--status", "halted", "--reason", "budget");
     assert.equal(stop.code === 0 || stop.code > 2, true, stop.stderr);
 
     const data = recap("collect").json();
     assert.equal(data.runs.length, 1);
     const [r] = data.runs;
-    assert.equal(r.run_workflow, "esp-go-light");
-    assert.equal(r.steps[0].step, "01-go-light");
+    assert.equal(r.run_workflow, "esp-ship");
+    assert.equal(r.steps[0].step, "01-ship");
     assert.equal(r.steps[0].status, "escalate");
     assert.ok(r.decisions.count >= 1);
     const shown = recap("show", dir).json();

@@ -1,0 +1,254 @@
+#!/usr/bin/env node
+// esp-skills state and dispatch for esp-ship.
+//
+// esp-ship takes a task from request to merged pull request on one of two
+// tracks: inline (one session, one commit) or orchestrated (a plan, milestone
+// builders and verifiers, an internal review). Both tracks share the same
+// tail: pull request, review wait and fix rounds, body refresh, merge. This
+// script keeps everything deterministic out of the model: the phases of the
+// track and what to run next, the loops, the limits and budgets, the track
+// switch and the caller hand-off, the task worktree, the milestone state, the
+// pull request body built from the run artifacts, and the final result block.
+// State lives in <run-dir>/ship.json and, for the milestones, in
+// <run-dir>/state.json, so an interrupted run resumes.
+//
+// The logic lives in lib/ship/: state, phases, review-loop, tail, inline,
+// milestones, gates, workspace and triage.
+//
+// Exit codes: 0 ok, 1 failure or invalid state, 2 usage. `escalate`, `halt`
+// and `result` exit with the contract code of their result status (0 done or
+// merged, 10 awaiting-human, 20 halted, 30 escalate, 1 failed).
+
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { exitCodeFor } from "./lib/contract.mjs";
+import {
+  cmdEscalate,
+  cmdGateFailure,
+  cmdScope,
+  cmdSwitchTrack
+} from "./lib/ship/inline.mjs";
+import {
+  cmdFinish,
+  cmdMilestoneGates,
+  cmdMilestoneInit,
+  cmdMilestoneNext,
+  cmdModels,
+  cmdStart,
+  readMilestoneState
+} from "./lib/ship/milestones.mjs";
+import {
+  budgetCheck,
+  cmdInit,
+  cmdNext,
+  cmdPhase,
+  cmdStop
+} from "./lib/ship/phases.mjs";
+import { reviewLoop } from "./lib/ship/review-loop.mjs";
+import { readState, runDirOf, ShipError } from "./lib/ship/state.mjs";
+import {
+  cmdHalt,
+  cmdPrBody,
+  cmdPrLoop,
+  cmdResult
+} from "./lib/ship/tail.mjs";
+import { cmdWorktree } from "./lib/ship/workspace.mjs";
+import { now } from "./runs.mjs";
+
+export { ShipError };
+
+const USAGE = `Usage: node ship.mjs <command> [args] --run-dir <path> [options]
+
+Commands:
+  init                 Create ship.json (--request <text> --track inline|orchestrated --base <branch>);
+                       resolves the phases of the track and freezes the config. A second call
+                       prints the state; --resume lifts an awaiting-human stop, or takes over
+                       an escalated caller-owned run on the orchestrated track
+  show                 Print ship.json
+  next                 What to run now: { action, track, phase, sub, skill, role, model, effort, cwd, ... }
+  phase <name>         Record a phase: --status started|done|skipped|failed, and its facts
+                       (--plan <file>, --branch, --base, --base-sha, --commit, --pr, --summary,
+                       --gates <json>, --reason)
+  review-loop          Internal review loop state: review, fix, done, stop or halt
+  pr-loop              Pull request rounds after a phase (--after await|fix): await, fix, merge or stop
+  worktree             Create the task worktree on --branch <name> (from --from, default origin/<base>)
+  budget               Elapsed wall time vs the track's max_wall_minutes
+  scope                Inline track: changed files since the base vs max_files_changed
+                       (--estimate <n> checks a planned file count instead)
+  gate-failure         Inline track: count a gate failure (--reason); the second escalates, or halts
+  switch-track         Owned inline run: move to the orchestrated track in place (--to orchestrated
+                       --trigger files|design|gates --reason <text>); logs the Escalate decision
+  escalate             Caller-owned inline run: hand the task to the caller (--trigger files|design|gates
+                       --reason <text> [--question <text>] [--keep-tree]): saves escalation.patch,
+                       stashes the work, logs the decision, prints the escalate block (exit 30)
+  stop                 Record a stop (--status awaiting-human|failed|halted --reason <text>)
+  halt                 Halt under a halt_on key (--key --reason), log it, print the halted block (exit 20)
+  pr-body              Pull request body from the run artifacts (--summary <text>, --out <file>)
+  result               Final result block (--status, --summary); exits with its contract code
+  milestone <cmd>      Milestone state (state.json) of the orchestrated track:
+    init               Create state.json from the latest plan (or --plan), or sync it with an
+                       amended plan; uses the run's frozen config
+    next               What to run now: { action: run|retry|halt|done|blocked, milestone, batch }
+                       (--milestone <id|next> for one milestone, --parallel for a batch)
+    start <id>         Begin an attempt of a milestone (emits iteration.started)
+    finish <id>        End the attempt: --status done|failed|halted [--commit <sha>] [--reason <text>]
+    models <id>        Builder and verifier { model, effort } (--model <alias> [--effort <level>])
+    gates              Gate commands: configured, else detected from --project-dir
+    show               Print state.json
+
+Options:
+  --run-dir <path>          Run directory (required except by milestone gates)
+  --config-snapshot <path>  Config snapshot (init; later commands use the frozen one)
+  --project-dir <dir>       Repository root (default: recorded at init, else the git root)
+  --track <track>           init: inline or orchestrated (default: orchestrated)
+  --caller-owned            init: the caller owns the run, so an inline escalation ends with exit 30
+  --plan-source <source>    init: reuse, import, generate or synthesize the plan (default: reuse
+                            a plan in the run directory, else generate)
+  --no-pr, --no-merge       init: stop before the pull request, or before the merge
+  --stop-before-wait        init: leave await-review, fix-review and merge to the caller
+  --resume                  init: resume the run (see init)
+  --worktree                init: work in a task worktree (default: ship.worktree)
+  --max-rounds <n>          init: pull request fix rounds (default: fix-review.max_rounds)
+  --interactive <mode>      init: off, plan or all (default: defaults.interactive)
+  --reviewers <names>       init: reviewers to wait for and fix
+  --help                    Show this help`;
+
+const BOOLEAN_FLAGS = new Set([
+  "no-pr",
+  "no-merge",
+  "worktree",
+  "resume",
+  "stop-before-wait",
+  "caller-owned",
+  "keep-tree",
+  "parallel",
+  "help"
+]);
+
+export function parseArgs(argv) {
+  const options = {};
+  const positional = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "-h") options.help = true;
+    else if (arg.startsWith("--")) {
+      const eq = arg.indexOf("=");
+      const key = eq === -1 ? arg.slice(2) : arg.slice(2, eq);
+      if (BOOLEAN_FLAGS.has(key))
+        options[key] = eq === -1 ? true : arg.slice(eq + 1) !== "false";
+      else {
+        const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
+        if (value === undefined)
+          throw new ShipError(`--${key} requires a value`, 2);
+        options[key] = value;
+      }
+    } else positional.push(arg);
+  }
+  return { command: positional[0], args: positional.slice(1), options };
+}
+
+const blockOutput = (block) => ({
+  output: JSON.stringify(block),
+  exitCode: exitCodeFor(block.status)
+});
+
+function runMilestone(sub, args, options, env) {
+  switch (sub) {
+    case "init":
+      return { output: cmdMilestoneInit(options, env) };
+    case "next":
+      return { output: cmdMilestoneNext(options) };
+    case "start":
+      return { output: cmdStart(args[0], options, env) };
+    case "finish":
+      return { output: cmdFinish(args[0], options, env) };
+    case "models":
+      return { output: cmdModels(args[0], options) };
+    case "gates":
+      return { output: cmdMilestoneGates(options) };
+    case "show":
+      return { output: readMilestoneState(runDirOf(options)) };
+    default:
+      throw new ShipError(
+        `Unknown milestone command: ${sub ?? "(missing)"}\n\n${USAGE}`,
+        2
+      );
+  }
+}
+
+export function run(argv, env = process.env) {
+  const { command, args, options } = parseArgs(argv);
+  if (options.help || !command)
+    return { output: USAGE, exitCode: options.help ? 0 : 2 };
+  switch (command) {
+    case "init":
+      return { output: cmdInit(options, env) };
+    case "show":
+      return { output: readState(runDirOf(options)) };
+    case "next":
+      return { output: cmdNext(options, env) };
+    case "phase":
+      return { output: cmdPhase(args[0], options, env) };
+    case "review-loop": {
+      const dir = runDirOf(options);
+      return { output: reviewLoop(dir, readState(dir)) };
+    }
+    case "pr-loop":
+      return { output: cmdPrLoop(options, env) };
+    case "worktree":
+      return { output: cmdWorktree(options, env) };
+    case "budget":
+      return { output: budgetCheck(readState(runDirOf(options)), now(env)) };
+    case "scope":
+      return { output: cmdScope(options) };
+    case "gate-failure":
+      return { output: cmdGateFailure(options, env) };
+    case "switch-track":
+      return { output: cmdSwitchTrack(options, env) };
+    case "escalate":
+      return blockOutput(cmdEscalate(options, env));
+    case "stop":
+      return { output: cmdStop(options, env) };
+    case "halt":
+      return blockOutput(cmdHalt(options, env));
+    case "pr-body":
+      return { output: cmdPrBody(options) };
+    case "result":
+      return blockOutput(cmdResult(options));
+    case "milestone":
+      return runMilestone(args[0], args.slice(1), options, env);
+    default:
+      throw new ShipError(`Unknown command: ${command}\n\n${USAGE}`, 2);
+  }
+}
+
+const KNOWN_ERRORS = new Set([
+  "ShipError",
+  "ConfigError",
+  "RunsError",
+  "LockTimeoutError",
+  "PlanError"
+]);
+
+function main() {
+  try {
+    const { output, exitCode = 0 } = run(process.argv.slice(2));
+    const text =
+      typeof output === "string" ? output : JSON.stringify(output, null, 2);
+    process.stdout.write(text.endsWith("\n") ? text : `${text}\n`);
+    process.exitCode = exitCode;
+  } catch (err) {
+    const known = KNOWN_ERRORS.has(err.name);
+    process.stderr.write(
+      `ship error: ${known ? err.message : (err.stack ?? err)}\n`
+    );
+    process.exitCode = known ? (err.exitCode ?? 1) : 1;
+  }
+}
+
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  main();
+}

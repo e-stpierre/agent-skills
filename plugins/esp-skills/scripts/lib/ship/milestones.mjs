@@ -1,32 +1,34 @@
-#!/usr/bin/env node
-// esp-build milestone state (`<run-dir>/state.json`).
+// Milestone state of the orchestrated track (`<run-dir>/state.json`).
 //
-// Keeps the milestone loop of esp-build deterministic: which milestone runs
-// next, how many attempts it had, which commit it produced, and which model
-// and gates its builder and verifier use. esp-build calls this script between
-// subagent spawns, so no SKILL.md writes state.json by hand.
+// Keeps the milestone loop deterministic: which milestone (or parallel batch)
+// runs next, how many attempts it had, which commit it produced, and which
+// model its builder and verifier use. The esp-ship main session calls
+// `ship.mjs milestone <cmd>` between builder and verifier spawns, so no
+// SKILL.md writes state.json by hand.
 //
 // state.json is not a contract artifact: the contract only reserves its name.
 // Its `milestones.<id>.status` values are read by plan.mjs (`completedFromState`)
 // and by esp-plan --amend, so `done` must keep its meaning.
-//
-// Exit codes: 0 success, 1 invalid state or failed operation, 2 usage error.
 
-import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { expandHome, loadConfig } from "./config.mjs";
-import { withLock } from "./lib/lock.mjs";
-import { readPlan } from "./plan.mjs";
-import { appendEvent, latestPlan, now } from "./runs.mjs";
-
-export class BuildError extends Error {
-  constructor(message, exitCode = 1) {
-    super(message);
-    this.name = "BuildError";
-    this.exitCode = exitCode;
-  }
-}
+import { expandHome } from "../../config.mjs";
+import { withLock } from "../lock.mjs";
+import { readPlan } from "../../plan.mjs";
+import { appendEvent, latestPlan, now } from "../../runs.mjs";
+import { gatesFor } from "./gates.mjs";
+import {
+  configOf,
+  freezeConfig,
+  readJson,
+  runDirOf,
+  SHA,
+  ShipError,
+  shipSettings,
+  statePath as shipStatePath,
+  stringOption,
+  writeJson
+} from "./state.mjs";
 
 export const STATE_FORMAT = 1;
 export const MILESTONE_STATUSES = [
@@ -36,54 +38,23 @@ export const MILESTONE_STATUSES = [
   "done",
   "halted"
 ];
-export const GATE_NAMES = ["test", "lint", "typecheck", "build"];
-const SHA = /^[0-9a-f]{7,64}$/;
 const MODEL_ALIASES = new Set(["opus", "sonnet", "haiku", "fable"]);
-
-// ---------------------------------------------------------------------------
-// Files
-// ---------------------------------------------------------------------------
-
-function readJson(path) {
-  try {
-    return JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, ""));
-  } catch (err) {
-    throw new BuildError(
-      `${path}: ${err.code === "ENOENT" ? "file not found" : `invalid JSON (${err.message})`}`
-    );
-  }
-}
-
-function writeJson(path, data) {
-  const tmp = `${path}.${process.pid}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`, "utf8");
-  renameSync(tmp, path);
-}
-
-function runDirOf(options) {
-  if (!options["run-dir"])
-    throw new BuildError("--run-dir <path> is required", 2);
-  const dir = resolve(expandHome(String(options["run-dir"])));
-  if (!existsSync(join(dir, "run.json")))
-    throw new BuildError(`Not a run directory (no run.json): ${dir}`);
-  return dir;
-}
 
 const statePath = (dir) => join(dir, "state.json");
 
-export function readState(dir) {
+export function readMilestoneState(dir) {
   const path = statePath(dir);
   if (!existsSync(path))
-    throw new BuildError(`No state.json in ${dir}: run "build.mjs init" first`);
+    throw new ShipError(`No state.json in ${dir}: run "ship.mjs milestone init" first`);
   const state = readJson(path);
-  const errors = checkState(state);
+  const errors = checkMilestoneState(state);
   if (errors.length > 0)
-    throw new BuildError(`Invalid ${path}:\n  ${errors.join("\n  ")}`);
+    throw new ShipError(`Invalid ${path}:\n  ${errors.join("\n  ")}`);
   return state;
 }
 
 /** Structural check of a state object; returns a list of error strings. */
-export function checkState(state) {
+export function checkMilestoneState(state) {
   const errors = [];
   if (state?.state_format !== STATE_FORMAT)
     errors.push(`state_format: expected ${STATE_FORMAT}`);
@@ -113,12 +84,12 @@ export function checkState(state) {
 function updateState(dir, fn, env) {
   const path = statePath(dir);
   return withLock(path, () => {
-    const state = readState(dir);
+    const state = readMilestoneState(dir);
     const result = fn(state);
     state.updated_at = now(env).toISOString();
-    const errors = checkState(state);
+    const errors = checkMilestoneState(state);
     if (errors.length > 0)
-      throw new BuildError(
+      throw new ShipError(
         `Refusing to write invalid state:\n  ${errors.join("\n  ")}`
       );
     writeJson(path, state);
@@ -146,43 +117,43 @@ function milestoneEntry(m) {
   };
 }
 
-export function cmdInit(options, env = process.env) {
+export function cmdMilestoneInit(options, env = process.env) {
   const dir = runDirOf(options);
-  const planFile = options.plan
+  const planFile = stringOption(options.plan)
     ? resolve(expandHome(String(options.plan)))
-    : latestPlan(dir).path;
+    : (latestPlan(dir).path ?? shipPlanPath(dir));
   if (!planFile)
-    throw new BuildError(
+    throw new ShipError(
       `No plan in ${dir}: pass --plan <file> or run esp-plan first`
     );
   const { plan, errors } = readPlan(planFile);
   if (errors.length > 0)
-    throw new BuildError(
+    throw new ShipError(
       `Plan does not lint (${planFile}):\n  ${errors.join("\n  ")}`
     );
   if (plan.milestones.length === 0)
-    throw new BuildError(`Plan has no milestones: ${planFile}`);
+    throw new ShipError(`Plan has no milestones: ${planFile}`);
 
   // Freeze the config for deterministic resume: an explicit snapshot wins,
-  // otherwise the merged config is written next to state.json once.
+  // then the one of state.json, then the one of ship.json, else the merged
+  // config is written in the run directory once.
   const path = statePath(dir);
-  const existing = existsSync(path) ? readState(dir) : null;
-  let snapshot = options["config-snapshot"]
-    ? resolve(expandHome(String(options["config-snapshot"])))
-    : existing?.config_snapshot;
-  if (!snapshot) {
-    snapshot = join(dir, "config.snapshot.json");
-    const { config } = loadConfig({ projectDir: options["project-dir"] });
-    writeJson(snapshot, config);
-  }
-  const config = loadConfig({ snapshot }).config;
+  const existing = existsSync(path) ? readMilestoneState(dir) : null;
+  const snapshot = freezeConfig(dir, {
+    snapshot:
+      stringOption(options["config-snapshot"]) ??
+      existing?.config_snapshot ??
+      shipSnapshot(dir),
+    projectDir: stringOption(options["project-dir"]) ?? undefined
+  });
+  const settings = shipSettings(configOf(snapshot));
 
   return withLock(path, () => {
     const at = now(env).toISOString();
-    const current = existsSync(path) ? readState(dir) : null;
+    const current = existsSync(path) ? readMilestoneState(dir) : null;
     const state = current ?? {
       state_format: STATE_FORMAT,
-      workflow: "esp-build",
+      workflow: "esp-ship",
       created_at: at,
       base: options.base ?? null,
       order: [],
@@ -193,7 +164,7 @@ export function cmdInit(options, env = process.env) {
     for (const [id, m] of Object.entries(state.milestones)) {
       if (ids.has(id)) continue;
       if (m.status === "done")
-        throw new BuildError(
+        throw new ShipError(
           `Completed milestone ${id} is missing from ${planFile}`
         );
       delete state.milestones[id];
@@ -220,16 +191,16 @@ export function cmdInit(options, env = process.env) {
       plan_path: planFile,
       plan_version: plan.version,
       config_snapshot: snapshot,
-      max_retries: config.build.max_retries_per_milestone,
-      parallel: config.build.parallel,
-      commit_per_milestone: config.build.commit_per_milestone,
+      max_retries: settings.max_retries_per_milestone,
+      parallel: settings.parallel,
+      commit_per_milestone: settings.commit_per_milestone,
       order: plan.milestones.map((m) => m.id),
       updated_at: at
     });
     if (options.base && !state.base) state.base = options.base;
-    const errs = checkState(state);
+    const errs = checkMilestoneState(state);
     if (errs.length > 0)
-      throw new BuildError(
+      throw new ShipError(
         `Refusing to write invalid state:\n  ${errs.join("\n  ")}`
       );
     writeJson(path, state);
@@ -297,7 +268,7 @@ export function nextStep(state, { parallel = false, only } = {}) {
         ...base,
         action: "halt",
         milestone: current,
-        reason: `gates still failing after ${m.attempts} attempts (build.max_retries_per_milestone: ${state.max_retries})`
+        reason: `gates still failing after ${m.attempts} attempts (max_retries_per_milestone: ${state.max_retries})`
       };
     return {
       ...base,
@@ -316,7 +287,7 @@ export function nextStep(state, { parallel = false, only } = {}) {
       ms[id].depends.every((d) => ms[d]?.status === "done")
   );
   if (only && only !== "next") {
-    if (!ms[only]) throw new BuildError(`Unknown milestone: ${only}`, 2);
+    if (!ms[only]) throw new ShipError(`Unknown milestone: ${only}`, 2);
     if (ms[only].status === "done")
       return {
         ...base,
@@ -369,9 +340,9 @@ export function nextStep(state, { parallel = false, only } = {}) {
   };
 }
 
-export function cmdNext(options) {
+export function cmdMilestoneNext(options) {
   const dir = runDirOf(options);
-  const state = readState(dir);
+  const state = readMilestoneState(dir);
   return nextStep(state, {
     parallel:
       options.parallel === true ||
@@ -385,9 +356,9 @@ export function cmdNext(options) {
 // ---------------------------------------------------------------------------
 
 function milestoneOf(state, id) {
-  if (!id) throw new BuildError("A milestone ID is required", 2);
+  if (!id) throw new ShipError("A milestone ID is required", 2);
   const m = state.milestones[id];
-  if (!m) throw new BuildError(`Unknown milestone: ${id}`, 2);
+  if (!m) throw new ShipError(`Unknown milestone: ${id}`, 2);
   return m;
 }
 
@@ -398,9 +369,9 @@ export function cmdStart(id, options, env = process.env) {
     (state) => {
       const m = milestoneOf(state, id);
       if (m.status === "done" || m.status === "halted")
-        throw new BuildError(`${id} is ${m.status}; it cannot start again`);
+        throw new ShipError(`${id} is ${m.status}; it cannot start again`);
       if (m.attempts >= 1 + state.max_retries)
-        throw new BuildError(`${id} has no attempts left (${m.attempts})`);
+        throw new ShipError(`${id} has no attempts left (${m.attempts})`);
       // An interrupted attempt (status still in-progress) counts as used.
       m.status = "in-progress";
       m.attempts += 1;
@@ -429,11 +400,11 @@ export function cmdFinish(id, options, env = process.env) {
   const dir = runDirOf(options);
   const status = options.status;
   if (!["done", "failed", "halted"].includes(status))
-    throw new BuildError("--status must be done, failed or halted", 2);
+    throw new ShipError("--status must be done, failed or halted", 2);
   const commit =
     options.commit && options.commit !== true ? String(options.commit) : null;
   if (commit && !SHA.test(commit))
-    throw new BuildError(`--commit must be a commit SHA, got ${commit}`, 2);
+    throw new ShipError(`--commit must be a commit SHA, got ${commit}`, 2);
   const entry = updateState(
     dir,
     (state) => {
@@ -441,11 +412,11 @@ export function cmdFinish(id, options, env = process.env) {
       // A failed milestone can be marked halted (retries exhausted) without a new attempt.
       const haltFailed = status === "halted" && m.status === "failed";
       if (m.status !== "in-progress" && !haltFailed)
-        throw new BuildError(
+        throw new ShipError(
           `${id} is ${m.status}, not in-progress: run "start ${id}" first`
         );
       if (status === "done" && !commit && !m.commit)
-        throw new BuildError(
+        throw new ShipError(
           "--commit <sha> is required with --status done",
           2
         );
@@ -516,16 +487,16 @@ export function resolveModels(config, complexity = "medium", flags = {}) {
 
 export function cmdModels(id, options) {
   const dir = runDirOf(options);
-  const state = readState(dir);
+  const state = readMilestoneState(dir);
   const m = milestoneOf(state, id);
   const model =
     options.model && options.model !== true ? String(options.model) : null;
   if (model && !MODEL_ALIASES.has(model))
-    throw new BuildError(
+    throw new ShipError(
       `--model must be one of ${[...MODEL_ALIASES].join(", ")}`,
       2
     );
-  const config = loadConfig({ snapshot: state.config_snapshot }).config;
+  const config = configOf(state.config_snapshot);
   return {
     milestone: id,
     complexity: m.complexity,
@@ -533,212 +504,21 @@ export function cmdModels(id, options) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// gates: configured gate commands, else detected from the project
-// ---------------------------------------------------------------------------
-
-function readText(path) {
-  try {
-    return readFileSync(path, "utf8");
-  } catch {
-    return null;
-  }
+/** The plan and the config snapshot recorded in ship.json, when the run has one. */
+function shipJson(dir) {
+  const path = shipStatePath(dir);
+  return existsSync(path) ? readJson(path) : null;
 }
+const shipPlanPath = (dir) => shipJson(dir)?.plan_path ?? null;
+const shipSnapshot = (dir) => shipJson(dir)?.config_snapshot ?? null;
 
-function packageManager(root) {
-  if (existsSync(join(root, "pnpm-lock.yaml"))) return "pnpm";
-  if (existsSync(join(root, "yarn.lock"))) return "yarn";
-  if (existsSync(join(root, "bun.lockb")) || existsSync(join(root, "bun.lock")))
-    return "bun";
-  return "npm";
-}
-
-/** Detect gate commands from the project files at `root`. */
-export function detectGates(root) {
-  const gates = Object.fromEntries(GATE_NAMES.map((g) => [g, null]));
-  const pkgText = readText(join(root, "package.json"));
-  if (pkgText) {
-    let scripts = {};
-    try {
-      scripts = JSON.parse(pkgText).scripts ?? {};
-    } catch {
-      scripts = {};
-    }
-    const pm = packageManager(root);
-    const runScript = (name) =>
-      pm === "npm"
-        ? name === "test"
-          ? "npm test"
-          : `npm run ${name}`
-        : `${pm} ${name}`;
-    const pick = (...names) =>
-      names.find((n) => typeof scripts[n] === "string");
-    for (const [gate, names] of [
-      ["test", ["test"]],
-      ["lint", ["lint"]],
-      ["typecheck", ["typecheck", "type-check", "tsc"]],
-      ["build", ["build"]]
-    ]) {
-      const name = pick(...names);
-      if (name && !(gate === "test" && /no test specified/.test(scripts[name])))
-        gates[gate] = runScript(name);
-    }
-    return gates;
+export function cmdMilestoneGates(options) {
+  let snapshot = stringOption(options["config-snapshot"]) ?? undefined;
+  if (!snapshot && options["run-dir"]) {
+    const dir = runDirOf(options);
+    snapshot = existsSync(statePath(dir))
+      ? readMilestoneState(dir).config_snapshot
+      : (shipSnapshot(dir) ?? undefined);
   }
-  const pyproject = readText(join(root, "pyproject.toml"));
-  if (pyproject !== null) {
-    if (/\bpytest\b/.test(pyproject) || existsSync(join(root, "tests")))
-      gates.test = "uv run pytest";
-    if (/\[tool\.ruff/.test(pyproject)) gates.lint = "uv run ruff check";
-    if (/\[tool\.mypy/.test(pyproject)) gates.typecheck = "uv run mypy .";
-    return gates;
-  }
-  if (existsSync(join(root, "Cargo.toml")))
-    return {
-      test: "cargo test",
-      lint: "cargo clippy",
-      typecheck: null,
-      build: "cargo build"
-    };
-  if (existsSync(join(root, "go.mod")))
-    return {
-      test: "go test ./...",
-      lint: "go vet ./...",
-      typecheck: null,
-      build: "go build ./..."
-    };
-  const makefile = readText(join(root, "Makefile"));
-  if (makefile) {
-    for (const gate of ["test", "lint", "build"])
-      if (new RegExp(`^${gate}:`, "m").test(makefile))
-        gates[gate] = `make ${gate}`;
-  }
-  return gates;
-}
-
-export function cmdGates(options) {
-  const root = resolve(
-    expandHome(String(options["project-dir"] ?? process.cwd()))
-  );
-  let snapshot = options["config-snapshot"];
-  if (!snapshot && options["run-dir"])
-    snapshot = readState(runDirOf(options)).config_snapshot;
-  const configured = loadConfig({ snapshot, projectDir: root }).config.build
-    .gates;
-  const detected = detectGates(root);
-  const gates = {};
-  const sources = {};
-  for (const g of GATE_NAMES) {
-    if (configured[g]) [gates[g], sources[g]] = [configured[g], "config"];
-    else if (detected[g]) [gates[g], sources[g]] = [detected[g], "detected"];
-    else [gates[g], sources[g]] = [null, "none"];
-  }
-  return { project_dir: root, gates, sources };
-}
-
-// ---------------------------------------------------------------------------
-// CLI
-// ---------------------------------------------------------------------------
-
-const USAGE = `Usage: node build.mjs <command> [args] --run-dir <path> [options]
-
-Commands:
-  init                 Create state.json from the latest plan (or --plan), or sync it with
-                       an amended plan. Freezes the config in config.snapshot.json
-  next                 What to run now: { action: run|retry|halt|done|blocked, milestone, batch }
-  start <id>           Begin an attempt of a milestone (emits iteration.started)
-  finish <id>          End the attempt: --status done|failed|halted [--commit <sha>] [--reason <text>]
-  models <id>          Builder and verifier { model, effort } for a milestone
-  gates                Gate commands: build.gates from config, else detected from the project
-  show                 Print state.json
-
-Options:
-  --run-dir <path>          Run directory (required except by gates)
-  --plan <file>             Plan file for init (default: latest plan in the run dir)
-  --base <sha>              Commit the build started from (init) or the milestone started from (start)
-  --milestone <id|next>     next: consider only this milestone (single-milestone mode)
-  --parallel                next: return a batch of runnable milestones with disjoint files
-  --model <alias>           models: override the builder model (opus, sonnet, haiku, fable)
-  --effort <level>          models: effort for the --model override
-  --config-snapshot <path>  Config snapshot (init, gates)
-  --project-dir <dir>       Project root (init config, gates detection)
-  --help                    Show this help`;
-
-const BOOLEAN_FLAGS = new Set(["parallel", "help"]);
-
-export function parseArgs(argv) {
-  const options = {};
-  const positional = [];
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === "-h") options.help = true;
-    else if (arg.startsWith("--")) {
-      const eq = arg.indexOf("=");
-      const key = eq === -1 ? arg.slice(2) : arg.slice(2, eq);
-      if (BOOLEAN_FLAGS.has(key))
-        options[key] = eq === -1 ? true : arg.slice(eq + 1) !== "false";
-      else {
-        const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
-        if (value === undefined)
-          throw new BuildError(`--${key} requires a value`, 2);
-        options[key] = value;
-      }
-    } else positional.push(arg);
-  }
-  return { command: positional[0], args: positional.slice(1), options };
-}
-
-export function run(argv, env = process.env) {
-  const { command, args, options } = parseArgs(argv);
-  if (options.help || !command)
-    return { output: USAGE, exitCode: command ? 0 : 2 };
-  switch (command) {
-    case "init":
-      return { output: cmdInit(options, env) };
-    case "next":
-      return { output: cmdNext(options) };
-    case "start":
-      return { output: cmdStart(args[0], options, env) };
-    case "finish":
-      return { output: cmdFinish(args[0], options, env) };
-    case "models":
-      return { output: cmdModels(args[0], options) };
-    case "gates":
-      return { output: cmdGates(options) };
-    case "show":
-      return { output: readState(runDirOf(options)) };
-    default:
-      throw new BuildError(`Unknown command: ${command}\n\n${USAGE}`, 2);
-  }
-}
-
-function main() {
-  try {
-    const { output, exitCode = 0 } = run(process.argv.slice(2));
-    const text =
-      typeof output === "string" ? output : JSON.stringify(output, null, 2);
-    (exitCode === 0 || typeof output !== "string"
-      ? process.stdout
-      : process.stderr
-    ).write(`${text}\n`);
-    process.exitCode = exitCode;
-  } catch (err) {
-    const known = [
-      "BuildError",
-      "ConfigError",
-      "RunsError",
-      "PlanError"
-    ].includes(err.name);
-    process.stderr.write(
-      `build error: ${known ? err.message : (err.stack ?? err)}\n`
-    );
-    process.exitCode = known ? (err.exitCode ?? 1) : 1;
-  }
-}
-
-if (
-  process.argv[1] &&
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
-) {
-  main();
+  return gatesFor({ projectDir: options["project-dir"], snapshot });
 }
