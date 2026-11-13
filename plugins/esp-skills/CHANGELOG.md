@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.8.0
+
+- **Migration from 0.7.0**: `esp-go`, `esp-go-light`, `esp-build` and `esp-await-review` are removed, with no aliases. Replace them in your prompts, scripts and workflows:
+  - `/esp-skills:esp-go <task>` -> `/esp-skills:esp-ship <task>` (`--track orchestrated` to always plan and build milestones)
+  - `/esp-skills:esp-go-light <task>` -> `/esp-skills:esp-ship --track inline <task>`
+  - `/esp-skills:esp-build --run-dir <run>` -> `/esp-skills:esp-ship --run-dir <run>` with the plan in the run; `esp-build --milestone next` -> `esp-ship --milestone next --run-dir <run>`
+  - `/esp-skills:esp-await-review` -> `/esp-skills:esp-fix-review --wait` (waits for the reviews and the CI checks, then fixes them); `--trigger` -> `fix-review.wait.auto_trigger`, `--timeout` stays
+  - Resuming an escalated `esp-go-light` run with `esp-go --run-dir <run>` -> `esp-ship --resume --run-dir <run>`
+  - Scripts: `go.mjs`, `go-light.mjs` and `build.mjs <cmd>` -> `ship.mjs` and `ship.mjs milestone <cmd>`; `ship.json` replaces `go.json` and `go-light.json`, and `state.json` keeps its layout. `pr-loop --after await` -> `--after wait`, and the wait step is `fix-review-wait`
+- **Breaking config**: the `go`, `go-light`, `build` and `await-review` sections are removed, and a config file that still holds them fails validation. Move the keys:
+  - `go.phases`, `go-light.phases` -> `ship.phases` (filtered per track; `await-review` is no longer a phase)
+  - `go.internal_review_rounds`, `go.worktree`, `go.pr_draft_until_reviewed`, `go.halt_on` -> `ship.<same key>`
+  - `go.budgets.*` -> `ship.budgets.orchestrated.*`, `go-light.budgets.max_wall_minutes` -> `ship.budgets.inline.max_wall_minutes`
+  - `go-light.max_files_changed` -> `ship.inline.max_files_changed`, `go-light.escalate_to_go` -> `ship.inline.escalate`
+  - `build.max_retries_per_milestone`, `build.commit_per_milestone`, `build.gates` -> `ship.<same key>`; `build.parallel` (`true`/`false`) -> `ship.parallel` (`on`/`off`, default `auto`)
+  - `await-review.*` -> `fix-review.wait.*`, `go.default_reviewers` -> `fix-review.wait.default_reviewers`
+- Added `esp-ship` skill: takes any task (a prompt, an issue, a plan, a task list or a design document) to a merged PR. Triage picks the plan source and the track; the inline track works in one session with one commit, the orchestrated track runs the milestone builders and verifiers from the main session; both share the PR, wait, fix-review and merge tail. An inline task that grows switches to the orchestrated track in place
+- Added `ship.mjs triage`: detects the request kind, imports task lists, reuses plans, logs one decision per choice, and ends a fully checked task list `done` with no branch
+- Added `--plan auto|skip|always` and `--review auto|internal|pr|both|none` (`ship.plan_mode`, `ship.review_mode`), and `ship.mjs review-gate`, which skips the internal review of a small, low-risk diff (`ship.auto.*`, `ship.review.always_paths`)
+- Added `--branch` and the `workspace` command: an existing local or remote branch is reused, and a dirty working tree moves the task to a worktree (`ship.dirty_tree`)
+- Added scoped gates (`ship.gates_scope`, `ship.gates.always`): builders and verifiers run the milestone's validation commands, and a `final-gates` phase runs the full gates once before the review and the push
+- Added parallel milestone batches by default (`ship.parallel: auto`, `ship.max_parallel`), `plan.mjs batches`, and lint warnings for independent milestones that share files
+- Added builder reuse (`ship.mjs milestone reuse` and `milestone agent`, `ship.reuse.*`): a builder continues with a related milestone while its estimated context allows
+- Added run notes (`runs.mjs notes`): builders read and append short facts in `<run-dir>/notes.md`
+- `esp-plan` gains `--import <path>` (task list or design document to plan, no exploration); `plan.mjs` gains `import`, `synthesize` and `tasks`
+- `esp-fix-review` gains `--wait` and `--timeout`: `wait-for-review.mjs --checks` waits for the reviews and the CI checks of the head commit (`fix-review.wait.checks_grace_seconds`), and the CI fixes use the checks the wait reported. `merge-ready.mjs` and `fix-review.mjs` share `lib/checks.mjs`
+- `esp-recap` reports esp-ship runs with their track (`esp-ship, inline`), and still reads `esp-go`, `esp-go-light` and `await-review` runs under their recorded names
+
 ## 0.7.0
 
 - **Migration from 0.6.0**: three skills are renamed. Replace `/esp-skills:esp-sdlc-plan` with `/esp-skills:esp-plan`, `/esp-skills:esp-code-review` with `/esp-skills:esp-review`, and `/esp-skills:esp-fix-pr` with `/esp-skills:esp-fix-review` in your prompts, scripts and workflows. Plans now live in a run directory (`~/.esp-skills/runs/`) instead of `specs/`, reviews use the finding format, and fix commits are `fix(review): ...`; see the **Breaking** entries below

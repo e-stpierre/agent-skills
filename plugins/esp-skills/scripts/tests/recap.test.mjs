@@ -199,6 +199,7 @@ function seed() {
           files_changed: ["src/auth/refresh.ts"]
         }
       ],
+      ["await-review", { status: "done", summary: "1 of 1 reviewers" }],
       [
         "go",
         {
@@ -326,12 +327,17 @@ describe("collect", () => {
     });
     assert.equal(go.critical_findings, 1);
     assert.equal(go.commits, 1);
+    assert.ok(
+      go.steps.some((st) => st.step.endsWith("await-review")),
+      "steps of older runs keep their recorded names"
+    );
     assert.equal(
       light.workflow,
       "esp-go",
       "the summary names the workflow that ended the run"
     );
     assert.equal(light.run_workflow, "esp-go-light");
+    assert.equal(light.track, null, "older runs have no ship.json");
     assert.deepEqual(
       light.steps.map((s) => s.status),
       ["escalate", "halted"]
@@ -408,7 +414,7 @@ describe("show", () => {
     assert.match(data.decisions[0].source, /decisions\.jsonl:1$/);
     assert.deepEqual(
       data.steps.map((s) => s.step),
-      ["01-plan", "02-build", "03-go"]
+      ["01-plan", "02-build", "03-await-review", "04-go"]
     );
     assert.equal(data.commits[0].sha, "abcdef1");
     assert.equal(data.critical_findings[0].id, "F1");
@@ -551,6 +557,10 @@ describe("runs written by esp-ship", () => {
     assert.equal(data.runs.length, 1);
     const [r] = data.runs;
     assert.equal(r.run_workflow, "esp-ship");
+    assert.deepEqual(r.track, {
+      current: "orchestrated",
+      history: ["inline", "orchestrated"]
+    });
     assert.equal(r.steps[0].step, "01-ship");
     assert.equal(r.steps[0].status, "escalate");
     assert.ok(r.decisions.count >= 1);

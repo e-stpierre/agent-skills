@@ -1,6 +1,6 @@
 {
   "name": "esp-skills",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Git workflows, PR maintenance, code review, SDLC planning, builds and end-to-end workflows, run recaps, analysis, helpers, markdown style, and skill authoring skills",
   "author": {
     "name": "Étienne St-Pierre",

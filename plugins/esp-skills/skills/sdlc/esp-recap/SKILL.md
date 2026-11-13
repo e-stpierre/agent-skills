@@ -75,7 +75,7 @@ Exit codes: `0` success, `1` failure (for example an unknown run), `2` usage err
 
 ### Workflow Names
 
-A run's `workflow` in the digests comes from `summary.md` when it exists, and `run_workflow` keeps the `run.json` value. They differ for an `esp-go-light` run that escalated and that `esp-go` took over: `run.json` keeps `esp-go-light`, the steps show a `go-light` step (`escalate`) and a `go` step, and the summary says `esp-go`. Report it as "started as esp-go-light, escalated to esp-go". Child runs of an overseer run (`tasks/<id>/`) carry a `parent`; group them under it.
+A run's `workflow` in the digests comes from `summary.md` when it exists, and `run_workflow` keeps the `run.json` value. An esp-ship run also has a `track` (`{ current, history }` from its `ship.json`): report it with the workflow, as `esp-ship, inline` or `esp-ship, orchestrated`. When `history` holds two tracks, the run started inline and switched to the orchestrated track: report it as `esp-ship, inline then orchestrated`. Runs from before `0.8.0` have no `track` and name `esp-go` or `esp-go-light`, with steps such as `go`, `go-light`, `build-<id>` or `await-review`: report them under their recorded names. For an `esp-go-light` run that escalated and that `esp-go` took over, `run.json` keeps `esp-go-light`, the steps show a `go-light` step (`escalate`) and a `go` step, and the summary says `esp-go`: report it as "started as esp-go-light, escalated to esp-go". Child runs of an overseer run (`tasks/<id>/`) carry a `parent`; group them under it.
 
 ### Fan-Out
 
@@ -104,7 +104,7 @@ When `collect` returns `fan_out: true`, spawn one subagent per entry of `batches
 
 Answer in plain markdown for the user, short and scannable. Lead with the answer, then the details, then the sources.
 
-- **Recap**: a one-line scope (`5 runs, 2026-11-04 to 2026-11-10, roots: ...`), then one bullet per run grouped by repository: title, workflow, status, PR, one line on the outcome, and the decisions or findings worth attention. End with what needs the user: halted, blocked and `awaiting-human` runs, open follow-ups.
+- **Recap**: a one-line scope (`5 runs, 2026-11-04 to 2026-11-10, roots: ...`), then one bullet per run grouped by repository: title, workflow (with the track of an esp-ship run), status, PR, one line on the outcome, and the decisions or findings worth attention. End with what needs the user: halted, blocked and `awaiting-human` runs, open follow-ups.
 - **Risk report**: one section per severity (🔴 critical findings and high-risk decisions, 🟡 medium when asked), each item with the run, what was decided or found, how it was resolved, and the source. Then the stopped runs.
 - **Q&A**: the answer in one to three sentences, then the evidence as a short list, then a `Sources` list.
 - **Sources**: use the paths from the script output, `decisions.jsonl:<line>` for decisions, `summary.md#<section>` for summary sections, short SHAs for commits and the full URL for pull requests.
@@ -116,13 +116,14 @@ Answer in plain markdown for the user, short and scannable. Lead with the answer
 
 ### o/api
 
-- **Add token refresh** (esp-ship, merged, [#42](https://github.com/o/api/pull/42)): refresh is implemented in three commits. High-risk decision D001: tokens rotate on every use (`.../2026-11-08-add-token-refresh/decisions.jsonl:1`)
+- **Add token refresh** (esp-ship, orchestrated, merged, [#42](https://github.com/o/api/pull/42)): refresh is implemented in three commits. High-risk decision D001: tokens rotate on every use (`.../2026-11-08-add-token-refresh/decisions.jsonl:1`)
 
 ### o/web
 
-- **Fix login typo** (started as esp-go-light, escalated to esp-go, halted): stopped on the wall-time budget (`.../2026-11-09-fix-typo/summary.md#Outcome`)
+- **Fix login typo** (esp-ship, inline then orchestrated, halted): stopped on the wall-time budget (`.../2026-11-09-fix-typo/summary.md#Outcome`)
+- **Rename config keys** (esp-go-light, merged): an older run, the keys are renamed in one commit (`.../2026-11-05-rename-keys/summary.md#Outcome`)
 
-**Needs you**: Fix login typo is halted; resume with `/esp-skills:esp-go --run-dir <path>`.
+**Needs you**: Fix login typo is halted; resume with `/esp-skills:esp-ship --resume --run-dir <path>`.
 ```
 
 ```markdown

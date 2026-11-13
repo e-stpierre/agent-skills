@@ -248,6 +248,25 @@ export function selectRuns(options, env = process.env) {
 // Run digests
 // ---------------------------------------------------------------------------
 
+/**
+ * Track of an esp-ship run from its ship.json: the current track and the
+ * tracks it started on (an inline run escalated to orchestrated reports
+ * `{ current: "orchestrated", history: ["inline", "orchestrated"] }`). Null
+ * for runs without ship.json (runs from before 0.8.0, harness
+ * runs), which keep their recorded workflow names.
+ */
+export function readTrack(dir) {
+  const ship = readJson(join(dir, "ship.json"));
+  if (!ship || typeof ship.track !== "string") return null;
+  const history = [];
+  for (const h of ship.track_history ?? []) {
+    if (history.length === 0 && h.from) history.push(h.from);
+    if (h.to) history.push(h.to);
+  }
+  if (history.length === 0) history.push(ship.track);
+  return { current: ship.track, history };
+}
+
 /** Compact view of one run for recap mode: what happened and where to look. */
 export function digestRun(entry) {
   const dir = entry.path;
@@ -264,6 +283,7 @@ export function digestRun(entry) {
     title: fm.title ?? entry.title ?? entry.id,
     workflow: fm.workflow ?? entry.workflow,
     run_workflow: entry.workflow,
+    track: readTrack(dir),
     repo: entry.repo,
     branch: entry.branch,
     pr: fm.pr ?? entry.pr,
@@ -306,6 +326,7 @@ export function showRun(dir) {
   return {
     path: dir,
     run,
+    track: readTrack(dir),
     summary: summary
       ? {
           path: join(dir, "summary.md"),

@@ -72,24 +72,24 @@ Without `--run-dir`, a headless skill that would ask applies the autonomous colu
 
 ## Stop Conditions
 
-`go.halt_on` lists the stop conditions a workflow honors. Each key maps to one condition:
+`ship.halt_on` lists the stop conditions a workflow honors. Each key maps to one condition:
 
-| Key                  | Condition                                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `critical-security`  | 🔴 A critical security or data-loss finding that cannot be fixed with high confidence                        |
-| `gates-exhausted`    | Gates still fail after `build.max_retries_per_milestone` retries                                             |
-| `scope-change`       | Plan ambiguity, or a B-Scope item, that changes scope or a public API and cannot be deferred                 |
-| `destructive-action` | A destructive or irreversible action: shared-data migration, force push to a shared branch, deletion of data |
-| `budget`             | A configured budget is exhausted (milestones, wall time, rounds)                                             |
+| Key                  | Condition                                                                                                           |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `critical-security`  | 🔴 A critical security or data-loss finding that cannot be fixed with high confidence                               |
+| `gates-exhausted`    | Milestone gates still fail after `ship.max_retries_per_milestone` retries, or the final gates after their fix round |
+| `scope-change`       | Plan ambiguity, or a B-Scope item, that changes scope or a public API and cannot be deferred                        |
+| `destructive-action` | A destructive or irreversible action: shared-data migration, force push to a shared branch, deletion of data        |
+| `budget`             | A configured budget is exhausted (milestones, wall time, rounds)                                                    |
 
-When a condition is met and its key is in `go.halt_on`:
+When a condition is met and its key is in `ship.halt_on`:
 
 1. Stop starting new work. Do not merge, and do not push anything the halt is about.
 2. Log a decision with `source: policy`, `risk: high`, and the key in `rationale`.
 3. Write `summary.md` (see `summary-template.md`) when the skill owns the run.
 4. End with `status: halted` (exit 20), or `awaiting-human` with a blocking `needs_input` when a single answer would unblock the task.
 
-A condition whose key is not in `go.halt_on` becomes a B-Scope item: deferred and logged, never applied.
+A condition whose key is not in `ship.halt_on` becomes a B-Scope item: deferred and logged, never applied.
 
 ## Risk
 
