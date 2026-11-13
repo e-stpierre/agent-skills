@@ -60,31 +60,27 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                        | Default                            | Effect                                                |
-| -------------------------- | ---------------------------------- | ----------------------------------------------------- |
-| `plan.default_type`        | `auto`                             | Plan type when `--type` is not given                  |
-| `plan.explore_agents`      | `feature: 3`, `bug: 2`, `chore: 2` | Explore subagents per plan type (`0` explores inline) |
-| `defaults.interactive`     | `off`                              | Interactive mode when `--interactive` is not given    |
-| `defaults.models.explorer` | `sonnet`                           | Model and effort passed to each Explore subagent      |
-| `defaults.language`        | `en-US`                            | Language of the plan prose                            |
+- `plan.default_type` (default `auto`): plan type when `--type` is not given
+- `plan.explore_agents` (default `feature: 3`, `bug: 2`, `chore: 2`): explore subagents per plan type (`0` explores inline)
+- `defaults.interactive` (default `off`): interactive mode when `--interactive` is not given
+- `defaults.models.explorer` (default `sonnet`): model and effort passed to each Explore subagent
+- `defaults.language` (default `en-US`): language of the plan prose
 
 ### Run Directory and Contract
 
-esp-plan is a steerable skill: it writes a result block, reads operator messages, and asks through `needs_input` under a harness. The table abbreviates `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs"` as `runs.mjs` (same for `plan.mjs`). Every `runs.mjs` call except `create` takes `--run-dir <path>`, and every `runs.mjs` call takes `--config-snapshot <path>` when given:
+esp-plan is a steerable skill: it writes a result block, reads operator messages, and asks through `needs_input` under a harness. The list abbreviates `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs"` as `runs.mjs` (same for `plan.mjs`). Every `runs.mjs` call except `create` takes `--run-dir <path>`, and every `runs.mjs` call takes `--config-snapshot <path>` when given:
 
-| Moment                   | Command                                                                                            |
-| ------------------------ | -------------------------------------------------------------------------------------------------- |
-| Own run (no `--run-dir`) | `runs.mjs create <slug> --title <title> --workflow esp-plan --repo <repo-root>` (prints `run_dir`) |
-| Pending messages         | `runs.mjs messages`, then `runs.mjs deliver <id>...` once applied                                  |
-| Latest plan              | `runs.mjs plan` (`{ path, version }`, version 0 when there is none)                                |
-| Lint                     | `plan.mjs lint <plan-file>`                                                                        |
-| Import draft             | `plan.mjs import <path> --run-dir <path> [--type <type>]` writes `plan.md` and prints its lint     |
-| Parallel batches         | `plan.mjs batches <plan-file>` prints `{ waves, max_batch, parallel, summary }`                    |
-| Amendment check          | `plan.mjs diff <previous> <next> --run-dir <path>`                                                 |
-| Amendment log            | `runs.mjs amend --text <amendment> --affects <ids> --from user`                                    |
-| Decision                 | `runs.mjs decision --json '<decision>'` (see the decision policy for fields and `x-esp-class`)     |
-| Result block             | `runs.mjs result <step> --json '<block>'` prints the final output line                             |
-| Own run finished         | `runs.mjs update --status done`, or `halted` or `awaiting-human` to match the result               |
+- **Own run (no `--run-dir`)**: `runs.mjs create <slug> --title <title> --workflow esp-plan --repo <repo-root>` (prints `run_dir`)
+- **Pending messages**: `runs.mjs messages`, then `runs.mjs deliver <id>...` once applied
+- **Latest plan**: `runs.mjs plan` (`{ path, version }`, version 0 when there is none)
+- **Lint**: `plan.mjs lint <plan-file>`
+- **Import draft**: `plan.mjs import <path> --run-dir <path> [--type <type>]` writes `plan.md` and prints its lint
+- **Parallel batches**: `plan.mjs batches <plan-file>` prints `{ waves, max_batch, parallel, summary }`
+- **Amendment check**: `plan.mjs diff <previous> <next> --run-dir <path>`
+- **Amendment log**: `runs.mjs amend --text <amendment> --affects <ids> --from user`
+- **Decision**: `runs.mjs decision --json '<decision>'` (see the decision policy for fields and `x-esp-class`)
+- **Result block**: `runs.mjs result <step> --json '<block>'` prints the final output line
+- **Own run finished**: `runs.mjs update --status done`, or `halted` or `awaiting-human` to match the result
 
 The step name is `plan` for a new plan and `plan-v<N>` for an amendment that writes version N.
 

@@ -110,6 +110,12 @@ Omit both for a skill the user types and Claude also reaches on its own.
 
 Add `context: fork` when a skill should run in isolation without conversation history: its content becomes the subagent's prompt, so reserve it for skills with explicit task instructions.
 
+### Avoid Tables
+
+A skill is read in raw form, where a table is hard to scan and easy to break. Write a list of `**Key**: effect` items, or one sentence per option, so each item keeps every value its row would hold, for example `- **merge.method** (default repo): the merge method`.
+
+Keep a table only when the reader compares several attributes across many rows and a list would repeat the same labels on every item, such as a matrix of check marks. A config key with its default and its effect is still a list, even for ten or more keys.
+
 ## Instructions
 
 1. **Validate the name**: kebab-case, describes the action, and unused: a search for `<skill-name>` across `plugins/*/skills/` finds no existing directory.

@@ -56,9 +56,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get analyze
 
 If the command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                  | Default    | Effect                                                        |
-| -------------------- | ---------- | ------------------------------------------------------------- |
-| `analyze.output_dir` | `analysis` | Directory, relative to the repository root, for saved reports |
+- `analyze.output_dir` (default `analysis`): directory, relative to the repository root, for saved reports
 
 In the instructions below, `{output_dir}` is the resolved `analyze.output_dir`.
 

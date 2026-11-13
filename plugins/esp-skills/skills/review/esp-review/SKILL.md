@@ -59,13 +59,11 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                        | Default                                                      | Effect                                                   |
-| -------------------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
-| `review.dimensions`        | `correctness`, `security`, `conventions`, `plan-conformance` | Dimensions checked when `--focus` names none             |
-| `review.min_severity`      | `medium`                                                     | Findings below it are dropped from the review            |
-| `review.verify_findings`   | `true`                                                       | Run the verify pass; `false` marks the review unverified |
-| `defaults.interactive`     | `off`                                                        | Interactive mode when `--interactive` is not given       |
-| `defaults.models.reviewer` | `opus`, effort `high`                                        | Model and effort passed to the `esp-reviewer` subagent   |
+- `review.dimensions` (default `correctness`, `security`, `conventions`, `plan-conformance`): dimensions checked when `--focus` names none
+- `review.min_severity` (default `medium`): findings below it are dropped from the review
+- `review.verify_findings` (default `true`): run the verify pass; `false` marks the review unverified
+- `defaults.interactive` (default `off`): interactive mode when `--interactive` is not given
+- `defaults.models.reviewer` (default `opus`, effort `high`): model and effort passed to the `esp-reviewer` subagent
 
 The available dimensions are `correctness`, `security`, `plan-conformance`, `tests`, `conventions`, `simplification` and `performance`.
 
@@ -73,15 +71,13 @@ The available dimensions are `correctness`, `security`, `plan-conformance`, `tes
 
 `scripts/review.mjs` resolves the target and parses the review. Every `runs.mjs` call takes `--run-dir <path>` (and `--config-snapshot <path>` when given):
 
-| Moment           | Command                                                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Resolve target   | `review.mjs target [<target>] --project-dir <repo-root> [--run-dir <path>]` (`<target>`: the `--target` value)         |
-| Latest plan      | `runs.mjs plan` (`{ path, version }`, version 0 when there is none)                                                    |
-| Pending messages | `runs.mjs messages`, then `runs.mjs deliver <id>...` once applied                                                      |
-| Reviewer model   | `runs.mjs update --model reviewer=<alias>[:<effort>]`                                                                  |
-| Parse and filter | `review.mjs parse <review_path> --min-severity <level> --verified <bool> --md-out <review_path> --out <findings_path>` |
-| User decision    | `runs.mjs decision --json '<decision>'` with `phase: review` and `source: operator`                                    |
-| Result block     | The same `parse` command plus `--result`, piped into `runs.mjs result <step>` with `--run-dir`                         |
+- **Resolve target**: `review.mjs target [<target>] --project-dir <repo-root> [--run-dir <path>]` (`<target>`: the `--target` value)
+- **Latest plan**: `runs.mjs plan` (`{ path, version }`, version 0 when there is none)
+- **Pending messages**: `runs.mjs messages`, then `runs.mjs deliver <id>...` once applied
+- **Reviewer model**: `runs.mjs update --model reviewer=<alias>[:<effort>]`
+- **Parse and filter**: `review.mjs parse <review_path> --min-severity <level> --verified <bool> --md-out <review_path> --out <findings_path>`
+- **User decision**: `runs.mjs decision --json '<decision>'` with `phase: review` and `source: operator`
+- **Result block**: the same `parse` command plus `--result`, piped into `runs.mjs result <step>` with `--run-dir`
 
 `target` prints `{ kind, base, head, files, untracked, pr, empty, step, diff_path, review_path, findings_path }`. With `--run-dir`, the paths are `<run-dir>/review-<N>.diff`, `.md` and `.json`, where N is the next review round. `parse` exits 1 with the list of malformed findings when the review does not follow the finding format.
 

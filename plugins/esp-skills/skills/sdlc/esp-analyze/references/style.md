@@ -41,23 +41,19 @@ Look for normalization gaps, since the codebase should have one way of doing eac
 
 ### Naming Conventions
 
-| Pattern    | Variations to Detect                                |
-| ---------- | --------------------------------------------------- |
-| Functions  | `getUserData` vs `get_user_data` vs `GetUserData`   |
-| Variables  | `isLoading` vs `loading` vs `is_loading`            |
-| Constants  | `MAX_RETRIES` vs `maxRetries` vs `MaxRetries`       |
-| Components | `UserCard` vs `userCard` vs `User_Card`             |
-| Files      | `UserCard.tsx` vs `user-card.tsx` vs `userCard.tsx` |
+- **Functions**: `getUserData` vs `get_user_data` vs `GetUserData`
+- **Variables**: `isLoading` vs `loading` vs `is_loading`
+- **Constants**: `MAX_RETRIES` vs `maxRetries` vs `MaxRetries`
+- **Components**: `UserCard` vs `userCard` vs `User_Card`
+- **Files**: `UserCard.tsx` vs `user-card.tsx` vs `userCard.tsx`
 
 ### Patterns
 
-| Area           | Variations to Detect                      |
-| -------------- | ----------------------------------------- |
-| Error handling | try/catch vs .catch() vs error boundaries |
-| Async          | async/await vs .then() vs callbacks       |
-| State updates  | setState vs reducer vs signals            |
-| Props          | destructuring vs props.x                  |
-| Exports        | named vs default vs barrel files          |
+- **Error handling**: try/catch vs .catch() vs error boundaries
+- **Async**: async/await vs .then() vs callbacks
+- **State updates**: setState vs reducer vs signals
+- **Props**: destructuring vs props.x
+- **Exports**: named vs default vs barrel files
 
 ## Severity Guidelines
 
