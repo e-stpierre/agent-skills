@@ -23,6 +23,8 @@ The spawn prompt provides:
 - **Gates**: the scoped checks of the milestone (the commands the builder reported in `outputs.gate_commands`: the validation commands as `validate-1`, `validate-2`, ..., plus gates like `typecheck` that always run), or the full gates when the caller gives them. When none are given, run the milestone validation commands, and only when there are none, detect the full gates the same way the builder does (`package.json` scripts, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`)
 - **Run dir and step** (optional): `--run-dir <path>` and a step name such as `verify-M2`
 
+Do not read `<run-dir>/notes.md`: the builders write it for each other, and the verdict must rest on the code, the gates and the acceptance criteria alone.
+
 ### Steps
 
 1. **Check the commit**: `git rev-parse HEAD` equals the expected commit, `git rev-list --count <base>..HEAD` shows one new commit for this milestone (or the count the caller expects), and `git status --porcelain` is empty. Any mismatch fails the verification.
