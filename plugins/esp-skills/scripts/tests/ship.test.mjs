@@ -294,8 +294,7 @@ describe("resolvePhases", () => {
       "pr",
       "review",
       "branch",
-      "fix-review",
-      "await-review"
+      "fix-review"
     ]);
     assert.deepEqual(phases, [
       "plan",
@@ -304,7 +303,6 @@ describe("resolvePhases", () => {
       "final-gates",
       "review",
       "pr",
-      "await-review",
       "fix-review",
       "merge"
     ]);
@@ -344,7 +342,8 @@ describe("resolvePhases", () => {
       stopBeforeWait: true
     });
     assert.equal(stopped.phases.at(-1), "pr");
-    assert.match(stopped.skipped["await-review"], /stop-before-wait/);
+    assert.match(stopped.skipped["fix-review"], /stop-before-wait/);
+    assert.equal(stopped.skipped["await-review"], undefined);
   });
 
   test("inline: canonical order, implement required, wait phases need pr", () => {
@@ -354,15 +353,13 @@ describe("resolvePhases", () => {
       "context",
       "pr",
       "branch",
-      "fix-review",
-      "await-review"
+      "fix-review"
     ]);
     assert.deepEqual(phases, [
       "context",
       "branch",
       "implement",
       "pr",
-      "await-review",
       "fix-review",
       "merge"
     ]);
@@ -387,7 +384,6 @@ describe("resolvePhases", () => {
       "build",
       "review",
       "pr",
-      "await-review",
       "fix-review",
       "merge"
     ];
@@ -424,7 +420,6 @@ describe("init", () => {
       "final-gates",
       "review",
       "pr",
-      "await-review",
       "fix-review",
       "merge"
     ]);
@@ -442,7 +437,6 @@ describe("init", () => {
       "branch",
       "implement",
       "pr",
-      "await-review",
       "fix-review",
       "merge"
     ]);
@@ -606,12 +600,11 @@ describe("next and phase", () => {
     ship("phase", "pr", "--status", "done", "--pr", PR);
     assert.equal(runJson().pr, PR);
     next = ship("next").json();
-    assert.equal(next.phase, "await-review");
-    assert.equal(next.model, null);
-    ship("phase", "await-review", "--status", "done");
-    next = ship("next").json();
     assert.equal(next.phase, "fix-review");
     assert.equal(next.rounds, 1);
+    assert.equal(next.wait_step, "fix-review-wait");
+    assert.equal(next.wait_checks, true);
+    assert.equal(ship("phase", "await-review", "--status", "done").code, 2);
   });
 
   test("inline: runs every phase in the session and records the facts", () => {
@@ -648,7 +641,7 @@ describe("next and phase", () => {
       '{"test":"pass","lint":"skipped"}'
     );
     const pr = ship("phase", "pr", "--status", "done", "--pr", PR);
-    assert.equal(pr.json().next, "await-review");
+    assert.equal(pr.json().next, "fix-review");
     assert.equal(ship("next").json().role, null);
     const s = state();
     assert.equal(s.summary, "Adds hello()");
@@ -769,21 +762,21 @@ describe("loops", () => {
     );
   });
 
-  test("prLoopAction rounds: await, fix, re-await while commits are pushed", () => {
+  test("prLoopAction rounds: wait, fix, wait again while commits are pushed", () => {
     const s = {
       pr_rounds: { max: 2, done: 0, commits: 0 },
       interactive: "off"
     };
-    assert.equal(prLoopAction(s, "await", done()).action, "fix");
-    assert.equal(prLoopAction(s, "await", null).action, "await");
-    const timedOut = prLoopAction(s, "await", {
+    assert.equal(prLoopAction(s, "wait", done()).action, "fix");
+    assert.equal(prLoopAction(s, "wait", null).action, "wait");
+    const timedOut = prLoopAction(s, "wait", {
       status: "awaiting-human",
       summary: "t"
     });
     assert.equal(timedOut.action, "fix");
     assert.equal(timedOut.timed_out, true);
     assert.equal(
-      prLoopAction({ ...s, interactive: "all" }, "await", {
+      prLoopAction({ ...s, interactive: "all" }, "wait", {
         status: "awaiting-human",
         summary: "t"
       }).action,
@@ -794,7 +787,7 @@ describe("loops", () => {
       "fix",
       done({ rounds: 1, commits: ["a"], open: 0 })
     );
-    assert.equal(pushed.action, "await");
+    assert.equal(pushed.action, "wait");
     assert.deepEqual(pushed.update, { done: 1, commits: 1 });
     const quiet = prLoopAction(
       { ...s, pr_rounds: { max: 2, done: 1, commits: 1 } },
@@ -817,6 +810,51 @@ describe("loops", () => {
       ).action,
       "merge"
     );
+  });
+
+  test("prLoopAction passes the failing checks of the wait to the fix round", () => {
+    const s = {
+      pr_rounds: { max: 2, done: 0, commits: 0 },
+      interactive: "off"
+    };
+    const checks = { failing: ["ci"], pending: [], passing: ["lint"] };
+    const fix = prLoopAction(s, "wait", done({ checks }));
+    assert.equal(fix.action, "fix");
+    assert.deepEqual(fix.failing_checks, ["ci"]);
+    assert.equal(prLoopAction(s, "wait", done()).failing_checks, undefined);
+    const timedOut = prLoopAction(s, "wait", {
+      status: "awaiting-human",
+      summary: "t",
+      outputs: { checks }
+    });
+    assert.equal(timedOut.action, "fix");
+    assert.equal(timedOut.timed_out, true);
+    assert.deepEqual(timedOut.failing_checks, ["ci"]);
+  });
+
+  test("pr-loop --after wait: a closed pull request stops, a headless timeout fixes", () => {
+    init();
+    writeStep("fix-review-wait", {
+      status: "failed",
+      summary: "Pull request #7 is closed"
+    });
+    let out = ship("pr-loop", "--after", "wait").json();
+    assert.equal(out.action, "stop");
+    assert.equal(out.status, "failed");
+    assert.equal(state().stop.status, "failed");
+    rmSync(join(runDir, "ship.json"), { force: true });
+    rmSync(join(runDir, "steps"), { recursive: true, force: true });
+    init();
+    writeStep("fix-review-wait", {
+      status: "awaiting-human",
+      summary: "Timed out",
+      outputs: { checks: { failing: [], pending: ["ci"], passing: [] } }
+    });
+    out = ship("pr-loop", "--after", "wait").json();
+    assert.equal(out.action, "fix");
+    assert.equal(out.timed_out, true);
+    assert.equal(state().stop ?? null, null);
+    assert.equal(ship("pr-loop", "--after", "await").code, 2);
   });
 
   test("pr-loop records the rounds and the stop, on both tracks", () => {
@@ -857,7 +895,7 @@ describe("helpers", () => {
       role: "fixer",
       model: "inherit"
     });
-    assert.deepEqual(phaseModel(config, "await-review"), {
+    assert.deepEqual(phaseModel(config, "final-gates"), {
       role: null,
       model: null
     });
@@ -933,7 +971,7 @@ describe("helpers", () => {
     assert.equal(settings.max_retries_per_milestone, 1);
     assert.equal(settings.parallel, true);
     assert.deepEqual(settings.gates, { lint: "x" });
-    assert.ok(settings.phases.includes("await-review"));
+    assert.deepEqual(settings.phases, ["plan", "build", "pr", "fix-review"]);
     assert.equal(shipSettings({ ship: { parallel: "auto" } }).parallel, false);
     assert.equal(shipSettings({ ship: { parallel: "off" } }).parallel, false);
   });
@@ -1323,9 +1361,15 @@ describe("result", () => {
       done({ milestones_done: ["M1", "M2"], milestones_remaining: [] })
     );
     writeStep("review-1", done({ findings: 0 }));
-    writeStep("await-review", {
+    writeStep("fix-review-wait", {
       status: "awaiting-human",
-      summary: "timed out"
+      summary: "timed out",
+      outputs: {
+        reviewers: { codex: "pending" },
+        completed: [],
+        pending: ["codex"],
+        checks: { failing: ["ci"], pending: [], passing: [] }
+      }
     });
     writeStep(
       "fix-review",
@@ -1339,6 +1383,8 @@ describe("result", () => {
     });
     assert.equal(block.outputs.commits.length, 2);
     assert.equal(block.outputs.internal_review.rounds, 1);
+    assert.deepEqual(block.outputs.fix_review_wait.checks.failing, ["ci"]);
+    assert.equal(block.outputs.await_review, undefined);
     writeStep("merge", {
       status: "merged",
       summary: "merged",
@@ -1376,7 +1422,6 @@ describe("result", () => {
     assert.deepEqual(block.gates, { test: "pass" });
     assert.equal(block.outputs.track, "inline");
     assert.deepEqual(block.outputs.deferred_phases, [
-      "await-review",
       "fix-review",
       "merge"
     ]);
@@ -1430,13 +1475,13 @@ describe("result", () => {
   test("passes an awaiting-human step through with its needs_input", () => {
     initInline();
     const needs = {
-      id: "await-review-timeout",
+      id: "fix-review-wait-timeout",
       question: "Keep waiting?",
       options: [{ id: "wait", label: "Wait" }],
       recommended: "wait",
       blocking: true
     };
-    writeStep("await-review", {
+    writeStep("fix-review-wait", {
       status: "awaiting-human",
       summary: "Timed out.",
       needs_input: needs

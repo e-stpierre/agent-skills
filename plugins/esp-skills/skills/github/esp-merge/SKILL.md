@@ -32,7 +32,7 @@ Arguments: $ARGUMENTS
 ## Additional Resources
 
 - For the Halt class and the `ship.halt_on` stop conditions, see [decision-policy.md](../../../references/decision-policy.md)
-- For the background wait pattern, see [esp-await-review](../esp-await-review/SKILL.md)
+- For the background wait pattern, see [esp-fix-review](../esp-fix-review/SKILL.md) (Waiting for Reviews and Checks)
 - For how the script resolves the method and holds the harness merge lock, see [merge-script.md](references/merge-script.md)
 - For the result block and exit codes, see [contract-notes.md](../../../references/contract-notes.md)
 
@@ -114,7 +114,7 @@ Rebase at most 3 times per invocation: a base that keeps moving ends with the `b
 
 ### Waiting for Checks
 
-Run `merge-ready.mjs check [<pr>] --wait` like `esp-await-review` runs its wait: in the background with an exit notification when the runtime has it (end the turn; the next action is reading the exit notification), else in the foreground with the longest shell timeout. It exits when the outcome is no longer `pending`, or with `timed_out: true`. With `merge.use_auto_merge`, skip the wait: `merge` enables auto-merge on pending checks.
+Run `merge-ready.mjs check [<pr>] --wait` like `esp-fix-review` runs its wait: in the background with an exit notification when the runtime has it (end the turn; the next action is reading the exit notification), else in the foreground with the longest shell timeout. It exits when the outcome is no longer `pending`, or with `timed_out: true`. With `merge.use_auto_merge`, skip the wait: `merge` enables auto-merge on pending checks.
 
 ### Interactive Merge
 

@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { validateArtifact } from "../lib/contract.mjs";
 import {
+  checksStatus,
   codexState,
   nextInterval,
   prArgument,
@@ -77,6 +78,9 @@ function fakeClient(steps, { failures = 0 } = {}) {
     },
     comment(number, body) {
       calls.comment.push({ number, body });
+    },
+    checks() {
+      return current().checks ?? [];
     }
   };
 }
@@ -312,7 +316,7 @@ describe("waitForReview", () => {
   test("waits until the reviewer reviews the head, with backoff", async () => {
     const client = fakeClient([{}, {}, {}, { reviews: [codexReview(HEAD)] }]);
     const clock = fakeClock();
-    const statePath = join(dir, "await-review.json");
+    const statePath = join(dir, "fix-review-wait.json");
     const { result } = await waitForReview(baseOptions({ statePath }), {
       client,
       ...clock
@@ -485,7 +489,7 @@ describe("waitForReview", () => {
   });
 
   test("an interrupted wait keeps its clock", async () => {
-    const statePath = join(dir, "await-review.json");
+    const statePath = join(dir, "fix-review-wait.json");
     writeFileSync(
       statePath,
       JSON.stringify({
@@ -518,7 +522,7 @@ describe("waitForReview", () => {
         "--run-dir",
         runDir,
         "--workflow",
-        "esp-await-review"
+        "esp-fix-review"
       ],
       {
         encoding: "utf8"
@@ -527,7 +531,7 @@ describe("waitForReview", () => {
     assert.equal(runs.status, 0, runs.stderr);
     const client = fakeClient([{ reviews: [codexReview(HEAD)] }]);
     await waitForReview(
-      baseOptions({ runDir, statePath: join(runDir, "await-review.json") }),
+      baseOptions({ runDir, statePath: join(runDir, "fix-review-wait.json") }),
       { client, ...fakeClock() }
     );
     const events = readFileSync(join(runDir, "events.jsonl"), "utf8")
@@ -538,6 +542,164 @@ describe("waitForReview", () => {
     assert.equal(received.length, 1);
     assert.equal(received[0].data.reviewer, "codex");
     assert.equal(received[0].data.head, HEAD);
+  });
+});
+
+describe("waiting for checks", () => {
+  const check = (name, bucket) => ({ name, state: bucket, bucket });
+  const reviewed = { reviews: [codexReview(HEAD)] };
+
+  test("checksStatus classifies checks and applies the grace period", () => {
+    const now = new Date("2026-11-08T10:01:00Z");
+    assert.deepEqual(
+      checksStatus([check("ci", "pass"), check("lint", "fail")], {
+        headDate: HEAD_DATE,
+        now,
+        graceSeconds: 120
+      }),
+      { failing: ["lint"], pending: [], passing: ["ci"], registered: true }
+    );
+    const inGrace = checksStatus([], {
+      headDate: HEAD_DATE,
+      now,
+      graceSeconds: 120
+    });
+    assert.equal(inGrace.registered, false);
+    assert.equal(inGrace.pending.length, 1);
+    assert.deepEqual(
+      checksStatus([], { headDate: HEAD_DATE, now, graceSeconds: 30 }).pending,
+      []
+    );
+  });
+
+  test("reviews done and checks pending keeps waiting", async () => {
+    const client = fakeClient([
+      { ...reviewed, checks: [check("ci", "pending")] },
+      { ...reviewed, checks: [check("ci", "pending")] },
+      { ...reviewed, checks: [check("ci", "pass")] }
+    ]);
+    const clock = fakeClock();
+    const { result } = await waitForReview(baseOptions({ checks: true }), {
+      client,
+      ...clock
+    });
+    assert.equal(result.status, "done");
+    assert.equal(client.calls.pr, 3);
+    assert.deepEqual(result.outputs.checks, {
+      failing: [],
+      pending: [],
+      passing: ["ci"]
+    });
+    assert.match(result.summary, /checks passed/);
+  });
+
+  test("checks failing and reviews pending keeps waiting", async () => {
+    const failing = { checks: [check("ci", "fail")] };
+    const client = fakeClient([failing, failing, { ...failing, ...reviewed }]);
+    const { result } = await waitForReview(baseOptions({ checks: true }), {
+      client,
+      ...fakeClock()
+    });
+    assert.equal(client.calls.pr, 3);
+    assert.equal(result.status, "done");
+  });
+
+  test("both done with a failing check is done and reports it", async () => {
+    const client = fakeClient([
+      { ...reviewed, checks: [check("ci", "fail"), check("lint", "pass")] }
+    ]);
+    const { result } = await waitForReview(baseOptions({ checks: true }), {
+      client,
+      ...fakeClock()
+    });
+    assert.equal(result.status, "done");
+    assert.deepEqual(result.outputs.checks.failing, ["ci"]);
+    assert.deepEqual(result.outputs.checks.passing, ["lint"]);
+    assert.match(result.summary, /1 failing \(ci\)/);
+    assert.deepEqual(validateArtifact("result", result).errors, []);
+  });
+
+  test("an empty check list is pending inside the grace period", async () => {
+    // The clock starts 5 minutes after the head commit: a 10 minute grace
+    // keeps the wait open until the timeout.
+    const client = fakeClient([reviewed]);
+    const { result } = await waitForReview(
+      baseOptions({ checks: true, checksGraceSeconds: 600, timeoutMinutes: 3 }),
+      { client, ...fakeClock() }
+    );
+    assert.equal(result.status, "awaiting-human");
+    assert.match(result.summary, /checks/);
+    assert.equal(result.outputs.checks.pending.length, 1);
+  });
+
+  test("an empty check list after the grace period counts as no checks", async () => {
+    const client = fakeClient([reviewed]);
+    const { result } = await waitForReview(
+      baseOptions({ checks: true, checksGraceSeconds: 120 }),
+      { client, ...fakeClock() }
+    );
+    assert.equal(result.status, "done");
+    assert.equal(client.calls.pr, 1);
+    assert.match(result.summary, /no checks/);
+    assert.deepEqual(result.outputs.checks, {
+      failing: [],
+      pending: [],
+      passing: []
+    });
+  });
+
+  test("a timeout with pending checks asks to wait again", async () => {
+    const client = fakeClient([
+      { ...reviewed, checks: [check("ci", "pending")] }
+    ]);
+    const { result } = await waitForReview(
+      baseOptions({ checks: true, timeoutMinutes: 5 }),
+      { client, ...fakeClock() }
+    );
+    assert.equal(result.status, "awaiting-human");
+    assert.equal(result.needs_input.id, "fix-review-wait-timeout");
+    assert.match(result.needs_input.question, /checks \(ci\)/);
+    assert.deepEqual(result.outputs.checks.pending, ["ci"]);
+  });
+
+  test("without --checks the result has no checks output", async () => {
+    const client = fakeClient([
+      { ...reviewed, checks: [check("ci", "pending")] }
+    ]);
+    const { result } = await waitForReview(baseOptions(), {
+      client,
+      ...fakeClock()
+    });
+    assert.equal(result.status, "done");
+    assert.equal(result.outputs.checks, undefined);
+  });
+
+  test("checks only, with no reviewers", async () => {
+    const client = fakeClient([{ checks: [check("ci", "pass")] }]);
+    const { result } = await waitForReview(
+      baseOptions({ checks: true, reviewers: [] }),
+      { client, ...fakeClock() }
+    );
+    assert.equal(result.status, "done");
+    await assert.rejects(
+      waitForReview(baseOptions({ reviewers: [] }), {
+        client,
+        ...fakeClock()
+      }),
+      /No reviewers/
+    );
+  });
+
+  test("a closed pull request with pending checks fails", async () => {
+    const client = fakeClient([
+      { ...reviewed, state: "CLOSED", checks: [check("ci", "pending")] }
+    ]);
+    const { result } = await waitForReview(baseOptions({ checks: true }), {
+      client,
+      ...fakeClock()
+    });
+    assert.equal(result.status, "failed");
+    assert.match(result.summary, /closed and the checks/);
   });
 });
 
@@ -560,6 +722,9 @@ if (args[0] === "pr" && args[1] === "view") {
 } else if (args[0] === "api" && args[2].includes("/reviews")) {
   for (const r of ${JSON.stringify(reviews)}) console.log(JSON.stringify(r));
 } else if (args[0] === "api" && args[2].includes("/comments")) {
+} else if (args[0] === "pr" && args[1] === "checks") {
+  console.log(JSON.stringify([{ name: "ci", state: "FAILURE", bucket: "fail", link: "", workflow: "ci" }]));
+  process.exit(1);
 } else process.exit(3);
 `
     );
@@ -595,6 +760,16 @@ if (args[0] === "pr" && args[1] === "view") {
     assert.equal(JSON.parse(res.stdout.trim()).status, "awaiting-human");
   });
 
+  test("--checks reports the checks of the head", () => {
+    const res = runCli(
+      ["7", "--reviewers", "codex", "--checks", "--once"],
+      [codexReview(HEAD)]
+    );
+    assert.equal(res.status, 0, res.stderr);
+    const result = JSON.parse(res.stdout.trim().split("\n").pop());
+    assert.deepEqual(result.outputs.checks.failing, ["ci"]);
+  });
+
   test("usage errors exit 2", () => {
     const res = runCli(["feature/x", "--once"], []);
     assert.equal(res.status, 2);
@@ -606,6 +781,6 @@ if (args[0] === "pr" && args[1] === "view") {
     const res = runCli(["7", "--once", "--run-dir", join(dir, "missing")], []);
     assert.equal(res.status, 2);
     assert.match(res.stderr, /Not a run directory/);
-    assert.ok(!existsSync(join(dir, "missing", "await-review.json")));
+    assert.ok(!existsSync(join(dir, "missing", "fix-review-wait.json")));
   });
 });

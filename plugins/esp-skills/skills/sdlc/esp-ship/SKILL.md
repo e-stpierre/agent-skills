@@ -10,9 +10,9 @@ metadata: { af-contract: 1, af-level: recappable }
 
 ## Overview
 
-Take any task from request to merged pull request: a one-line fix, a clear chore, a feature prompt, a GitHub issue, or a plan from `esp-plan`. Triage picks the track. The inline track does the work in this session with one commit. The orchestrated track plans the work, then this session spawns one `esp-builder` and one `esp-verifier` per milestone, so each milestone is one verified commit, and runs the internal review. Both tracks share the same tail: open the pull request, wait for the bot reviews, fix them, refresh the body from the run artifacts, and merge under objective conditions. `scripts/ship.mjs` decides what runs next, with which model, and when the task stops. The state lives in `<run-dir>/ship.json` (phases) and `<run-dir>/state.json` (milestones), so an interrupted run resumes where it stopped.
+Take any task from request to merged pull request: a one-line fix, a clear chore, a feature prompt, a GitHub issue, or a plan from `esp-plan`. Triage picks the track. The inline track does the work in this session with one commit. The orchestrated track plans the work, then this session spawns one `esp-builder` and one `esp-verifier` per milestone, so each milestone is one verified commit, and runs the internal review. Both tracks share the same tail: open the pull request, wait for the bot reviews and the CI checks, fix both, refresh the body from the run artifacts, and merge under objective conditions. `scripts/ship.mjs` decides what runs next, with which model, and when the task stops. The state lives in `<run-dir>/ship.json` (phases) and `<run-dir>/state.json` (milestones), so an interrupted run resumes where it stopped.
 
-`preflight -> triage -> [plan] -> branch -> implement (inline) or build (milestones) -> [internal review <-> fix] -> PR -> [wait <-> fix-review] -> refresh body -> merge -> summary`
+`preflight -> triage -> [plan] -> branch -> implement (inline) or build (milestones) -> [internal review <-> fix] -> PR -> [wait (reviews + checks) <-> fix-review] -> refresh body -> merge -> summary`
 
 ## Arguments
 
@@ -62,7 +62,7 @@ Arguments: $ARGUMENTS
 - The inline track makes one implementation commit. The orchestrated track makes one verified commit per milestone. Review fixes are separate `fix(review): ...` commits
 - A builder's report is never trusted: a milestone is done only when an independent `esp-verifier` passes it
 - A halted task stays unmerged. Push only the task branch, force-push only after a rebase of the task branch, and respect branch protection
-- Waiting costs no tokens: the review wait runs as a background script in this session
+- Waiting costs no tokens: the review and checks wait runs as a background script in this session
 - Log each decision this session makes with `runs.mjs decision`, when it is made
 
 ## Skill-Specific Guidelines
@@ -126,7 +126,7 @@ The phase skills read their own sections (`plan`, `review`, `fix-review`, `merge
 - **`build`** (orchestrated track): the milestone loop in this session, see [milestones.md](references/milestones.md)
 - **`final-gates`** (orchestrated track): the full gates once in this session, see [gates.md](references/gates.md)
 - **`review`** with `sub: review` or `sub: review-fix`: see [review.md](references/review.md)
-- **`pr`**, **`await-review`**, **`fix-review`**, **`merge`**: see [pr-tail.md](references/pr-tail.md)
+- **`pr`**, **`fix-review`** (each round starts with the `fix-review-wait` step), **`merge`**: see [pr-tail.md](references/pr-tail.md)
 
 ### Phase Subagents
 

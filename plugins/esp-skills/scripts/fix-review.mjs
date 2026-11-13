@@ -31,6 +31,7 @@ import {
   findRepoRoot,
   loadConfig
 } from "./config.mjs";
+import { checkBucket, fetchChecks } from "./lib/checks.mjs";
 import { exitCodeFor, maxRisk, validateArtifact } from "./lib/contract.mjs";
 import { withLock } from "./lib/lock.mjs";
 import { appendDecision, now } from "./runs.mjs";
@@ -93,7 +94,7 @@ const THREADS_QUERY = `query($owner: String!, $name: String!, $number: Int!, $en
 /** A `gh`-backed client. `ESP_GH_CMD` (a JSON array) replaces `gh`, for tests. */
 export function ghClient({ cwd, env = process.env } = {}) {
   const prefix = env.ESP_GH_CMD ? JSON.parse(env.ESP_GH_CMD) : ["gh"];
-  const gh = (args, { okStatuses = [0] } = {}) => {
+  const call = (args) => {
     const res = spawnSync(prefix[0], [...prefix.slice(1), ...args], {
       cwd,
       encoding: "utf8",
@@ -102,6 +103,10 @@ export function ghClient({ cwd, env = process.env } = {}) {
     });
     if (res.error)
       throw new FixReviewError(`gh could not run: ${res.error.message}`);
+    return res;
+  };
+  const gh = (args, { okStatuses = [0] } = {}) => {
+    const res = call(args);
     if (!okStatuses.includes(res.status))
       throw new FixReviewError(
         `gh ${args.slice(0, 3).join(" ")} failed: ${(res.stderr || res.stdout).trim()}`
@@ -177,20 +182,7 @@ export function ghClient({ cwd, env = process.env } = {}) {
       );
     },
     checks(number) {
-      // gh pr checks exits 8 while checks are pending and 1 when one failed.
-      const out = gh(
-        [
-          "pr",
-          "checks",
-          String(number),
-          "--json",
-          "name,state,bucket,link,workflow"
-        ],
-        {
-          okStatuses: [0, 1, 8]
-        }
-      );
-      return out.trim() === "" ? [] : JSON.parse(out);
+      return fetchChecks(call, number, { ErrorClass: FixReviewError });
     },
     replyInline(repo, number, commentId, body) {
       const out = gh([
@@ -462,7 +454,7 @@ export function summarizeChecks(checks, head, handled = {}) {
   let passing = 0;
   let skipped = 0;
   for (const check of checks) {
-    const bucket = check.bucket ?? String(check.state ?? "").toLowerCase();
+    const bucket = checkBucket(check);
     const entry = {
       id: `check:${check.name}@${sha}`,
       kind: "check",

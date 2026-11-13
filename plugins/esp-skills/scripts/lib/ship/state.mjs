@@ -49,14 +49,18 @@ export const PHASES = [
   "final-gates",
   "review",
   "pr",
-  "await-review",
   "fix-review",
   "merge"
 ];
 /** The shared tail of both tracks. */
-export const TAIL_PHASES = ["pr", "await-review", "fix-review", "merge"];
+export const TAIL_PHASES = ["pr", "fix-review", "merge"];
 /** Tail phases that need an open pull request. */
-export const WAIT_PHASES = ["await-review", "fix-review", "merge"];
+export const WAIT_PHASES = ["fix-review", "merge"];
+/**
+ * The step of the review and checks wait that starts each fix round. It is a
+ * step of the fix-review phase, not a phase of its own.
+ */
+export const WAIT_STEP = "fix-review-wait";
 export const TRACK_PHASES = {
   inline: ["context", "branch", "implement", ...TAIL_PHASES],
   orchestrated: [
@@ -194,13 +198,7 @@ export function shipSettings(config, track = "orchestrated") {
   const ship = config?.ship ?? {};
   const inline = track === "inline";
   return {
-    // await-review is not a configurable phase: the review wait comes with
-    // fix-review.
-    phases: ship.phases
-      ? ship.phases.includes("fix-review")
-        ? [...ship.phases, "await-review"]
-        : ship.phases
-      : TRACK_PHASES[track],
+    phases: ship.phases ?? TRACK_PHASES[track],
     internal_review_rounds: ship.internal_review_rounds ?? 2,
     worktree: ship.worktree ?? false,
     pr_draft_until_reviewed: ship.pr_draft_until_reviewed ?? true,

@@ -1,6 +1,6 @@
 # Pull Request Tail
 
-The phases both tracks share once the work is committed: `pr`, `await-review`, `fix-review` and `merge`. `--no-pr` drops them all, `--no-merge` drops the merge, and `--stop-before-wait` ends the skill once the pull request is open.
+The phases both tracks share once the work is committed: `pr`, `fix-review` and `merge`. Each fix round starts with a wait for the reviews and the CI checks of the head commit, run by this session as step `fix-review-wait` of the `fix-review` phase. `--no-pr` drops the tail, `--no-merge` drops the merge, and `--stop-before-wait` ends the skill once the pull request is open.
 
 ## Pull Request
 
@@ -11,23 +11,22 @@ The phases both tracks share once the work is committed: `pr`, `await-review`, `
 3. `gh pr ready <url>` when `next.mark_ready`.
 4. `phase pr --status done --pr <url>`. With `--stop-before-wait`, go to the result: the caller takes the tail from here.
 
-## Review Wait
+## Review and Checks Wait
 
-The `await-review` phase runs in this session, not in a subagent: the wait script wakes this session when it exits, so the wait costs no tokens.
+`next` returns `phase: fix-review` with `rounds` (the cumulative round number), `wait_step: fix-review-wait` and `wait_checks: true`. The wait runs in this session, not in a subagent: the wait script wakes this session when it exits, so the wait costs no tokens, and no subagent sleeps through it.
 
-1. `phase await-review --status started` (first round only).
-2. Start the wait: `node "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-review.mjs" <pr url> --reviewers <names> --run-dir <run-dir>` (the `--reviewers`, else `fix-review.wait.default_reviewers`; add `--trigger` when `fix-review.wait.auto_trigger` is on). It records the `await-review` step itself. Run it in the background with an exit notification when the runtime has it (with a shell timeout above `fix-review.wait.timeout_minutes`), and end the turn: the next action is reading the exit notification. Without background execution, run it in the foreground with the longest shell timeout. If the shell kills it first, run the same command again: the state file in the run directory keeps the clock, so the total wait still honors the timeout.
-3. On exit, `ship.mjs pr-loop --after await`:
-   - **`fix`**: record `phase await-review --status done` the first time, then run a fix round. With `timed_out: true`, log a B-Decide decision: the comments that arrived are fixed without waiting longer
-   - **`stop`**: the task ends (the stop is recorded)
+1. `phase fix-review --status started` (first round only).
+2. Start the wait: `node "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-review.mjs" <pr url> --checks --reviewers <names> --run-dir <run-dir>` (the `--reviewers`, else leave the option out for `fix-review.wait.default_reviewers`). The script posts trigger comments itself when `fix-review.wait.auto_trigger` is on, keeps its clock in `<run-dir>/fix-review-wait.json`, and is done when every reviewer reviewed the head commit and no check is pending. Run it in the background with an exit notification when the runtime has it (with a shell timeout above `fix-review.wait.timeout_minutes`), and end the turn: the next action is reading the exit notification. Without background execution, run it in the foreground with the longest shell timeout. If the shell kills it first, run the same command again: the state file keeps the clock, so the total wait still honors the timeout.
+3. Record the wait: pipe its output into `runs.mjs result fix-review-wait --run-dir <run-dir>`.
+4. `ship.mjs pr-loop --after wait`:
+   - **`fix`**: run a fix round. `failing_checks` names the checks that failed on the head. With `timed_out: true`, log a B-Decide decision: the comments and checks that arrived are fixed without waiting longer
+   - **`stop`**: the task ends (the stop is recorded), for example on a closed pull request
 
 ## Fix Rounds
 
-`next` returns `phase: fix-review` with `rounds`, the cumulative round number.
-
-1. Spawn the `fixer` phase subagent on `skills/github/esp-fix-review/SKILL.md` with `--rounds <next.rounds> --pr <pr url>` (add `--reviewers <names>` when given). One round per spawn, so the subagent never waits for a re-review itself.
+1. Spawn the `fixer` phase subagent on `skills/github/esp-fix-review/SKILL.md` with `--rounds <next.rounds> --pr <pr url>` (add `--reviewers <names>` when given), without `--wait`: this session already waited. One round per spawn, so the subagent never waits for a re-review itself. It fixes the comments and the failing checks of the head in the same round.
 2. `ship.mjs pr-loop --after fix`:
-   - **`await`**: the round pushed commits and rounds are left. Wait again (Review Wait step 2), then the next fix round
+   - **`wait`**: the round pushed commits and rounds are left. Wait again (Review and Checks Wait, step 2), then run the next fix round
    - **`merge`**: record `phase fix-review --status done`
    - **`stop`**: the task ends, for example with review items left open (`awaiting-human`, the pull request left open)
 3. In `all` mode, show the round recap (fixed, rejected, deferred) and ask whether to continue or stop with the pull request open.

@@ -81,7 +81,7 @@ Commands:
                        [--gates <json>] [--reason <text>]): continue, fix (one fixer round),
                        halt (gates-exhausted) or continue-failing
   review-loop          Internal review loop state: review, fix, done, stop or halt
-  pr-loop              Pull request rounds after a phase (--after await|fix): await, fix, merge or stop
+  pr-loop              Pull request rounds after a step (--after wait|fix): wait, fix, merge or stop
   workspace            Branch phase: pick the workspace (checkout, existing-branch, worktree) from
                        --branch <name>, the current branch, the dirty files and ship.dirty_tree,
                        and apply it; without a branch name it may return action name-branch
@@ -124,7 +124,7 @@ Options:
   --plan-source <source>    init: reuse, import, generate or synthesize the plan (default: reuse
                             a plan in the run directory, else generate)
   --no-pr, --no-merge       init: stop before the pull request, or before the merge
-  --stop-before-wait        init: leave await-review, fix-review and merge to the caller
+  --stop-before-wait        init: leave the review wait, fix-review and merge to the caller
   --resume                  init: resume the run (see init)
   --worktree                init: work in a task worktree (default: ship.worktree)
   --branch <name>           workspace: the task branch (checked out, tracked from origin or created)

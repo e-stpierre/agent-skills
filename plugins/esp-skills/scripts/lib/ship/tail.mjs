@@ -32,7 +32,8 @@ import {
   stepsByRound,
   stringOption,
   updateState,
-  WAIT_PHASES
+  WAIT_PHASES,
+  WAIT_STEP
 } from "./state.mjs";
 
 export const RESULT_STATUSES = [
@@ -56,9 +57,10 @@ export function prOptions(state, config) {
 }
 
 /**
- * Pull request round loop: await-review -> fix-review (one round per call,
- * with --rounds <n>) -> await-review again while the round pushed commits and
- * rounds are left. `--after await|fix` reads that phase's step result.
+ * Pull request round loop: wait (reviews and checks of the head, step
+ * `fix-review-wait`) -> fix-review (one round per call, with --rounds <n>)
+ * -> wait again while the round pushed commits and rounds are left.
+ * `--after wait|fix` reads that step's result.
  */
 export function prLoopAction(
   state,
@@ -69,24 +71,28 @@ export function prLoopAction(
   const { max, done, commits } = state.pr_rounds;
   if (!result)
     return {
-      action: after === "await" ? "await" : "fix",
+      action: after === "wait" ? "wait" : "fix",
       reason: `no ${after} result yet`
     };
-  if (after === "await") {
+  if (after === "wait") {
+    const failing = result.outputs?.checks?.failing ?? [];
+    const checks = failing.length > 0 ? { failing_checks: failing } : {};
     if (result.status === "done")
-      return { action: "fix", round: done + 1, max_rounds: max };
+      return { action: "fix", round: done + 1, max_rounds: max, ...checks };
     if (result.status === "awaiting-human" && interactive === "off")
       return {
         action: "fix",
         round: done + 1,
         max_rounds: max,
+        ...checks,
         timed_out: true,
-        reason: "review wait timed out: fix the comments that arrived"
+        reason:
+          "the wait timed out: fix the comments and the failing checks that arrived"
       };
     return {
       action: "stop",
       status: result.status,
-      reason: `await-review ended ${result.status}`
+      reason: `the review wait ended ${result.status}`
     };
   }
   const o = result.outputs ?? {};
@@ -109,7 +115,7 @@ export function prLoopAction(
       reason: `${o.open} review item(s) open`
     };
   if (pushed && rounds < max && !o.exhausted)
-    return { action: "await", round: rounds + 1, max_rounds: max, update };
+    return { action: "wait", round: rounds + 1, max_rounds: max, update };
   return {
     action: "merge",
     update,
@@ -122,12 +128,12 @@ export function prLoopAction(
 export function cmdPrLoop(options, env = process.env) {
   const dir = runDirOf(options);
   const after = options.after;
-  if (!["await", "fix"].includes(after))
-    throw new ShipError("--after must be await or fix", 2);
+  if (!["wait", "fix"].includes(after))
+    throw new ShipError("--after must be wait or fix", 2);
   const state = readState(dir);
   const result = latestNamed(
     readStepResults(dir),
-    after === "await" ? "await-review" : "fix-review"
+    after === "wait" ? WAIT_STEP : "fix-review"
   );
   const out = prLoopAction(state, after, result);
   if (out.update || out.action === "stop") {
@@ -281,7 +287,7 @@ function orderedSteps(steps) {
     if (fixes.has(n))
       ordered.push({ name: fixes.get(n).name, result: fixes.get(n).result });
   }
-  for (const name of ["await-review", "fix-review", "merge"])
+  for (const name of [WAIT_STEP, "fix-review", "merge"])
     if (named(name)) ordered.push({ name, result: named(name) });
   return { ordered, reviews: reviews.length };
 }
@@ -378,10 +384,11 @@ export function buildResult(
         exhausted: loop.exhausted ?? false
       },
       pr_rounds: state.pr_rounds,
-      await_review: pick(named("await-review")?.outputs, [
+      fix_review_wait: pick(named(WAIT_STEP)?.outputs, [
         "reviewers",
         "completed",
-        "pending"
+        "pending",
+        "checks"
       ]),
       fix_review: pick(named("fix-review")?.outputs, [
         "mode",

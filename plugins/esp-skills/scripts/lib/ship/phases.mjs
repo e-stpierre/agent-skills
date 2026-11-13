@@ -33,6 +33,7 @@ import {
   TRACKS,
   updateState,
   WAIT_PHASES,
+  WAIT_STEP,
   writeNewState
 } from "./state.mjs";
 
@@ -52,7 +53,6 @@ export const PHASE_ROLES = {
   review: "reviewer",
   "review-fix": "fixer",
   pr: "mechanical",
-  "await-review": null,
   "fix-review": "fixer",
   merge: "fixer"
 };
@@ -66,7 +66,6 @@ const SKILLS = {
   review: "esp-review",
   "review-fix": "esp-fix-review",
   pr: "esp-pr",
-  "await-review": "esp-await-review",
   "fix-review": "esp-fix-review",
   merge: "esp-merge"
 };
@@ -468,7 +467,12 @@ export function dispatch(dir, state, at, config) {
       max_fix_rounds: fg.max_fix_rounds
     });
   }
-  if (phase === "fix-review") base.rounds = state.pr_rounds.done + 1;
+  if (phase === "fix-review") {
+    // Each round starts with the review and checks wait, run by this session.
+    base.rounds = state.pr_rounds.done + 1;
+    base.wait_step = WAIT_STEP;
+    base.wait_checks = true;
+  }
   if (phase === "pr") Object.assign(base, prOptions(state, config));
   return base;
 }
