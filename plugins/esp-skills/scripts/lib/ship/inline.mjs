@@ -148,7 +148,10 @@ export function cmdSwitchTrack(options, env = process.env) {
   const state = readState(dir);
   const to = stringOption(options.to) ?? "orchestrated";
   if (to !== "orchestrated")
-    throw new ShipError("--to must be orchestrated (inline -> orchestrated)", 2);
+    throw new ShipError(
+      "--to must be orchestrated (inline -> orchestrated)",
+      2
+    );
   const { trigger, reason } = escalationInput(options);
   assertInline(state, "switch-track");
   if (state.run_owner === "caller")

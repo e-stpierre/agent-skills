@@ -21,15 +21,15 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" batches <run-dir>/plan.md         
 
 ## Frontmatter
 
-| Key           | Required | Value                                                   |
-| ------------- | -------- | ------------------------------------------------------- |
-| `plan_format` | Yes      | `1`                                                     |
-| `title`       | Yes      | Short plan title, also the source of the branch name    |
-| `type`        | Yes      | `feature`, `bug` or `chore`                             |
-| `version`     | Yes      | Plan version, `1` for `plan.md`, `N` for `plan.v<N>.md` |
-| `task`        | No       | The task as the user stated it, in one line             |
+| Key           | Required | Value                                                    |
+| ------------- | -------- | -------------------------------------------------------- |
+| `plan_format` | Yes      | `1`                                                      |
+| `title`       | Yes      | Short plan title, also the source of the branch name     |
+| `type`        | Yes      | `feature`, `bug` or `chore`                              |
+| `version`     | Yes      | Plan version, `1` for `plan.md`, `N` for `plan.v<N>.md`  |
+| `task`        | No       | The task as the user stated it, in one line              |
 | `source`      | No       | Issue URL, document or task list path the task came from |
-| `created`     | No       | Date the version was written (`YYYY-MM-DD`)             |
+| `created`     | No       | Date the version was written (`YYYY-MM-DD`)              |
 
 Values are flat scalars (quote strings that contain `:` or `#`). Other keys are invalid, except `x-` extension keys.
 

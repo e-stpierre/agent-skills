@@ -193,7 +193,15 @@ beforeEach(() => {
   git("init", "-q", "-b", "main");
   writeFileSync(join(repo, "a.txt"), "a\n");
   git("add", "a.txt");
-  git("-c", "user.email=t@example.com", "-c", "user.name=T", "commit", "-qm", "init");
+  git(
+    "-c",
+    "user.email=t@example.com",
+    "-c",
+    "user.name=T",
+    "commit",
+    "-qm",
+    "init"
+  );
   const created = cli(RUNS, [
     "create",
     "triage",
@@ -316,7 +324,10 @@ describe("decide", () => {
         ["track", "policy"]
       ]
     );
-    assert.equal(decide(plan, { track: "orchestrated" }).track_source, "operator");
+    assert.equal(
+      decide(plan, { track: "orchestrated" }).track_source,
+      "operator"
+    );
     assert.throws(() => decide(plan, { track: "inline" }), /orchestrated/);
   });
 
@@ -331,7 +342,10 @@ describe("decide", () => {
     const r = decide(list(true));
     assert.equal(r.nothing_to_do, true);
     assert.equal(r.track, null);
-    assert.deepEqual(r.choices.map((c) => c.key), ["nothing_to_do"]);
+    assert.deepEqual(
+      r.choices.map((c) => c.key),
+      ["nothing_to_do"]
+    );
   });
 
   test("an open task list or a document is imported on the orchestrated track", () => {
@@ -378,11 +392,14 @@ describe("decide", () => {
     );
     assert.throws(() => decide(prompt, { judged: "inline" }), /--estimate/);
     assert.equal(
-      decide({ input_kind: "issue" }, {
-        judged: "orchestrated",
-        estimate: 14,
-        reason: "two modules"
-      }).plan_source,
+      decide(
+        { input_kind: "issue" },
+        {
+          judged: "orchestrated",
+          estimate: 14,
+          reason: "two modules"
+        }
+      ).plan_source,
       "generate"
     );
   });
