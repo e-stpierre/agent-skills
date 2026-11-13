@@ -15,7 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import { expandHome } from "../../config.mjs";
 import { withLock } from "../lock.mjs";
 import { filesOverlap, planBatches, readPlan, wholeRepo } from "../../plan.mjs";
-import { appendEvent, latestPlan, now } from "../../runs.mjs";
+import { appendDecision, appendEvent, latestPlan, now } from "../../runs.mjs";
 import { gatesFor } from "./gates.mjs";
 import {
   configOf,
@@ -584,6 +584,265 @@ export function cmdModels(id, options) {
     complexity: m.complexity,
     ...resolveModels(config, m.complexity, { model, effort: options.effort })
   };
+}
+
+// ---------------------------------------------------------------------------
+// reuse: continue the last builder with the next milestone, or spawn a fresh one
+// ---------------------------------------------------------------------------
+
+export const REUSE_DEFAULTS = {
+  limit_tokens: 250000,
+  cost: { low: 40000, medium: 70000, high: 120000 }
+};
+
+const reuseSettings = (config) => {
+  const reuse = config.ship?.reuse ?? {};
+  return {
+    limit: reuse.limit_tokens ?? REUSE_DEFAULTS.limit_tokens,
+    cost: { ...REUSE_DEFAULTS.cost, ...(reuse.cost ?? {}) }
+  };
+};
+
+const costOf = (cost, complexity) =>
+  cost[complexity] ?? cost.medium ?? REUSE_DEFAULTS.cost.medium;
+
+const modelLabel = (m) => (m.effort ? `${m.model}:${m.effort}` : m.model);
+const sameModel = (a, b) =>
+  a.model === b.model && (a.effort ?? null) === (b.effort ?? null);
+
+/**
+ * Estimated context of a builder: the real usage when an Agent result
+ * reported it, else the sum of the complexity costs of the work it ran.
+ */
+export function builderUsed(builder, cost) {
+  if (Number.isInteger(builder?.tokens)) return builder.tokens;
+  return (builder?.runs ?? []).reduce(
+    (sum, r) => sum + costOf(cost, r.complexity),
+    0
+  );
+}
+
+function builderModel(state, m, options) {
+  const model = stringOption(options.model);
+  if (model && !MODEL_ALIASES.has(model))
+    throw new ShipError(
+      `--model must be one of ${[...MODEL_ALIASES].join(", ")}`,
+      2
+    );
+  const { builder } = resolveModels(
+    configOf(state.config_snapshot),
+    m.complexity,
+    { model, effort: stringOption(options.effort) }
+  );
+  return builder.effort
+    ? { model: builder.model, effort: builder.effort }
+    : { model: builder.model };
+}
+
+/**
+ * Decide whether the last builder continues with milestone `id` (pure).
+ * Reuse only when every rule holds, in this order: not --milestone mode, a
+ * builder ran in the main tree, `id` does not run in a parallel batch, this
+ * session still holds the builder's agent ID, `id` is a retry of that builder
+ * or depends on / shares files with a milestone it ran, the builder model and
+ * effort of `id` equal the builder's, and `used + cost(id) <= limit`.
+ */
+export function reuseDecision({
+  state,
+  id,
+  model,
+  agentId = null,
+  single = false,
+  batch = [],
+  limit = REUSE_DEFAULTS.limit_tokens,
+  cost = REUSE_DEFAULTS.cost
+}) {
+  const ms = state.milestones;
+  const m = ms[id];
+  const builder = state.builder ?? null;
+  const used = builder ? builderUsed(builder, cost) : 0;
+  const next = costOf(cost, m.complexity);
+  const facts = {
+    milestone: id,
+    model,
+    used,
+    cost: next,
+    limit,
+    builder_agent_id: builder?.agent_id ?? null
+  };
+  const fresh = (reason) => ({
+    ...facts,
+    decision: "fresh",
+    agent_id: null,
+    reason
+  });
+  if (single) return fresh("--milestone mode always spawns a fresh builder");
+  if (!builder) return fresh("no builder ran before this milestone");
+  if (builder.worktree)
+    return fresh("the last builder ran in a worktree of a parallel batch");
+  if (batch.length > 1 && batch.includes(id))
+    return fresh(`${id} runs in the parallel batch ${batch.join(" + ")}`);
+  if (!agentId)
+    return fresh(
+      "this session holds no builder agent ID (resumed run or lost ID)"
+    );
+  if (agentId !== builder.agent_id)
+    return fresh(
+      `agent ${agentId} is not the last builder (${builder.agent_id})`
+    );
+  const ran = [...new Set(builder.runs.map((r) => r.milestone))];
+  const last = builder.runs.at(-1)?.milestone;
+  let relevance = null;
+  if (last === id && ["in-progress", "failed"].includes(m.status))
+    relevance = `retry of ${id}`;
+  else {
+    const dep = ran.find((r) => m.depends.includes(r));
+    const shared = ran.find((r) => filesOverlap(ms[r]?.files ?? [], m.files));
+    if (dep) relevance = `${id} depends on ${dep}`;
+    else if (shared) relevance = `${id} shares files with ${shared}`;
+  }
+  if (!relevance)
+    return fresh(
+      `${id} neither depends on nor shares files with ${ran.join(", ")}`
+    );
+  const current = { model: builder.model, effort: builder.effort };
+  if (!sameModel(model, current))
+    return fresh(
+      `model mismatch: ${id} needs ${modelLabel(model)}, the builder runs ${modelLabel(current)}`
+    );
+  if (used + next > limit)
+    return fresh(
+      `context budget: ${used} used + ${next} for ${id} > ${limit} limit_tokens`
+    );
+  return {
+    ...facts,
+    decision: "reuse",
+    agent_id: builder.agent_id,
+    reason: `${relevance}; ${used} used + ${next} <= ${limit}`
+  };
+}
+
+export function cmdReuse(id, options, env = process.env) {
+  const dir = runDirOf(options);
+  const state = readMilestoneState(dir);
+  const m = milestoneOf(state, id);
+  if (m.status === "done" || m.status === "halted")
+    throw new ShipError(`${id} is ${m.status}; nothing to build`, 2);
+  const { limit, cost } = reuseSettings(configOf(state.config_snapshot));
+  const next = nextStep(state, {
+    parallel: options.parallel === true || state.parallel === true
+  });
+  const gate = reuseDecision({
+    state,
+    id,
+    model: builderModel(state, m, options),
+    agentId: stringOption(options["agent-id"]),
+    single: options.single === true,
+    batch: ["run", "retry"].includes(next.action) ? next.batch : [],
+    limit,
+    cost
+  });
+  const decision = appendDecision(
+    dir,
+    {
+      phase: "build",
+      source: "policy",
+      risk: "low",
+      decision:
+        gate.decision === "reuse"
+          ? `Continue the builder with ${id}`
+          : `Spawn a fresh builder for ${id}`,
+      rationale: gate.reason,
+      refs: [id],
+      "x-esp-builder-reuse": {
+        agent_id: gate.agent_id ?? gate.builder_agent_id,
+        model: modelLabel(gate.model),
+        used: gate.used,
+        cost: gate.cost,
+        limit: gate.limit
+      }
+    },
+    env
+  );
+  const result = { ...gate, decision_id: decision.id };
+  updateState(
+    dir,
+    (s) => {
+      s.milestones[id].reuse = {
+        decision: gate.decision,
+        reason: gate.reason,
+        decision_id: decision.id
+      };
+    },
+    env
+  );
+  return result;
+}
+
+/**
+ * Record the builder agent that ran (an attempt of) milestone `id`: the same
+ * agent ID as the last builder continues it, any other starts a new one.
+ * `--tokens` is the usage the Agent result reported, which replaces the
+ * estimate. `--worktree` marks a builder of a parallel batch: it never
+ * continues.
+ */
+export function cmdAgent(id, options, env = process.env) {
+  const dir = runDirOf(options);
+  const agentId = stringOption(options["agent-id"]);
+  if (!agentId) throw new ShipError("--agent-id <id> is required", 2);
+  let tokens = null;
+  if (options.tokens !== undefined) {
+    tokens = Number(options.tokens);
+    if (!Number.isInteger(tokens) || tokens < 0)
+      throw new ShipError("--tokens must be an integer >= 0", 2);
+  }
+  const worktree = options.worktree === true;
+  return updateState(
+    dir,
+    (state) => {
+      const m = milestoneOf(state, id);
+      const model = builderModel(state, m, options);
+      const { cost } = reuseSettings(configOf(state.config_snapshot));
+      const prev = state.builder ?? null;
+      const continued =
+        !worktree && !prev?.worktree && prev?.agent_id === agentId;
+      const builder = continued
+        ? prev
+        : {
+            agent_id: agentId,
+            ...model,
+            worktree,
+            runs: [],
+            tokens: null
+          };
+      builder.runs.push({
+        milestone: id,
+        attempt: m.attempts,
+        complexity: m.complexity
+      });
+      if (tokens !== null) builder.tokens = tokens;
+      state.builder = builder;
+      m.builder = {
+        agent_id: agentId,
+        ...model,
+        attempt: m.attempts,
+        continued,
+        worktree
+      };
+      return {
+        milestone: id,
+        agent_id: agentId,
+        continued,
+        worktree,
+        runs: builder.runs.map((r) => r.milestone),
+        used: builderUsed(builder, cost),
+        tokens_source: Number.isInteger(builder.tokens)
+          ? "reported"
+          : "estimate"
+      };
+    },
+    env
+  );
 }
 
 /** The plan and the config snapshot recorded in ship.json, when the run has one. */

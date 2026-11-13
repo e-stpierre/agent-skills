@@ -34,6 +34,8 @@ The first level that gives a value wins:
 
 Effort follows the same order, but only a level that sets `effort` counts: `--effort` flag (where a skill offers it), then the config entry the model came from. When no level sets it, pass no effort and let the runtime default apply.
 
+**Builder reuse**: the precedence still picks the builder model of every milestone, even when the esp-ship milestone loop continues an earlier builder instead of spawning a new one. A continued agent keeps its model and effort, so `ship.mjs milestone reuse <id>` continues a builder only when the resolved builder model and effort of the next milestone equal the builder's. Any difference, including one caused by complexity (a `low` milestone after a `medium` one), starts a fresh builder with the resolved model. A `--model` flag gives every builder the same model, which makes reuse more likely. Verifiers are never reused. The budget and relevance rules are in the esp-ship milestones reference.
+
 ## Rules
 
 - The Agent tool accepts aliases only: `opus`, `sonnet`, `haiku`, `fable`. Agent frontmatter also accepts `inherit`. Never pass a full model ID.

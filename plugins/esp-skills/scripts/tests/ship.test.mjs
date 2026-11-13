@@ -22,6 +22,7 @@ import {
   nextStep,
   parallelDecision,
   resolveModels,
+  reuseDecision,
   worktreeRootUsable
 } from "../lib/ship/milestones.mjs";
 import {
@@ -271,6 +272,8 @@ describe("cli", () => {
       "    start <id>",
       "    finish <id>",
       "    models <id>",
+      "    reuse <id>",
+      "    agent <id>",
       "    gates",
       "    show"
     ])
@@ -2105,12 +2108,15 @@ describe("parallel milestones", () => {
 
   test("off and on are taken as they are, and --parallel forces a batch", () => {
     plan(milestone("M1"), milestone("M2"));
-    assert.equal(initWith({ ship: { parallel: "off" } }).parallel.enabled, false);
-    assert.deepEqual(ship("milestone", "next").json().batch, ["M1"]);
-    assert.deepEqual(
-      ship("milestone", "next", "--parallel").json().batch,
-      ["M1", "M2"]
+    assert.equal(
+      initWith({ ship: { parallel: "off" } }).parallel.enabled,
+      false
     );
+    assert.deepEqual(ship("milestone", "next").json().batch, ["M1"]);
+    assert.deepEqual(ship("milestone", "next", "--parallel").json().batch, [
+      "M1",
+      "M2"
+    ]);
     rmSync(join(runDir, "state.json"));
     rmSync(join(runDir, "config.snapshot.json"));
     const on = initWith({ ship: { parallel: "on" } });
@@ -2128,7 +2134,8 @@ describe("parallel milestones", () => {
     const yes = { parallel: true, max_batch: 3 };
     const no = { parallel: false, max_batch: 1 };
     assert.equal(
-      parallelDecision({ mode: "auto", batches: yes, rootUsable: true }).enabled,
+      parallelDecision({ mode: "auto", batches: yes, rootUsable: true })
+        .enabled,
       true
     );
     assert.equal(
@@ -2168,6 +2175,272 @@ describe("parallel milestones", () => {
       )
     };
     assert.deepEqual(nextStep(s, { parallel: true }).batch, ["M1", "M3"]);
+  });
+});
+
+describe("builder reuse", () => {
+  const plan = (...items) =>
+    writeFileSync(join(runDir, "plan.md"), planText(1, items));
+  const init = (config = {}) => {
+    userConfig(config);
+    const r = ship("milestone", "init", "--base", SHA1);
+    assert.equal(r.code, 0, r.stderr);
+  };
+  const run = (id, agent, ...extra) => {
+    assert.equal(ship("milestone", "start", id, "--base", SHA1).code, 0);
+    const r = ship("milestone", "agent", id, "--agent-id", agent, ...extra);
+    assert.equal(r.code, 0, r.stderr);
+    return r.json();
+  };
+  const finish = (id, sha = SHA2) =>
+    ship("milestone", "finish", id, "--status", "done", "--commit", sha);
+  const reuse = (id, ...extra) => {
+    const r = ship("milestone", "reuse", id, ...extra);
+    assert.equal(r.code, 0, r.stderr);
+    return r.json();
+  };
+  const pureState = (builder, ...entries) => ({
+    milestones: Object.fromEntries(
+      entries.map(([id, depends, files]) => [
+        id,
+        { depends, files, complexity: "low", status: "pending" }
+      ])
+    ),
+    builder
+  });
+  const sonnetBuilder = (extra = {}) => ({
+    agent_id: "a1",
+    model: "sonnet",
+    runs: [{ milestone: "M1", complexity: "low" }],
+    ...extra
+  });
+
+  test("a dependent milestone continues the builder and logs a decision", () => {
+    plan(milestone("M1"), milestone("M2", { depends: "M1" }));
+    init();
+    const first = reuse("M1", "--agent-id", "a1");
+    assert.equal(first.decision, "fresh");
+    assert.match(first.reason, /no builder ran/);
+    const rec = run("M1", "a1");
+    assert.equal(rec.continued, false);
+    assert.equal(rec.used, 40000);
+    assert.equal(rec.tokens_source, "estimate");
+    finish("M1");
+    const out = reuse("M2", "--agent-id", "a1");
+    assert.equal(out.decision, "reuse");
+    assert.equal(out.agent_id, "a1");
+    assert.match(out.reason, /M2 depends on M1; 40000 used \+ 40000 <= 250000/);
+    const again = run("M2", "a1");
+    assert.equal(again.continued, true);
+    assert.deepEqual(again.runs, ["M1", "M2"]);
+    assert.equal(again.used, 80000);
+    const s = milestones();
+    assert.equal(s.milestones.M2.builder.agent_id, "a1");
+    assert.equal(s.milestones.M2.builder.continued, true);
+    assert.equal(s.milestones.M2.reuse.decision, "reuse");
+    const decisions = jsonl("decisions.jsonl").filter(
+      (d) => d["x-esp-builder-reuse"]
+    );
+    assert.equal(decisions.length, 2);
+    assert.equal(decisions[1].decision, "Continue the builder with M2");
+    assert.equal(decisions[1].source, "policy");
+    assert.equal(decisions[1].phase, "build");
+    assert.deepEqual(decisions[1]["x-esp-builder-reuse"], {
+      agent_id: "a1",
+      model: "sonnet",
+      used: 40000,
+      cost: 40000,
+      limit: 250000
+    });
+    assert.equal(s.milestones.M2.reuse.decision_id, decisions[1].id);
+  });
+
+  test("relevance: a dependency or shared files, else fresh", () => {
+    const model = { model: "sonnet" };
+    const unrelated = reuseDecision({
+      state: pureState(
+        sonnetBuilder(),
+        ["M1", [], ["src/a.js"]],
+        ["M4", [], ["src/d.js"]]
+      ),
+      id: "M4",
+      model,
+      agentId: "a1"
+    });
+    assert.equal(unrelated.decision, "fresh");
+    assert.match(unrelated.reason, /neither depends on nor shares files/);
+    const shared = reuseDecision({
+      state: pureState(
+        sonnetBuilder(),
+        ["M1", [], ["src/"]],
+        ["M4", [], ["src/d.js"]]
+      ),
+      id: "M4",
+      model,
+      agentId: "a1"
+    });
+    assert.equal(shared.decision, "reuse");
+    assert.match(shared.reason, /M4 shares files with M1/);
+    const earlier = reuseDecision({
+      state: pureState(
+        sonnetBuilder({
+          runs: [
+            { milestone: "M1", complexity: "low" },
+            { milestone: "M2", complexity: "low" }
+          ]
+        }),
+        ["M1", [], ["src/a.js"]],
+        ["M2", ["M1"], ["src/b.js"]],
+        ["M3", ["M1"], ["src/c.js"]]
+      ),
+      id: "M3",
+      model,
+      agentId: "a1"
+    });
+    assert.equal(earlier.decision, "reuse");
+    assert.match(earlier.reason, /M3 depends on M1/);
+  });
+
+  test("a model or effort mismatch starts fresh", () => {
+    plan(
+      milestone("M1"),
+      milestone("M2", { depends: "M1", complexity: "medium" }),
+      milestone("M3", { depends: "M2", complexity: "high" })
+    );
+    init();
+    run("M1", "a1");
+    finish("M1");
+    const medium = reuse("M2", "--agent-id", "a1");
+    assert.equal(medium.decision, "fresh");
+    assert.match(medium.reason, /needs opus, the builder runs sonnet/);
+    run("M2", "a2");
+    finish("M2");
+    const high = reuse("M3", "--agent-id", "a2");
+    assert.equal(high.decision, "fresh");
+    assert.match(high.reason, /needs opus:high, the builder runs opus$/);
+    // --model pins every builder, so the models match again.
+    assert.equal(
+      reuse("M3", "--agent-id", "a2", "--model", "opus").decision,
+      "reuse"
+    );
+  });
+
+  test("the budget boundary uses the reported tokens", () => {
+    plan(
+      milestone("M1"),
+      milestone("M2", { depends: "M1" }),
+      milestone("M3", { complexity: "high" }),
+      milestone("M4", { depends: "M3", complexity: "high" })
+    );
+    init({ ship: { parallel: "off" } });
+    run("M1", "a1", "--tokens", "200000");
+    finish("M1");
+    // 200000 used + 40000 (low) = 240000 <= 250000
+    const low = reuse("M2", "--agent-id", "a1");
+    assert.equal(low.decision, "reuse");
+    assert.equal(low.used, 200000);
+    run("M2", "a1");
+    finish("M2");
+    run("M3", "b1", "--tokens", "150000");
+    finish("M3");
+    // 150000 used + 120000 (high) = 270000 > 250000
+    const high = reuse("M4", "--agent-id", "b1");
+    assert.equal(high.decision, "fresh");
+    assert.match(high.reason, /150000 used \+ 120000 for M4 > 250000/);
+    const exact = reuseDecision({
+      state: pureState(
+        sonnetBuilder({ tokens: 210000 }),
+        ["M1", [], ["a"]],
+        ["M2", ["M1"], ["b"]]
+      ),
+      id: "M2",
+      model: { model: "sonnet" },
+      agentId: "a1"
+    });
+    assert.equal(exact.decision, "reuse");
+    assert.equal(exact.used + exact.cost, 250000);
+  });
+
+  test("configured limit and costs replace the defaults", () => {
+    plan(milestone("M1"), milestone("M2", { depends: "M1" }));
+    init({ ship: { reuse: { limit_tokens: 50000, cost: { low: 30000 } } } });
+    run("M1", "a1");
+    finish("M1");
+    const out = reuse("M2", "--agent-id", "a1");
+    assert.equal(out.decision, "fresh");
+    assert.equal(out.used, 30000);
+    assert.equal(out.limit, 50000);
+  });
+
+  test("a retry continues the builder of the failed attempt", () => {
+    plan(milestone("M1"));
+    init();
+    run("M1", "a1");
+    ship("milestone", "finish", "M1", "--status", "failed", "--commit", SHA2);
+    const out = reuse("M1", "--agent-id", "a1");
+    assert.equal(out.decision, "reuse");
+    assert.match(out.reason, /^retry of M1/);
+    const again = run("M1", "a1");
+    assert.equal(again.continued, true);
+    assert.equal(again.used, 80000);
+    assert.equal(milestones().milestones.M1.builder.attempt, 2);
+  });
+
+  test("parallel batches, --milestone mode, resume and a lost ID start fresh", () => {
+    plan(
+      milestone("M1"),
+      milestone("M2"),
+      milestone("M3", { depends: "M1,M2" })
+    );
+    init({ worktrees: { root: join(tmp, "worktrees") } });
+    assert.equal(milestones().parallel, true);
+    assert.match(reuse("M1").reason, /no builder ran/);
+    run("M1", "w1", "--worktree");
+    run("M2", "w2", "--worktree");
+    const inBatch = reuse("M2", "--agent-id", "w2");
+    assert.equal(inBatch.decision, "fresh");
+    assert.match(inBatch.reason, /ran in a worktree/);
+    const batchOnly = reuseDecision({
+      state: pureState(
+        sonnetBuilder(),
+        ["M1", [], ["src/a.js"]],
+        ["M2", ["M1"], ["src/b.js"]]
+      ),
+      id: "M2",
+      model: { model: "sonnet" },
+      agentId: "a1",
+      batch: ["M2", "M5"]
+    });
+    assert.equal(batchOnly.decision, "fresh");
+    assert.match(batchOnly.reason, /parallel batch M2 \+ M5/);
+    finish("M1");
+    finish("M2", SHA3);
+    run("M3", "a3");
+    ship("milestone", "finish", "M3", "--status", "failed", "--commit", SHA1);
+    const resumed = reuse("M3");
+    assert.equal(resumed.decision, "fresh");
+    assert.match(resumed.reason, /holds no builder agent ID/);
+    const lost = reuse("M3", "--agent-id", "zz");
+    assert.equal(lost.decision, "fresh");
+    assert.match(lost.reason, /zz is not the last builder \(a3\)/);
+    const single = reuse("M3", "--agent-id", "a3", "--single");
+    assert.equal(single.decision, "fresh");
+    assert.match(single.reason, /--milestone mode/);
+    assert.equal(reuse("M3", "--agent-id", "a3").decision, "reuse");
+  });
+
+  test("usage errors", () => {
+    plan(milestone("M1"));
+    init();
+    assert.equal(ship("milestone", "agent", "M1").code, 2);
+    assert.equal(
+      ship("milestone", "agent", "M1", "--agent-id", "a", "--tokens", "x").code,
+      2
+    );
+    assert.equal(ship("milestone", "reuse", "M9").code, 2);
+    run("M1", "a1");
+    finish("M1");
+    assert.equal(ship("milestone", "reuse", "M1").code, 2);
   });
 });
 

@@ -29,11 +29,13 @@ import {
   cmdSwitchTrack
 } from "./lib/ship/inline.mjs";
 import {
+  cmdAgent,
   cmdFinish,
   cmdMilestoneGates,
   cmdMilestoneInit,
   cmdMilestoneNext,
   cmdModels,
+  cmdReuse,
   cmdStart,
   readMilestoneState
 } from "./lib/ship/milestones.mjs";
@@ -108,6 +110,12 @@ Commands:
     start <id>         Begin an attempt of a milestone (emits iteration.started)
     finish <id>        End the attempt: --status done|failed|halted [--commit <sha>] [--reason <text>]
     models <id>        Builder and verifier { model, effort } (--model <alias> [--effort <level>])
+    reuse <id>         Continue the last builder with a milestone or spawn a fresh one:
+                       { decision: reuse|fresh, agent_id, reason, used, cost, limit }; logs a
+                       policy decision (--agent-id <id> held by this session, --single in
+                       --milestone mode, --parallel, --model, --effort)
+    agent <id>         Record the builder agent of the current attempt (--agent-id <id>
+                       [--tokens <n> reported by the Agent result] [--worktree])
     gates              Gate commands: configured, else detected from --project-dir, and the
                        checks of a scope: --milestone <id> (its validation commands plus
                        ship.gates.always, else the full gates) or --files <a,b> (a fix round:
@@ -146,6 +154,7 @@ const BOOLEAN_FLAGS = new Set([
   "record",
   "keep-tree",
   "parallel",
+  "single",
   "help"
 ]);
 
@@ -188,6 +197,10 @@ function runMilestone(sub, args, options, env) {
       return { output: cmdFinish(args[0], options, env) };
     case "models":
       return { output: cmdModels(args[0], options) };
+    case "reuse":
+      return { output: cmdReuse(args[0], options, env) };
+    case "agent":
+      return { output: cmdAgent(args[0], options, env) };
     case "gates":
       return { output: cmdMilestoneGates(options) };
     case "show":
