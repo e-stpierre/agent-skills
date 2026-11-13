@@ -100,7 +100,7 @@ export const FINISHED = new Set(["done", "merged"]);
 
 export function readJson(path) {
   try {
-    return JSON.parse(readFileSync(path, "utf8").replace(/^﻿/, ""));
+    return JSON.parse(readFileSync(path, "utf8").replace(/^\uFEFF/, ""));
   } catch (err) {
     throw new ShipError(
       `${path}: ${err.code === "ENOENT" ? "file not found" : `invalid JSON (${err.message})`}`
