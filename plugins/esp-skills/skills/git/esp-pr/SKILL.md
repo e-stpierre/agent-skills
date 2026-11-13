@@ -1,6 +1,6 @@
 ---
 name: esp-pr
-description: Create a pull request with contextual title and description
+description: Create a pull request with a title and description sized to the change. Use when asked to open a PR.
 argument-hint: "[-w|--draft] [-b|--base <branch>] [-d|--run-dir <path>]"
 ---
 
@@ -45,9 +45,9 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 - `pr.base` (default `null`): base branch; `null` uses the repository default branch (`gh repo view --json defaultBranchRef`)
 - `pr.draft` (default `false`): open the PR as a draft even without `--draft`
 - `pr.attribution` (default `true`): append the AI attribution line to the body
-- `defaults.language` (default `en-US`): language of the PR title and body
 - `pr.body_from_run` (default `true`): with `--run-dir`, build the body from the run artifacts
 - `pr.body_sections` (default `summary, milestones, decisions, review-resolution, follow-ups`): sections of a body built from the run, in order
+- `defaults.language` (default `en-US`): language of the PR title and body
 
 ### Size Categories
 

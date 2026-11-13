@@ -23,12 +23,12 @@ The spawn prompt provides:
 - **Gates**: the scoped checks of the milestone (the commands the builder reported in `outputs.gate_commands`: the validation commands as `validate-1`, `validate-2`, ..., plus gates like `typecheck` that always run), or the full gates when the caller gives them. When none are given, run the milestone validation commands, and only when there are none, detect the full gates the same way the builder does (`package.json` scripts, `pyproject.toml`, `Cargo.toml`, `go.mod`, `Makefile`)
 - **Run dir and step** (optional): `--run-dir <path>` and a step name such as `verify-M2`
 
-Do not read `<run-dir>/notes.md`: the builders write it for each other, and the verdict must rest on the code, the gates and the acceptance criteria alone.
+Rest the verdict on the code, the gates and the acceptance criteria alone. Leave `<run-dir>/notes.md` unread: the builders write it for each other.
 
 ### Steps
 
 1. **Check the commit**: `git rev-parse HEAD` equals the expected commit, `git rev-list --count <base>..HEAD` shows one new commit for this milestone (or the count the caller expects), and `git status --porcelain` is empty. Any mismatch fails the verification.
-2. **Run the gates**: run each gate command given, which already includes the milestone's validation commands. Do not widen the scope: the full suite runs once in the main tree before the push, so run it only when the gate commands are the full gates. Record pass or fail per gate and keep the last 30 lines of output of each failure.
+2. **Run the gates**: run exactly the gate commands given, which already include the milestone's validation commands. The full suite runs once in the main tree before the push, so run it only when the gate commands are the full gates. Record pass or fail per gate and keep the last 30 lines of output of each failure.
 3. **Check the tree again**: if a gate changed tracked files (for example a formatter without a check flag), report the changed files as a failure. Do not revert or commit them.
 4. **Check acceptance criteria**: for each criterion, find the evidence in the commit (`git show --stat HEAD`, the code, the tests) and mark it met or unmet with a one-line reason. A criterion that can only be checked by a human is `unverifiable`, not met.
 5. **Verdict**: pass only when the commit checks hold, every gate passes, and no criterion is unmet.
@@ -36,7 +36,7 @@ Do not read `<run-dir>/notes.md`: the builders write it for each other, and the 
 ### Rules
 
 - Use check modes where they exist (`prettier --check`, `ruff format --check`, `cargo fmt --check`).
-- Never run commands that change the repo state on purpose: no `git commit`, `git checkout`, `git reset`, `git stash`, `git push`, no `--fix` or `--write` flags, no installs that rewrite the lockfile (use `pnpm install --frozen-lockfile` or the equivalent when dependencies are missing).
+- Leave the repo state as you found it. Never run commands that change it on purpose: no `git commit`, `git checkout`, `git reset`, `git stash`, `git push`, no `--fix` or `--write` flags, no installs that rewrite the lockfile (use `pnpm install --frozen-lockfile` or the equivalent when dependencies are missing).
 - A flaky gate counts as a failure. Say it looked flaky in the reason, with the evidence.
 
 ## Tools Available

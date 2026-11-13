@@ -62,7 +62,7 @@ Arguments: $ARGUMENTS
 - `ship.mjs next` decides the phase, the model and the loop. Every state change goes through `ship.mjs` and `runs.mjs`, the only writers of `ship.json`, `state.json`, `run.json`, `decisions.jsonl` and the result files
 - Run every script with Bash, with the literal `"${CLAUDE_PLUGIN_ROOT}/scripts/..."` path. The scripts take long option names only, and `--reviewers` as one comma-separated value
 - The inline track makes one implementation commit. The orchestrated track makes one verified commit per milestone. Review fixes are separate `fix(review): ...` commits
-- A builder's report is never trusted: a milestone is done only when an independent `esp-verifier` passes it
+- A milestone is done only when an independent `esp-verifier` passes it: the builder's own report never counts
 - A halted task stays unmerged. Push only the task branch, force-push only after a rebase of the task branch, and respect branch protection
 - Waiting costs no tokens: the review and checks wait runs as a background script in this session
 - Log each decision this session makes with `runs.mjs decision`, when it is made
@@ -110,7 +110,7 @@ The phase skills read their own sections (`plan`, `review`, `fix-review`, `merge
 - **`final-gates --result pass|fail`**: record a run of the full gates after the build (see gates.md)
 - **`review-gate`**: decide the internal review of `--review auto` from the diff of the build (see review.md)
 - **`review-loop`**, **`pr-loop`**: the internal review rounds and the pull request rounds
-- **`milestone init|next|start|finish|models|gates|show`**: the milestone loop (see milestones.md)
+- **`milestone init|next|start|finish|models|reuse|agent|gates|show`**: the milestone loop (see milestones.md)
 - **`stop`**, **`halt`**: record a stop, or halt under a `ship.halt_on` key (exit 20)
 - **`pr-body`**, **`result`**: the pull request body from the run artifacts, and the final result block
 
@@ -135,7 +135,7 @@ The phase skills read their own sections (`plan`, `review`, `fix-review`, `merge
 
 ### Phase Subagents
 
-Spawn each subagent phase with the Agent tool, `subagent_type: general-purpose`, with the `model` and `effort` from `next` (omit `model` when it is `inherit`). Record it with `runs.mjs update --model <role>=<model>[:<effort>]`. Run it in the foreground and wait for its reply. The prompt is self-contained:
+Spawn each subagent phase with the Agent tool, `subagent_type: general-purpose`, with the `model` and `effort` from `next` (omit `model` when it is `inherit`). Record it with `runs.mjs update --model <role>=<model>[:<effort>]`. Run it in the foreground. The prompt is self-contained:
 
 ```markdown
 You run one phase of an esp-ship task. Read <plugin-root>/skills/<path>/SKILL.md and follow its Instructions as if
@@ -155,7 +155,6 @@ The milestone builders and verifiers are not phase subagents: this session spawn
 ### Waiting and Open Items
 
 - A plan that returns `awaiting-human` (open questions): in `plan` or `all` mode, ask, log the answers as operator decisions, and run the plan phase again with `--amend` and the answers. In `off` mode, `ship.mjs stop --status awaiting-human`.
-- `phase plan --status done --plan` returns `milestones.action: halt`: run `ship.mjs halt --key budget`.
 - Open pull request review items, or a merge blocked by a condition, end the task with `awaiting-human` and the pull request left open.
 - With a caller-owned `--run-dir`, an `awaiting-human` phase ends the skill with that status. The result block passes its `needs_input` through, so the caller can answer and run the skill again with the same `--run-dir`.
 

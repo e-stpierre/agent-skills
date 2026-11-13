@@ -20,7 +20,7 @@ The orchestrated track always ends its plan phase with a plan file in plan forma
 ## After the Plan
 
 - `phase plan --status done` checks the milestone budget. `milestones.action: halt` runs `ship.mjs halt --key budget`
-- In `plan` or `all` mode, standalone and not headless: show the title, the milestones, the risks and the open questions, and ask for approval. Feedback runs `esp-plan --amend --interactive off "<feedback>"` in a new planner subagent, then the check again
+- In `plan` or `all` mode, standalone and not headless: run the plan checkpoint (see Interactive Checkpoints in SKILL.md). Feedback runs `esp-plan --amend --interactive off "<feedback>"` in a new planner subagent, then the check again
 - A planner that returns `awaiting-human` follows Waiting and Open Items in SKILL.md
 
 ## Amending

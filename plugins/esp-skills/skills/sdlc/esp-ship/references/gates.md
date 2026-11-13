@@ -35,9 +35,9 @@ The `final-gates` phase of the orchestrated track runs after `build` and before 
 
 ## Who Runs What
 
-- **Inline track**: this session runs the checks that cover the change while it implements (the tests of the files it touches, plus `ship.gates.always`), then the full gates once, before the one commit (see inline.md). A failure counts with `ship.mjs gate-failure`
+- **Inline track**: this session runs the checks that cover the change while it implements, then the full gates once before the one commit (see inline.md)
 - **Builders and verifiers**: the scoped checks of their milestone, never the full suite unless their gate commands are the full gates (see milestones.md)
-- **After a parallel batch**: the full gates run once in the main tree, then again in `final-gates`
+- **After a parallel batch**: the combined checks of the integrated milestones (`milestone gates --files <a,b>`) run once in the main tree, then the full gates in `final-gates` (see milestones.md)
 - **Review fixes** (internal and pull request rounds): the fixer runs the scoped checks of the files it touches (`milestone gates --files <a,b>`) while it fixes, then the full gates once before its commit (internal rounds, which come after `final-gates`) or before its push (pull request rounds). Pass both command sets in its spawn prompt
 
-Never disable, skip or weaken a gate to make it pass. A failure that is pre-existing and unrelated to the change is a blocker to report, not a change to make.
+Make a gate pass by fixing the code, with the gate command unchanged: never disable, skip or weaken a gate. Report a failure that is pre-existing and unrelated to the change as a blocker, and leave its cause untouched.

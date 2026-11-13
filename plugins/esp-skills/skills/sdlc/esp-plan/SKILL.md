@@ -9,7 +9,7 @@ metadata: { af-contract: 1, af-level: steerable }
 
 ## Overview
 
-Explore the codebase and write an implementation plan that `esp-ship` and a harness can parse: milestones with IDs, goals, complexity, dependencies, files, tasks, acceptance criteria and validation commands. Use it to plan a feature, bug fix or chore before building it, with `--import` to convert a task list or a design document without exploring, or with `--amend` to change the remaining milestones of an existing plan without touching completed ones. The plan is written to a run directory, never to the repository, and the skill ends with a contract result block.
+Explore the codebase and write an implementation plan that `esp-ship` and a harness can parse: milestones with IDs, goals, complexity, dependencies, files, tasks, acceptance criteria and validation commands. Use it to plan a feature, bug fix or chore before building it, with `--import` to convert a task list or a design document without exploring, or with `--amend` to change the remaining milestones of an existing plan without touching completed ones. The plan is written to a run directory, and the skill ends with a contract result block.
 
 ## Arguments
 
@@ -107,7 +107,7 @@ Classify every open choice with the decision policy:
 ## Instructions
 
 1. **Parse arguments**: read each option by its short or long name (`-a` or `--amend`, `-t` or `--type`, and so on; `--type=<value>` works too) and `[context]`. Fail with a usage message if `--amend` is given without `--run-dir`, or together with `--import`. When `[context]` is an existing file path, read it; when it is an issue URL, fetch it with `gh issue view` if available.
-2. **Load configuration** (see Configuration) and resolve the interactive mode: the option, else `defaults.interactive`. Use `off` in headless sessions.
+2. **Load configuration** (see Configuration) and resolve the interactive mode: the option, else `defaults.interactive`, and always `off` in headless sessions.
 3. **Resolve the run directory**: use `--run-dir` when given. Otherwise derive a short title from the task and run `runs.mjs create`, and use the printed `run_dir`.
 4. **Read operator messages** (see Operator Messages) and apply them before exploring.
 5. **Amend mode** (`--amend`): skip to step 12.
@@ -117,7 +117,7 @@ Classify every open choice with the decision policy:
 7. **Detect the plan type** when it is `auto`: `feature` for new functionality, `bug` for defects and unexpected behavior, `chore` for refactoring, dependencies and maintenance. Log the detected type as a low-risk decision.
 8. **Load the type reference** (`references/<type>.md`) and the plan format ([plan-format.md](../../../references/plan-format.md)).
 9. **Explore the codebase**: launch `plan.explore_agents.<type>` Explore subagents in parallel, each with a distinct focus (affected modules, existing patterns and tests, integration points), passing the `explorer` model and effort. With `0`, explore inline. Done when you know every file each milestone will touch, the patterns it follows, and the validation commands (test, lint, build) the project uses.
-10. **Gather requirements**: settle the type reference's requirements questions from the context and the exploration. Ask only in `plan` or `all` mode; otherwise follow Asking and Deciding.
+10. **Gather requirements**: settle every requirements question of the type reference from the context and the exploration. Ask about one that stays open only in `plan` or `all` mode; otherwise follow Asking and Deciding.
 11. **Write `plan.md`** in the run directory, following the plan format: frontmatter with `version: 1`, the type-specific context sections, then milestones in dependency order, each one commit with explicit files and validation commands. Continue at step 15.
 12. **Read the latest plan and completed milestones**: `runs.mjs plan` gives version N (fail if it is 0). Completed milestones are the `milestones` entries of `<run-dir>/state.json` with `status: done`; when there is no `state.json`, treat none as completed.
 13. **Write `plan.v<N+1>.md`** with `version: N+1`: copy the previous version, keep every completed milestone block byte for byte, and change, add or remove only remaining milestones to apply the amendment. New milestones get new IDs; existing IDs keep theirs.

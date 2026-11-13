@@ -13,7 +13,7 @@ The phases both tracks share once the work is committed: `pr`, `fix-review` and 
 
 ## Review and Checks Wait
 
-`next` returns `phase: fix-review` with `rounds` (the cumulative round number), `wait_step: fix-review-wait` and `wait_checks: true`. The wait runs in this session, not in a subagent: the wait script wakes this session when it exits, so the wait costs no tokens, and no subagent sleeps through it.
+`next` returns `phase: fix-review` with `rounds` (the cumulative round number), `wait_step: fix-review-wait` and `wait_checks: true`. The wait runs in this session: the wait script wakes it on exit, so the wait costs no tokens and no subagent sleeps through it.
 
 1. `phase fix-review --status started` (first round only).
 2. Start the wait: `node "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-review.mjs" <pr url> --checks --reviewers <names> --run-dir <run-dir>` (the `--reviewers`, else leave the option out for `fix-review.wait.default_reviewers`). The script posts trigger comments itself when `fix-review.wait.auto_trigger` is on, keeps its clock in `<run-dir>/fix-review-wait.json`, and is done when every reviewer reviewed the head commit and no check is pending. Run it in the background with an exit notification when the runtime has it (with a shell timeout above `fix-review.wait.timeout_minutes`), and end the turn: the next action is reading the exit notification. Without background execution, run it in the foreground with the longest shell timeout. If the shell kills it first, run the same command again: the state file keeps the clock, so the total wait still honors the timeout.

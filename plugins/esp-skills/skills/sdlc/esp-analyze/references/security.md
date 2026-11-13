@@ -44,7 +44,7 @@ Check for common security issues:
 
 - Verify exploitability before reporting critical/high severity
 - Be specific with exact vulnerability type and exploitation scenario
-- Prioritize correctly - not everything is critical; consider defense in depth when assessing severity
+- Rate by real exploitability and impact, reserving Critical for what the severity guidelines define; weigh defense in depth when assessing severity
 - Check if framework features mitigate the issue before reporting
 
 ## OWASP Top 10 Coverage

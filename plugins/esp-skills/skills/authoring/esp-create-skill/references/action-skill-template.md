@@ -22,6 +22,7 @@ Agent Skills Standard Fields:
 - name (required): max 64 chars. Lowercase letters, numbers, hyphens only. Must match parent directory name.
   Must not start/end with hyphen or contain consecutive hyphens (--).
 - description (required): max 1024 chars. Describes what the skill does and when to use it.
+  Model-invoked: front-load what it is, then one trigger per distinct case. User-invoked: a one-line summary.
 - license (optional): license name or reference to a bundled license file (e.g., `Apache-2.0`, `LICENSE.txt`).
 - compatibility (optional): max 500 chars. Environment requirements (system packages, network access, etc.).
 - metadata (optional): arbitrary key-value mapping for additional properties (author, version, etc.).
@@ -164,6 +165,7 @@ Instructions:
 Instructions:
 - Replace {{additional_resources}} with links to supporting files
 - Format: - For <purpose>, see [filename.md](filename.md)
+- State when to read each file (e.g., "read it before creating a new file"), so the pointer fires on the right branch
 - Use for reference docs, examples, or scripts in the skill directory
 - Omit this section if skill has no supporting files
 -->
@@ -178,8 +180,8 @@ Instructions:
 - Include constraints, quality standards, and behavioral expectations
 - Include security considerations where relevant
 - Include critical warnings and important notes
-- Use positive format where possible ("Do X" instead of "Don't do X")
-- Reserve "Don't" for critical warnings where violation would cause serious issues
+- State the target behavior positively ("Do X" instead of "Don't do X")
+- Reserve "Don't" for hard guardrails where violation would cause serious issues, and pair it with what to do instead
 -->
 
 ## Skill-Specific Guidelines (optional)
@@ -205,6 +207,7 @@ Instructions:
 - Replace {{instructions}} with numbered step-by-step execution instructions
 - Use format: 1. First action, 2. Second action, etc.
 - Provide logical sequence from start to completion
+- End each step on a checkable completion criterion (e.g., "Done when `git branch --show-current` prints the new name")
 - Include verification or validation steps
 -->
 

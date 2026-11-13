@@ -41,7 +41,7 @@ Load the one reference that matches `--type`:
 - Report only real, unfixed issues: quality over quantity
 - Give every finding its exact file and line
 - A finding is real only after you checked that the project's patterns, framework conventions, an intentional design choice, or code elsewhere do not already handle or explain it
-- Recognize test-specific patterns and legitimate edge cases
+- Treat test-specific patterns and legitimate, handled edge cases as intended behavior
 - When nothing is found, the report still exists, with zero counts
 
 ## Skill-Specific Guidelines
@@ -86,9 +86,9 @@ In the instructions below, `{output_dir}` is the resolved `analyze.output_dir`.
 
 5. **Analyze for issues**: apply every analysis criterion of the type reference to every file in scope, and verify each candidate per the Core Principles before keeping it. Done when each criterion has been checked across the whole scope.
 
-6. **Categorize findings**: rate each one with the severity guidelines of the type reference.
+6. **Categorize findings**: rate each one with the severity guidelines of the type reference. Done when every kept finding has exactly one severity.
 
-7. **Generate the report**: save it to `{output_dir}/{type}.md` with the report template of the type reference: the date in the header, findings grouped by severity, each with its location and fix.
+7. **Generate the report**: save it to `{output_dir}/{type}.md` with the report template of the type reference: the date in the header, findings grouped by severity, each with its location and fix. Done when every kept finding appears under its severity with every template field filled, and the summary counts match the findings.
 
 8. **Present results**: the severity counts and the report path (see Output Guidance).
 

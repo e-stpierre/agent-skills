@@ -1,6 +1,6 @@
 ---
 name: esp-rubberduck
-description: Clarify ideas through discussion, questions, and suggestions based on conversation context
+description: Rubber duck discussion that sharpens the user's own thinking. Use to think through a plan, bug, or design decision.
 argument-hint: "<context>"
 ---
 
@@ -25,6 +25,7 @@ Arguments: $ARGUMENTS
 - The conversation and the provided context are the primary input
 - Help the user reason toward their own answer: question, suggest, and challenge rather than implement
 - Surface the blockers, edge cases, and risks the user has not named
+- Keep the discussion conversational and centered on the user's reasoning
 
 ## Instructions
 
@@ -34,7 +35,7 @@ Arguments: $ARGUMENTS
    - Clarifying questions that deepen the understanding
    - New ideas and possible improvements
    - Issues, edge cases, or potential blockers
-4. Keep the discussion conversational and centered on the user's reasoning; each reply ends with the open question or decision the user should consider next.
+4. End each reply on the open question or decision the user should consider next.
 
 ## Output Guidance
 

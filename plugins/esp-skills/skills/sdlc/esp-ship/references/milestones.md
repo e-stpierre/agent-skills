@@ -68,7 +68,9 @@ Halt the build (log a Halt decision with `phase: build` and the milestone ID in 
 - A builder returns `halted`, or `awaiting-human` with a blocking `needs_input`: finish the milestone as `halted`, and pass its `needs_input` on
 - `next` returns `blocked` outside `--milestone` mode: the plan has a dependency that cannot be satisfied
 
-Then `ship.mjs halt --key gates-exhausted --reason <reason>` for exhausted retries or a broken combination, or `ship.mjs stop --status awaiting-human|halted --reason <reason>` for a builder that stopped. In `all` mode, ask before halting on exhausted retries: the user can grant one more attempt (log it as an operator decision and run `milestone init` again with a higher `ship.max_retries_per_milestone` in a project config), or stop.
+In `all` mode, ask before halting on exhausted retries: the user can grant one more attempt (log it as an operator decision and run `milestone init` again with a higher `ship.max_retries_per_milestone` in a project config), or stop.
+
+Then `ship.mjs halt --key gates-exhausted --reason <reason>` for exhausted retries or a broken combination, or `ship.mjs stop --status awaiting-human|halted --reason <reason>` for a builder that stopped.
 
 ## Wrap Up
 

@@ -34,7 +34,7 @@ It logs one `policy` decision (`Skip the internal review` or `Run the internal r
 
 `ship.mjs review-loop` prints the loop state at any time. When the loop ends, `next` returns `action: complete` (record `phase review --status done`), `halt` (run `ship.mjs halt` with its `key`) or `stop` (run `ship.mjs stop` with its `status`).
 
-In `all` mode, standalone and not headless, before each fix: show the findings by class (`by_class` from the review result, details in `findings_path`), and ask whether to fix as recommended or to choose for the B items. Log the answers as operator decisions and pass them to the fixer.
+In `all` mode, standalone and not headless, run the before-fix checkpoint (see Interactive Checkpoints in SKILL.md) before each fix, and pass the answers to the fixer.
 
 ## In the Summary
 

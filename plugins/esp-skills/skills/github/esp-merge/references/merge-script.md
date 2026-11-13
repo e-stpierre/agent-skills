@@ -1,6 +1,6 @@
 # Merge Script Behavior
 
-What `scripts/merge-ready.mjs` decides on its own. The skill never repeats these decisions: read this file to explain a method choice or a lock wait to the user.
+What `scripts/merge-ready.mjs` decides on its own. The skill takes these decisions from the script output as they are: read this file to explain a method choice or a lock wait to the user.
 
 ## Method Resolution
 

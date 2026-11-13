@@ -1,6 +1,6 @@
 ---
 name: esp-commit
-description: Commit changes with a structured message
+description: Commit the current changes with a structured message. Use when asked to commit.
 argument-hint: "[-m|--message <title>]"
 ---
 

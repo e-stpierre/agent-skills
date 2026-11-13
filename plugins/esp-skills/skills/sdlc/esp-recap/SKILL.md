@@ -8,7 +8,7 @@ argument-hint: "[-k|--risks] [-a|--all] [-s|--since <date>] [-e|--until <date>] 
 
 ## Overview
 
-Tell the user what happened across their runs, what was risky, or why a decision was made, with a source for every statement. The skill reads the run directories that `esp-ship` and a harness leave behind (and older `esp-go`, `esp-go-light` and `esp-build` runs) (`run.json`, `summary.md`, `decisions.jsonl`, step results, review findings) under every root in `recap.roots`. It has three modes: recap (the default), risk report (`--risks`), and Q&A when `[context]` is a question. `scripts/recap.mjs` selects the runs and returns compact JSON with the path of each artifact, so the skill reads only what it needs.
+Tell the user what happened across their runs, what was risky, or why a decision was made, with a source for every statement. The skill reads the run directories (`run.json`, `summary.md`, `decisions.jsonl`, step results, review findings) that `esp-ship` and a harness leave behind, older `esp-go`, `esp-go-light` and `esp-build` runs included, under every root in `recap.roots`. It has three modes: recap (the default), risk report (`--risks`), and Q&A when `[context]` is a question. `scripts/recap.mjs` selects the runs and returns compact JSON with the path of each artifact, so the skill reads only what it needs.
 
 ## Arguments
 
@@ -52,11 +52,11 @@ Read the section once at the start (add `--config-snapshot <path>` when given):
 node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get recap
 ```
 
+If the command exits with code 1 (invalid config), report its error and stop. If `node` is missing, say the skill needs Node 22 and stop.
+
 - `recap.roots` (default `["~/.esp-skills/runs"]`): runs roots to read. Add the agentic-forge runs root to recap harness runs too. `runs.root` is always read
 - `recap.default_range_days` (default `7`): days covered when no date option is given, today included
 - `recap.fan_out_threshold` (default `5`): above this number of runs, digest them in parallel subagents, one batch each
-
-If the command exits with code 1 (invalid config), report its error and stop. If `node` is missing, say the skill needs Node 22 and stop.
 
 ### Script
 

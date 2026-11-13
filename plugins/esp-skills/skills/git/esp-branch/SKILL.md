@@ -1,6 +1,6 @@
 ---
 name: esp-branch
-description: Create a branch with standardized naming convention
+description: Create and check out a git branch named by the configured convention. Use when starting work that needs a new branch.
 argument-hint: "-s|--slug <slug> [-t|--type <type>] [-g|--issue <id>] [-b|--base <branch>]"
 ---
 
