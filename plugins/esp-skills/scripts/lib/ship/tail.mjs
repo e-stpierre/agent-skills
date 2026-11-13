@@ -215,6 +215,10 @@ export function baseOutputs(state, dir) {
     worktree: state.worktree,
     workspace: state.workspace ?? null,
     phases: state.phase_status,
+    skipped_phases: state.skipped_phases ?? {},
+    plan_mode: state.plan_mode ?? "auto",
+    review_mode: state.review_mode ?? "auto",
+    review_gate: state.review_gate ?? null,
     gate_failures: state.gate_failures,
     stop_before_wait: state.stop_before_wait,
     state_path: statePath(dir),
@@ -463,10 +467,7 @@ function defaultSummary(status, state, merge, built) {
 export function cmdResult(options) {
   const dir = runDirOf(options);
   const state = readState(dir);
-  if (
-    options.status !== undefined &&
-    !RESULT_STATUSES.includes(options.status)
-  )
+  if (options.status !== undefined && !RESULT_STATUSES.includes(options.status))
     throw new ShipError(
       `--status must be one of ${RESULT_STATUSES.join(", ")}`,
       2
@@ -478,4 +479,3 @@ export function cmdResult(options) {
     runRisk: runJson(dir).max_risk ?? null
   });
 }
-

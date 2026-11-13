@@ -68,8 +68,7 @@ function cli(script, args, extraEnv = {}) {
 }
 
 const ship = (...args) => cli(SCRIPT, [...args, "--run-dir", runDir]);
-const state = () =>
-  JSON.parse(readFileSync(join(runDir, "ship.json"), "utf8"));
+const state = () => JSON.parse(readFileSync(join(runDir, "ship.json"), "utf8"));
 const milestones = () =>
   JSON.parse(readFileSync(join(runDir, "state.json"), "utf8"));
 const runJson = () =>
@@ -250,6 +249,7 @@ describe("cli", () => {
       "show",
       "next",
       "phase <name>",
+      "review-gate",
       "review-loop",
       "pr-loop",
       "workspace",
@@ -306,7 +306,10 @@ describe("resolvePhases", () => {
       "fix-review",
       "merge"
     ]);
-    assert.throws(() => resolvePhases("orchestrated", ["plan", "pr"]), ShipError);
+    assert.throws(
+      () => resolvePhases("orchestrated", ["plan", "pr"]),
+      ShipError
+    );
     assert.equal(
       resolvePhases("orchestrated", ["build", "pr"]).phases[0],
       "plan"
@@ -324,9 +327,7 @@ describe("resolvePhases", () => {
     ]);
     assert.equal(noPr.skipped.merge, "--no-pr");
     assert.equal(
-      resolvePhases("orchestrated", undefined, { noMerge: true }).phases.at(
-        -1
-      ),
+      resolvePhases("orchestrated", undefined, { noMerge: true }).phases.at(-1),
       "fix-review"
     );
     const noReview = resolvePhases("orchestrated", undefined, {
@@ -568,6 +569,9 @@ describe("next and phase", () => {
     for (const p of ["plan", "branch", "build", "final-gates"])
       ship("phase", p, "--status", "done");
     let next = ship("next").json();
+    assert.equal(next.action, "review-gate");
+    assert.equal(ship("review-gate").json().decision, "review");
+    next = ship("next").json();
     assert.equal(next.phase, "review");
     assert.equal(next.sub, "review");
     assert.equal(next.loop.step, "review-1");
@@ -678,7 +682,9 @@ describe("next and phase", () => {
   });
 
   test("halts on the wall time budget", () => {
-    userConfig({ ship: { budgets: { orchestrated: { max_wall_minutes: 1 } } } });
+    userConfig({
+      ship: { budgets: { orchestrated: { max_wall_minutes: 1 } } }
+    });
     init();
     const later = cli(SCRIPT, ["next", "--run-dir", runDir], {
       ESP_RUNS_NOW: "2026-11-08T12:05:00.000Z"
@@ -1100,12 +1106,22 @@ describe("switch-track", () => {
     );
     assert.equal(ship("switch-track", "--trigger", "files").code, 2);
     assert.equal(
-      ship("switch-track", "--to", "inline", "--trigger", "files", "--reason", "x")
-        .code,
+      ship(
+        "switch-track",
+        "--to",
+        "inline",
+        "--trigger",
+        "files",
+        "--reason",
+        "x"
+      ).code,
       2
     );
     // An owned run switches in place instead of escalating.
-    assert.equal(ship("escalate", "--trigger", "files", "--reason", "x").code, 1);
+    assert.equal(
+      ship("escalate", "--trigger", "files", "--reason", "x").code,
+      1
+    );
     const design = ship(
       "switch-track",
       "--trigger",
@@ -1189,11 +1205,17 @@ describe("escalate (caller-owned run)", () => {
 
   test("validates its arguments", () => {
     initInline("--caller-owned");
-    assert.equal(ship("escalate", "--trigger", "mood", "--reason", "x").code, 2);
+    assert.equal(
+      ship("escalate", "--trigger", "mood", "--reason", "x").code,
+      2
+    );
     assert.equal(ship("escalate", "--trigger", "files").code, 2);
     rmSync(join(runDir, "ship.json"));
     init("--caller-owned");
-    assert.equal(ship("escalate", "--trigger", "files", "--reason", "x").code, 1);
+    assert.equal(
+      ship("escalate", "--trigger", "files", "--reason", "x").code,
+      1
+    );
   });
 
   test("a resume takes the escalated run over on the orchestrated track", () => {
@@ -1298,7 +1320,13 @@ describe("stop, halt and resume", () => {
     init();
     writeStep("build", done());
     assert.equal(ship("stop", "--status", "paused", "--reason", "x").code, 2);
-    ship("stop", "--status", "awaiting-human", "--reason", "2 review items open");
+    ship(
+      "stop",
+      "--status",
+      "awaiting-human",
+      "--reason",
+      "2 review items open"
+    );
     const out = ship("result");
     assert.equal(out.code, 10);
     const block = JSON.parse(out.stdout);
@@ -1312,10 +1340,7 @@ describe("stop, halt and resume", () => {
     ship("phase", "branch", "--status", "started");
     ship("stop", "--status", "awaiting-human", "--reason", "open question");
     assert.equal(JSON.parse(ship("next").stdout).action, "result");
-    assert.equal(
-      JSON.parse(ship("init").stdout).stop.status,
-      "awaiting-human"
-    );
+    assert.equal(JSON.parse(ship("init").stdout).stop.status, "awaiting-human");
     const resumed = JSON.parse(ship("init", "--resume").stdout);
     assert.equal(resumed.resumed, true);
     assert.equal(resumed.stop, null);
@@ -1421,10 +1446,7 @@ describe("result", () => {
     assert.deepEqual(block.files_changed, ["b.txt"]);
     assert.deepEqual(block.gates, { test: "pass" });
     assert.equal(block.outputs.track, "inline");
-    assert.deepEqual(block.outputs.deferred_phases, [
-      "fix-review",
-      "merge"
-    ]);
+    assert.deepEqual(block.outputs.deferred_phases, ["fix-review", "merge"]);
     assert.match(block.summary, /left to the caller/);
     const recorded = cli(RUNS, [
       "result",
@@ -1806,7 +1828,10 @@ describe("milestone loop", () => {
       if (next.action === "done") break;
       assert.equal(next.action, "run");
       seen.push(next.milestone);
-      assert.equal(ship("milestone", "start", next.milestone).json().attempt, 1);
+      assert.equal(
+        ship("milestone", "start", next.milestone).json().attempt,
+        1
+      );
       assert.equal(
         ship(
           "milestone",
@@ -1935,7 +1960,10 @@ describe("milestone loop", () => {
     );
     ship("milestone", "start", "M1");
     assert.equal(ship("milestone", "finish", "M1", "--status", "done").code, 2);
-    assert.equal(ship("milestone", "finish", "M1", "--status", "weird").code, 2);
+    assert.equal(
+      ship("milestone", "finish", "M1", "--status", "weird").code,
+      2
+    );
     assert.equal(
       ship("milestone", "finish", "M1", "--status", "done", "--commit", "nope")
         .code,
@@ -2045,8 +2073,15 @@ describe("milestone models", () => {
       model: "sonnet"
     });
     assert.deepEqual(
-      ship("milestone", "models", "M1", "--model", "opus", "--effort", "low").json()
-        .builder,
+      ship(
+        "milestone",
+        "models",
+        "M1",
+        "--model",
+        "opus",
+        "--effort",
+        "low"
+      ).json().builder,
       { model: "opus", effort: "low" }
     );
     assert.equal(ship("milestone", "models", "M1", "--model", "gpt").code, 2);

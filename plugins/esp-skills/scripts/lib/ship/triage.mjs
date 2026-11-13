@@ -10,6 +10,7 @@ import { parseFrontmatter } from "../contract.mjs";
 import { lintPlan, parseTaskList } from "../../plan.mjs";
 import { appendDecision, cmdResult, latestPlan } from "../../runs.mjs";
 import { loadConfig } from "../../config.mjs";
+import { modeOf, PLAN_MODES } from "./review-gate.mjs";
 import {
   positiveInt,
   projectDirOf,
@@ -123,7 +124,10 @@ function trackOption(value, name) {
  * Decide the plan source and the track from the detected request, the
  * operator's --track, a plan already in the run directory, and the model's
  * judgment (--judged-track with --estimate and --reason). `needs_judgment`
- * is true when only the model can pick the track.
+ * is true when only the model can pick the track. The plan mode changes a
+ * prompt or an issue only: `always` puts it on the orchestrated track with a
+ * generated plan, `skip` synthesizes a one-milestone plan instead of
+ * generating one when the track is orchestrated.
  */
 export function decide(detected, input = {}) {
   const {
@@ -132,7 +136,9 @@ export function decide(detected, input = {}) {
     estimate = null,
     reason = null,
     runPlan = null,
-    maxFiles = 10
+    maxFiles = 10,
+    planMode = "auto",
+    planModeSource = "default"
   } = input;
   const kind = detected.input_kind;
   const name = detected.path ? basename(detected.path) : null;
@@ -146,6 +152,7 @@ export function decide(detected, input = {}) {
     needs_judgment: false,
     max_files_changed: maxFiles,
     estimate: null,
+    plan_mode: planMode,
     choices: []
   };
   const choose = (choice) => result.choices.push(choice);
@@ -238,6 +245,39 @@ export function decide(detected, input = {}) {
   }
 
   // prompt or issue
+  const modeRationale =
+    planModeSource === "operator"
+      ? `--plan ${planMode}`
+      : `ship.plan_mode ${planMode}`;
+  if (planMode === "always") {
+    if (operatorTrack === "inline")
+      throw new ShipError(
+        "--plan always generates a plan, which runs on the orchestrated track: drop --track inline",
+        2
+      );
+    result.track = "orchestrated";
+    result.track_source = operatorTrack
+      ? "operator"
+      : planModeSource === "operator"
+        ? "operator"
+        : "policy";
+    result.plan_source = "generate";
+    choose({
+      key: "track",
+      value: "orchestrated",
+      source: result.track_source,
+      rationale: operatorTrack
+        ? "--track given"
+        : `${modeRationale} plans every task`
+    });
+    choose({
+      key: "plan",
+      value: "generate",
+      source: planModeSource === "operator" ? "operator" : "policy",
+      rationale: `${modeRationale}: a generated plan even for a small ${kind}`
+    });
+    return result;
+  }
   const track = operatorTrack ?? judged;
   if (!track) {
     result.needs_judgment = true;
@@ -265,15 +305,22 @@ export function decide(detected, input = {}) {
       ? "--track given"
       : `${estimate} file(s) estimated (limit ${maxFiles}): ${reason}`
   });
-  result.plan_source = track === "inline" ? "none" : "generate";
+  const skip = planMode === "skip";
+  result.plan_source =
+    track === "inline" ? "none" : skip ? "synthesize" : "generate";
   choose({
     key: "plan",
     value: result.plan_source,
-    source: "policy",
+    source:
+      skip && track !== "inline" && planModeSource === "operator"
+        ? "operator"
+        : "policy",
     rationale:
       track === "inline"
         ? "the inline track has no plan"
-        : `a ${kind} on the orchestrated track needs a generated plan`
+        : skip
+          ? `${modeRationale}: no planning model, a one-milestone plan for the ${kind}`
+          : `a ${kind} on the orchestrated track needs a generated plan`
   });
   return result;
 }
@@ -317,7 +364,10 @@ function settingsFor(options, projectDir) {
     const { config } = loadConfig(
       snapshot ? { snapshot: resolve(snapshot) } : { projectDir }
     );
-    return shipSettings(config, "inline");
+    return {
+      ...shipSettings(config, "inline"),
+      plan_mode: config.ship?.plan_mode
+    };
   } catch (err) {
     if (err.name === "ConfigError")
       throw new ShipError(err.message, err.exitCode ?? 1);
@@ -339,6 +389,12 @@ export function cmdTriage(options, env = process.env) {
   }
   const projectDir = projectDirOf(options, null);
   const settings = settingsFor(options, projectDir);
+  const planMode = modeOf(
+    options["plan-mode"],
+    settings.plan_mode,
+    PLAN_MODES,
+    "plan-mode"
+  );
   const detected = detectRequest(options.request, { projectDir });
   const result = decide(detected, {
     track: trackOption(options.track, "track"),
@@ -349,7 +405,9 @@ export function cmdTriage(options, env = process.env) {
         : positiveInt(options.estimate, "estimate", 0),
     reason: stringOption(options.reason),
     runPlan: dir ? latestPlan(dir).path : null,
-    maxFiles: settings.max_files_changed
+    maxFiles: settings.max_files_changed,
+    planMode: planMode.mode,
+    planModeSource: planMode.source
   });
   if (!record) return result;
   if (result.needs_judgment)
@@ -389,5 +447,10 @@ export function cmdTriage(options, env = process.env) {
     { "run-dir": dir, json: JSON.stringify(block) },
     env
   );
-  return { recorded: true, result: block, step: written.step, line: written.line };
+  return {
+    recorded: true,
+    result: block,
+    step: written.step,
+    line: written.line
+  };
 }

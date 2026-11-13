@@ -8,6 +8,13 @@ import { expandHome } from "../../config.mjs";
 import { readPlan } from "../../plan.mjs";
 import { appendEvent, cmdUpdate, latestPlan, now } from "../../runs.mjs";
 import { finalGatesState, gatesFor } from "./gates.mjs";
+import {
+  modeOf,
+  PLAN_MODES,
+  REVIEW_MODES,
+  reviewPlan,
+  reviewSkipReason
+} from "./review-gate.mjs";
 import { reviewLoop } from "./review-loop.mjs";
 import { prOptions } from "./tail.mjs";
 import {
@@ -80,7 +87,10 @@ const SKILLS = {
  * always keeps `plan`: its build needs a plan file, generated, imported,
  * reused or synthesized. --no-pr drops the pull request and its wait phases,
  * --stop-before-wait leaves the wait phases to the caller, --no-merge drops
- * the merge, and internal_review_rounds 0 drops the internal review.
+ * the merge, and internal_review_rounds 0 drops the internal review. The
+ * review mode drops the internal review (pr, none) or the pull request
+ * review rounds (internal, none); auto keeps the internal review until the
+ * review gate decides it after the build.
  */
 export function resolvePhases(
   track = "orchestrated",
@@ -89,7 +99,9 @@ export function resolvePhases(
     noPr = false,
     noMerge = false,
     stopBeforeWait = false,
-    reviewRounds = 2
+    reviewRounds = 2,
+    reviewMode = "auto",
+    reviewSource = "default"
   } = {}
 ) {
   if (!TRACKS.includes(track))
@@ -100,18 +112,30 @@ export function resolvePhases(
       `The configured phases must include ${CORE_PHASE[track]} (${track} track)`,
       1
     );
+  if (!REVIEW_MODES.includes(reviewMode))
+    throw new ShipError(
+      `--review-mode must be one of ${REVIEW_MODES.join(", ")}`,
+      2
+    );
+  const review = reviewPlan(reviewMode, reviewRounds);
+  const reviewReason = reviewSkipReason(reviewMode, reviewSource);
   const phases = [];
   const skipped = {};
   for (const phase of TRACK_PHASES[track]) {
     if (phase === "plan") phases.push(phase);
-    else if (!wanted.has(phase)) skipped[phase] = "not in the configured phases";
+    else if (!wanted.has(phase))
+      skipped[phase] = "not in the configured phases";
     else if (phase === "review" && reviewRounds === 0)
       skipped[phase] = "internal_review_rounds is 0";
+    else if (phase === "review" && review.internal === "off")
+      skipped[phase] = reviewReason;
     else if (phase === "pr" && noPr) skipped[phase] = "--no-pr";
     else if (WAIT_PHASES.includes(phase) && (noPr || !wanted.has("pr")))
       skipped[phase] = noPr ? "--no-pr" : "needs the pr phase";
     else if (WAIT_PHASES.includes(phase) && stopBeforeWait)
       skipped[phase] = "left to the caller (--stop-before-wait)";
+    else if (phase === "fix-review" && !review.pr)
+      skipped[phase] = reviewReason;
     else if (phase === "merge" && noMerge) skipped[phase] = "--no-merge";
     else phases.push(phase);
   }
@@ -128,7 +152,9 @@ export function applyTrack(state, track, config) {
     noPr: state.flags.no_pr,
     noMerge: state.flags.no_merge,
     stopBeforeWait: state.stop_before_wait,
-    reviewRounds: state.internal_review_rounds
+    reviewRounds: state.internal_review_rounds,
+    reviewMode: state.review_mode ?? "auto",
+    reviewSource: state.review_mode_source ?? "default"
   });
   const previous = state.phase_status ?? {};
   state.track = track;
@@ -180,6 +206,18 @@ export function cmdInit(options, env = process.env) {
       `--interactive must be one of ${INTERACTIVE_MODES.join(", ")}`,
       2
     );
+  const planMode = modeOf(
+    options["plan-mode"],
+    config.ship?.plan_mode,
+    PLAN_MODES,
+    "plan-mode"
+  );
+  const reviewMode = modeOf(
+    options["review-mode"],
+    config.ship?.review_mode,
+    REVIEW_MODES,
+    "review-mode"
+  );
   if (options["base-sha"] && !SHA.test(options["base-sha"]))
     throw new ShipError("--base-sha must be a commit SHA", 2);
   const at = now(env).toISOString();
@@ -204,6 +242,11 @@ export function cmdInit(options, env = process.env) {
     plan_path: null,
     plan_title: null,
     plan_source: stringOption(options["plan-source"]),
+    plan_mode: planMode.mode,
+    plan_mode_source: planMode.source,
+    review_mode: reviewMode.mode,
+    review_mode_source: reviewMode.source,
+    review_gate: null,
     milestones: null,
     commit: null,
     pr: null,
@@ -413,12 +456,31 @@ export function dispatch(dir, state, at, config) {
     cwd,
     budget
   };
+  if (
+    phase === "review" &&
+    state.phase_status.review === "pending" &&
+    !state.review_gate &&
+    reviewPlan(state.review_mode ?? "auto", state.internal_review_rounds)
+      .internal === "auto"
+  )
+    return {
+      ...out,
+      action: "review-gate",
+      reason:
+        "review_mode auto: run ship.mjs review-gate to decide the internal review from the diff"
+    };
   if (phase === "review") {
     const loop = reviewLoop(dir, state);
     if (loop.action === "done")
       return { ...out, action: "complete", loop, reason: loop.reason };
     if (loop.action === "halt")
-      return { ...out, action: "halt", key: loop.key, reason: loop.reason, loop };
+      return {
+        ...out,
+        action: "halt",
+        key: loop.key,
+        reason: loop.reason,
+        loop
+      };
     if (loop.action === "stop")
       return {
         ...out,
@@ -445,6 +507,14 @@ export function dispatch(dir, state, at, config) {
     const latest = latestPlan(dir).path;
     base.plan_source = state.plan_source ?? (latest ? "reuse" : "generate");
     base.latest_plan = latest;
+    base.plan_mode = state.plan_mode ?? "auto";
+    // reuse and synthesize need no model; import converts on sonnet.
+    if (["reuse", "synthesize"].includes(base.plan_source))
+      Object.assign(base, { role: null, model: null, skill: null });
+    else if (base.plan_source === "import") {
+      base.model = "sonnet";
+      delete base.effort;
+    }
   }
   if (phase === "build") {
     base.milestone_loop = true;
@@ -643,4 +713,3 @@ export function cmdStop(options, env = process.env) {
     env
   ).stop;
 }
-

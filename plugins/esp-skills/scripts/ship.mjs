@@ -13,7 +13,7 @@
 // <run-dir>/state.json, so an interrupted run resumes.
 //
 // The logic lives in lib/ship/: state, phases, review-loop, tail, inline,
-// milestones, gates, workspace and triage.
+// milestones, gates, workspace, triage and review-gate.
 //
 // Exit codes: 0 ok, 1 failure or invalid state, 2 usage. `escalate`, `halt`
 // and `result` exit with the contract code of their result status (0 done or
@@ -46,13 +46,9 @@ import {
 } from "./lib/ship/phases.mjs";
 import { reviewLoop } from "./lib/ship/review-loop.mjs";
 import { readState, runDirOf, ShipError } from "./lib/ship/state.mjs";
-import {
-  cmdHalt,
-  cmdPrBody,
-  cmdPrLoop,
-  cmdResult
-} from "./lib/ship/tail.mjs";
+import { cmdHalt, cmdPrBody, cmdPrLoop, cmdResult } from "./lib/ship/tail.mjs";
 import { cmdFinalGates } from "./lib/ship/gates.mjs";
+import { cmdReviewGate } from "./lib/ship/review-gate.mjs";
 import { cmdTriage } from "./lib/ship/triage.mjs";
 import { cmdWorkspace, cmdWorktree } from "./lib/ship/workspace.mjs";
 import { now } from "./runs.mjs";
@@ -66,8 +62,9 @@ Commands:
                        plan source and the track: { input_kind, plan_source, track, nothing_to_do,
                        needs_judgment, packages, ... }. --track pins the track; for a prompt or an
                        issue, --judged-track inline|orchestrated --estimate <files> --reason <text>
-                       passes the model's judgment. --record (needs --run-dir) logs one decision
-                       per choice and writes the triage step result
+                       passes the model's judgment. --plan-mode auto|skip|always changes the plan
+                       of a prompt or an issue. --record (needs --run-dir) logs one decision per
+                       choice and writes the triage step result
   init                 Create ship.json (--request <text> --track inline|orchestrated --base <branch>);
                        resolves the phases of the track and freezes the config. A second call
                        prints the state; --resume lifts an awaiting-human stop, or takes over
@@ -80,6 +77,10 @@ Commands:
   final-gates          Record one run of the full gates in the main tree (--result pass|fail
                        [--gates <json>] [--reason <text>]): continue, fix (one fixer round),
                        halt (gates-exhausted) or continue-failing
+  review-gate          After the build, review_mode auto: decide the internal review from the
+                       diff (files, lines), the milestone complexities, max_risk and
+                       ship.review.always_paths; a skip marks the review phase skipped. Logs
+                       one policy decision; later calls print the recorded gate
   review-loop          Internal review loop state: review, fix, done, stop or halt
   pr-loop              Pull request rounds after a step (--after wait|fix): wait, fix, merge or stop
   workspace            Branch phase: pick the workspace (checkout, existing-branch, worktree) from
@@ -123,6 +124,8 @@ Options:
   --caller-owned            init: the caller owns the run, so an inline escalation ends with exit 30
   --plan-source <source>    init: reuse, import, generate or synthesize the plan (default: reuse
                             a plan in the run directory, else generate)
+  --plan-mode <mode>        init, triage: auto, skip or always (default: ship.plan_mode)
+  --review-mode <mode>      init: auto, internal, pr, both or none (default: ship.review_mode)
   --no-pr, --no-merge       init: stop before the pull request, or before the merge
   --stop-before-wait        init: leave the review wait, fix-review and merge to the caller
   --resume                  init: resume the run (see init)
@@ -214,6 +217,8 @@ export function run(argv, env = process.env) {
       return { output: cmdPhase(args[0], options, env) };
     case "final-gates":
       return { output: cmdFinalGates(options, env) };
+    case "review-gate":
+      return { output: cmdReviewGate(options, env) };
     case "review-loop": {
       const dir = runDirOf(options);
       return { output: reviewLoop(dir, readState(dir)) };
