@@ -10,11 +10,11 @@
 // Its `milestones.<id>.status` values are read by plan.mjs (`completedFromState`)
 // and by esp-plan --amend, so `done` must keep its meaning.
 
-import { existsSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { accessSync, constants, existsSync, statSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 import { expandHome } from "../../config.mjs";
 import { withLock } from "../lock.mjs";
-import { readPlan } from "../../plan.mjs";
+import { filesOverlap, planBatches, readPlan, wholeRepo } from "../../plan.mjs";
 import { appendEvent, latestPlan, now } from "../../runs.mjs";
 import { gatesFor } from "./gates.mjs";
 import {
@@ -45,7 +45,9 @@ const statePath = (dir) => join(dir, "state.json");
 export function readMilestoneState(dir) {
   const path = statePath(dir);
   if (!existsSync(path))
-    throw new ShipError(`No state.json in ${dir}: run "ship.mjs milestone init" first`);
+    throw new ShipError(
+      `No state.json in ${dir}: run "ship.mjs milestone init" first`
+    );
   const state = readJson(path);
   const errors = checkMilestoneState(state);
   if (errors.length > 0)
@@ -146,7 +148,9 @@ export function cmdMilestoneInit(options, env = process.env) {
       shipSnapshot(dir),
     projectDir: stringOption(options["project-dir"]) ?? undefined
   });
-  const settings = shipSettings(configOf(snapshot));
+  const config = configOf(snapshot);
+  const settings = shipSettings(config);
+  const root = worktreeRoot(config);
 
   return withLock(path, () => {
     const at = now(env).toISOString();
@@ -187,12 +191,27 @@ export function cmdMilestoneInit(options, env = process.env) {
         changes.kept.push(m.id);
       }
     }
+    const batches = planBatches(plan, {
+      maxParallel: settings.max_parallel,
+      done: Object.keys(state.milestones).filter(
+        (id) => state.milestones[id].status === "done"
+      )
+    });
+    const parallel = parallelDecision({
+      mode: settings.parallel,
+      batches,
+      root,
+      rootUsable: worktreeRootUsable(root)
+    });
     Object.assign(state, {
       plan_path: planFile,
       plan_version: plan.version,
       config_snapshot: snapshot,
       max_retries: settings.max_retries_per_milestone,
-      parallel: settings.parallel,
+      parallel: parallel.enabled,
+      parallel_mode: settings.parallel,
+      parallel_reason: parallel.reason,
+      max_parallel: settings.max_parallel,
       commit_per_milestone: settings.commit_per_milestone,
       order: plan.milestones.map((m) => m.id),
       updated_at: at
@@ -209,30 +228,93 @@ export function cmdMilestoneInit(options, env = process.env) {
       created: !current,
       plan_version: plan.version,
       ...changes,
-      config_snapshot: snapshot
+      config_snapshot: snapshot,
+      parallel: {
+        mode: settings.parallel,
+        enabled: parallel.enabled,
+        reason: parallel.reason,
+        max_parallel: settings.max_parallel,
+        worktrees_root: root,
+        batches: batches.summary
+      }
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// parallel: whether the build runs batches of milestones in worktrees
+// ---------------------------------------------------------------------------
+
+export const PARALLEL_MODES = ["auto", "on", "off"];
+
+const worktreeRoot = (config) =>
+  resolve(
+    expandHome(String(config.worktrees?.root ?? "~/.esp-skills/worktrees"))
+  );
+
+/**
+ * True when `root` is a writable directory, or can be created under its
+ * nearest existing ancestor, which must be a writable directory.
+ */
+export function worktreeRootUsable(root) {
+  let dir = resolve(root);
+  for (;;) {
+    if (existsSync(dir)) {
+      try {
+        if (!statSync(dir).isDirectory()) return false;
+        accessSync(dir, constants.W_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) return false;
+    dir = parent;
+  }
+}
+
+/**
+ * Resolve `ship.parallel` for a plan (pure). `on` and `off` are taken as
+ * they are. `auto` is on only when `planBatches` found a batch of two or
+ * more milestones and the worktree root is usable.
+ */
+export function parallelDecision({ mode = "auto", batches, root, rootUsable }) {
+  if (!PARALLEL_MODES.includes(mode))
+    throw new ShipError(
+      `ship.parallel must be one of ${PARALLEL_MODES.join(", ")}`,
+      2
+    );
+  if (mode !== "auto")
+    return { enabled: mode === "on", reason: `ship.parallel is ${mode}` };
+  if (!batches?.parallel)
+    return {
+      enabled: false,
+      reason: "auto: no batch of two or more milestones with disjoint files"
+    };
+  if (!rootUsable)
+    return {
+      enabled: false,
+      reason: `auto: worktrees.root is not usable (${root})`
+    };
+  return {
+    enabled: true,
+    reason: `auto: the plan has a batch of ${batches.max_batch} milestones`
+  };
 }
 
 // ---------------------------------------------------------------------------
 // next: the milestone (or parallel batch) to run now
 // ---------------------------------------------------------------------------
 
-const normalizeFile = (f) =>
-  String(f).replace(/\\/g, "/").replace(/^\.\//, "").replace(/\/+$/, "");
-
-/** True when two file lists share a file, or one is a directory of the other. */
-export function filesOverlap(a, b) {
-  const left = a.map(normalizeFile);
-  const right = b.map(normalizeFile);
-  return left.some((x) =>
-    right.some((y) => x === y || x.startsWith(`${y}/`) || y.startsWith(`${x}/`))
-  );
-}
+// filesOverlap lives in plan.mjs (plan batches and lint share it).
+export { filesOverlap };
 
 /**
  * Decide what runs next. Returns `{ action, milestone, batch, attempt, amend, ... }`:
- * - `run`: start `milestone` (attempt 1) or the whole `batch` (parallel)
+ * - `run`: start `milestone` (attempt 1) or the whole `batch` (parallel: at
+ *   most `state.max_parallel` runnable milestones with disjoint files; one
+ *   without files, or covering the whole repository, always runs alone)
  * - `retry`: run `milestone` again; `amend` is the commit to amend, if any
  * - `halt`: `milestone` exhausted its retries or is halted
  * - `done`: every milestone is done
@@ -323,9 +405,12 @@ export function nextStep(state, { parallel = false, only } = {}) {
     };
 
   const batch = [runnable[0]];
-  if (parallel) {
+  const alone = (id) => ms[id].files.length === 0 || wholeRepo(ms[id].files);
+  const cap = Math.max(1, state.max_parallel ?? Infinity);
+  if (parallel && !alone(batch[0])) {
     for (const id of runnable.slice(1)) {
-      if (ms[id].files.length === 0 || ms[batch[0]].files.length === 0) break;
+      if (batch.length >= cap) break;
+      if (alone(id)) continue;
       if (batch.some((b) => filesOverlap(ms[b].files, ms[id].files))) continue;
       batch.push(id);
     }
@@ -416,10 +501,7 @@ export function cmdFinish(id, options, env = process.env) {
           `${id} is ${m.status}, not in-progress: run "start ${id}" first`
         );
       if (status === "done" && !commit && !m.commit)
-        throw new ShipError(
-          "--commit <sha> is required with --status done",
-          2
-        );
+        throw new ShipError("--commit <sha> is required with --status done", 2);
       if (commit) m.commit = commit;
       m.status = status;
       m.ended_at = now(env).toISOString();

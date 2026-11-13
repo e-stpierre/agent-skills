@@ -20,7 +20,9 @@ import { gateFailureAction, scopeCheck } from "../lib/ship/inline.mjs";
 import {
   filesOverlap,
   nextStep,
-  resolveModels
+  parallelDecision,
+  resolveModels,
+  worktreeRootUsable
 } from "../lib/ship/milestones.mjs";
 import {
   budgetCheck,
@@ -956,7 +958,8 @@ describe("helpers", () => {
   test("shipSettings reads ship.*, then defaults", () => {
     assert.equal(shipSettings({}, "inline").max_wall_minutes, 60);
     assert.equal(shipSettings({}).max_wall_minutes, 240);
-    assert.equal(shipSettings({}).parallel, false);
+    assert.equal(shipSettings({}).parallel, "auto");
+    assert.equal(shipSettings({}).max_parallel, 3);
     const config = {
       ship: {
         internal_review_rounds: 3,
@@ -975,11 +978,11 @@ describe("helpers", () => {
     assert.equal(shipSettings(config, "inline").max_wall_minutes, 30);
     assert.equal(settings.max_wall_minutes, 240);
     assert.equal(settings.max_retries_per_milestone, 1);
-    assert.equal(settings.parallel, true);
+    assert.equal(settings.parallel, "on");
     assert.deepEqual(settings.gates, { lint: "x" });
     assert.deepEqual(settings.phases, ["plan", "build", "pr", "fix-review"]);
-    assert.equal(shipSettings({ ship: { parallel: "auto" } }).parallel, false);
-    assert.equal(shipSettings({ ship: { parallel: "off" } }).parallel, false);
+    assert.equal(shipSettings({ ship: { parallel: "off" } }).parallel, "off");
+    assert.equal(shipSettings({ ship: { max_parallel: 2 } }).max_parallel, 2);
   });
 });
 
@@ -2021,6 +2024,150 @@ describe("nextStep", () => {
     assert.equal(filesOverlap(["src\\a.js"], ["./src/a.js"]), true);
     assert.equal(filesOverlap(["src/"], ["src/x/y.js"]), true);
     assert.equal(filesOverlap(["src/ab.js"], ["src/a"]), false);
+  });
+});
+
+describe("parallel milestones", () => {
+  const plan = (...items) =>
+    writeFileSync(join(runDir, "plan.md"), planText(1, items));
+  const initWith = (config) => {
+    userConfig({ worktrees: { root: join(tmp, "worktrees") }, ...config });
+    const r = ship("milestone", "init", "--base", SHA1);
+    assert.equal(r.code, 0, r.stderr);
+    return r.json();
+  };
+
+  test("auto runs two independent milestones as one batch", () => {
+    plan(milestone("M1"), milestone("M2"));
+    const out = initWith({});
+    assert.equal(out.parallel.mode, "auto");
+    assert.equal(out.parallel.enabled, true);
+    assert.match(out.parallel.reason, /batch of 2 milestones/);
+    assert.deepEqual(out.parallel.batches, ["Wave 1: M1 + M2"]);
+    const s = milestones();
+    assert.equal(s.parallel, true);
+    assert.equal(s.parallel_mode, "auto");
+    assert.equal(s.max_parallel, 3);
+    const next = ship("milestone", "next").json();
+    assert.equal(next.action, "run");
+    assert.deepEqual(next.batch, ["M1", "M2"]);
+  });
+
+  test("a conflicting cherry-pick retries the milestone sequentially", () => {
+    plan(milestone("M1"), milestone("M2"));
+    initWith({});
+    const batch = ship("milestone", "next").json().batch;
+    for (const id of batch)
+      assert.equal(ship("milestone", "start", id, "--base", SHA1).code, 0);
+    // M1 is cherry-picked; M2 conflicts, so it finishes failed with no commit.
+    ship("milestone", "finish", "M1", "--status", "done", "--commit", SHA2);
+    const failed = ship(
+      "milestone",
+      "finish",
+      "M2",
+      "--status",
+      "failed",
+      "--reason",
+      "conflict with M1"
+    ).json();
+    assert.equal(failed.commit, null);
+    assert.equal(failed.attempts_left, 2);
+    const retry = ship("milestone", "next").json();
+    assert.equal(retry.action, "retry");
+    assert.equal(retry.milestone, "M2");
+    assert.deepEqual(retry.batch, ["M2"]);
+    assert.equal(retry.attempt, 2);
+    assert.equal(retry.amend, null);
+    assert.equal(retry.last_failure, "conflict with M1");
+    ship("milestone", "start", "M2", "--base", SHA2);
+    ship("milestone", "finish", "M2", "--status", "done", "--commit", SHA3);
+    assert.equal(ship("milestone", "next").json().action, "done");
+  });
+
+  test("auto stays sequential for a dependency chain", () => {
+    plan(milestone("M1"), milestone("M2", { depends: "M1" }));
+    const out = initWith({});
+    assert.equal(out.parallel.enabled, false);
+    assert.match(out.parallel.reason, /no batch of two or more/);
+    assert.equal(milestones().parallel, false);
+  });
+
+  test("auto stays sequential when worktrees.root is not usable", () => {
+    plan(milestone("M1"), milestone("M2"));
+    writeFileSync(join(tmp, "blocker"), "x");
+    const out = initWith({
+      worktrees: { root: join(tmp, "blocker", "worktrees") }
+    });
+    assert.equal(out.parallel.enabled, false);
+    assert.match(out.parallel.reason, /worktrees.root is not usable/);
+    assert.deepEqual(ship("milestone", "next").json().batch, ["M1"]);
+  });
+
+  test("off and on are taken as they are, and --parallel forces a batch", () => {
+    plan(milestone("M1"), milestone("M2"));
+    assert.equal(initWith({ ship: { parallel: "off" } }).parallel.enabled, false);
+    assert.deepEqual(ship("milestone", "next").json().batch, ["M1"]);
+    assert.deepEqual(
+      ship("milestone", "next", "--parallel").json().batch,
+      ["M1", "M2"]
+    );
+    rmSync(join(runDir, "state.json"));
+    rmSync(join(runDir, "config.snapshot.json"));
+    const on = initWith({ ship: { parallel: "on" } });
+    assert.equal(on.parallel.enabled, true);
+    assert.equal(on.parallel.reason, "ship.parallel is on");
+  });
+
+  test("ship.max_parallel caps the batch", () => {
+    plan(milestone("M1"), milestone("M2"), milestone("M3"));
+    initWith({ ship: { max_parallel: 2 } });
+    assert.deepEqual(ship("milestone", "next").json().batch, ["M1", "M2"]);
+  });
+
+  test("parallelDecision and worktreeRootUsable", () => {
+    const yes = { parallel: true, max_batch: 3 };
+    const no = { parallel: false, max_batch: 1 };
+    assert.equal(
+      parallelDecision({ mode: "auto", batches: yes, rootUsable: true }).enabled,
+      true
+    );
+    assert.equal(
+      parallelDecision({ mode: "auto", batches: no, rootUsable: true }).enabled,
+      false
+    );
+    assert.equal(
+      parallelDecision({ mode: "auto", batches: yes, rootUsable: false })
+        .enabled,
+      false
+    );
+    assert.equal(
+      parallelDecision({ mode: "on", batches: no, rootUsable: false }).enabled,
+      true
+    );
+    assert.throws(() => parallelDecision({ mode: "maybe" }), ShipError);
+    assert.equal(worktreeRootUsable(join(tmp, "new", "deeper")), true);
+    writeFileSync(join(tmp, "file"), "x");
+    assert.equal(worktreeRootUsable(join(tmp, "file")), false);
+    assert.equal(worktreeRootUsable(join(tmp, "file", "below")), false);
+  });
+
+  test("nextStep never batches a whole-repository milestone", () => {
+    const s = {
+      max_retries: 2,
+      max_parallel: 3,
+      order: ["M1", "M2", "M3"],
+      milestones: Object.fromEntries(
+        [
+          ["M1", ["src/a.js"]],
+          ["M2", ["."]],
+          ["M3", ["src/b.js"]]
+        ].map(([id, files]) => [
+          id,
+          { status: "pending", attempts: 0, depends: [], files, commit: null }
+        ])
+      )
+    };
+    assert.deepEqual(nextStep(s, { parallel: true }).batch, ["M1", "M3"]);
   });
 });
 

@@ -24,7 +24,7 @@ Take any task from request to merged pull request: a one-line fix, a clear chore
 - **`[-P|--no-pr]`** (optional): Stop after the last commit and the internal review: no push, no pull request.
 - **`[-M|--no-merge]`** (optional): Stop after the pull request review fixes, with the pull request left open.
 - **`[-s|--stop-before-wait]`** (optional): End once the pull request is open. The caller waits for the reviews, fixes them and merges (for example a harness workflow with its own wait step). No `summary.md` is written: the caller ends the task.
-- **`[-l|--parallel]`** (optional): Build milestones whose dependencies are done and whose files do not overlap at the same time, each in its own worktree. Defaults to `ship.parallel`.
+- **`[-l|--parallel]`** (optional): Build milestones whose dependencies are done and whose files do not overlap at the same time, each in its own worktree, even when `ship.parallel` would not. Without it, `ship.parallel` decides (`auto`: on when the plan has a batch of two or more such milestones and `worktrees.root` is usable).
 - **`[-t|--track <track>]`** (optional): `inline` or `orchestrated`. Pins the track instead of letting triage pick it.
 - **`[-p|--plan <mode>]`** (optional): `auto`, `skip` or `always`. `skip` uses no planning model: a plan file is reused, a task list imported, a small request runs inline, and a larger one gets a synthesized one-milestone plan. `always` generates a plan even for a small prompt. Defaults to `ship.plan_mode` (`auto`).
 - **`[-R|--review <mode>]`** (optional): `auto`, `internal`, `pr`, `both` or `none`. `internal` keeps only the internal review, `pr` only the bot review rounds, `none` drops both (the merge still needs green checks). `auto` keeps the bot review and decides the internal review after the build from the real diff (see review.md). Defaults to `ship.review_mode` (`auto`).
@@ -90,7 +90,7 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 - **`ship.inline.max_files_changed`** (`10`) and **`ship.inline.escalate`** (`true`): the inline limit and whether going over it moves the task to the orchestrated track
 - **`ship.budgets.inline.max_wall_minutes`** (`60`), **`ship.budgets.orchestrated.max_wall_minutes`** (`240`) and **`ship.budgets.orchestrated.max_milestones`** (`12`): budgets checked at each phase boundary
 - **`ship.halt_on`** (all five stop conditions): the stop conditions honored (see decision-policy.md)
-- **`ship.max_retries_per_milestone`** (`2`), **`ship.parallel`** (`auto`), **`ship.commit_per_milestone`** (`true`): the milestone loop
+- **`ship.max_retries_per_milestone`** (`2`), **`ship.parallel`** (`auto`), **`ship.max_parallel`** (`3`), **`ship.commit_per_milestone`** (`true`): the milestone loop
 - **`ship.gates.<test|lint|typecheck|build>`** (`null`: detected), **`ship.gates.always`** (`[]`) and **`ship.gates_scope`** (`milestone`): the gate commands, and the checks each builder, verifier and fixer runs (see gates.md)
 - **`fix-review.max_rounds`** (`3`) and **`fix-review.wait.default_reviewers`** (`["claude"]`): the pull request rounds and the reviewers waited for
 - **`pr.base`** (`null`: the repository default branch), **`pr.draft`** (`false`), **`pr.body_from_run`** (`true`) and **`pr.body_sections`**: the pull request

@@ -351,6 +351,7 @@ export function parsePlan(text, { file } = {}) {
         `milestone ${m.id}: touches ${m.files.length} files; consider splitting it`
       );
   }
+  warnings.push(...parallelWarnings(milestones));
 
   const plan = {
     plan_format: front.plan_format ?? null,
@@ -392,6 +393,150 @@ export function lintPlan(file) {
     milestones: plan.milestones.map((m) => m.id),
     errors,
     warnings
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Parallel batches
+// ---------------------------------------------------------------------------
+
+/** A file ref as a comparable path: forward slashes, no `./`, no trailing `/`. */
+function normalizeFile(f) {
+  const path = String(f)
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/\/+$/, "");
+  // A glob compares by its static directory prefix (`src/**/x.js` -> `src`).
+  const glob = path.search(/[*?[{]/);
+  if (glob === -1) return path === "." ? "" : path;
+  const prefix = path.slice(0, glob);
+  return prefix.slice(0, Math.max(0, prefix.lastIndexOf("/")));
+}
+
+/** True when a file list covers the whole repository (`.`, or a top-level glob). */
+export const wholeRepo = (files) => files.some((f) => normalizeFile(f) === "");
+
+/**
+ * True when two file lists share a file, or one is a directory (or a glob
+ * prefix) of the other. `.` overlaps everything.
+ */
+export function filesOverlap(a, b) {
+  const left = a.map(normalizeFile);
+  const right = b.map(normalizeFile);
+  return left.some((x) =>
+    right.some(
+      (y) =>
+        x === "" ||
+        y === "" ||
+        x === y ||
+        x.startsWith(`${y}/`) ||
+        y.startsWith(`${x}/`)
+    )
+  );
+}
+
+/** Milestone ID -> set of every milestone it depends on, directly or not. */
+function ancestors(milestones) {
+  const byId = new Map(milestones.map((m) => [m.id, m]));
+  const memo = new Map();
+  const visit = (id, seen = new Set()) => {
+    if (memo.has(id)) return memo.get(id);
+    const out = new Set();
+    if (seen.has(id)) return out;
+    seen.add(id);
+    for (const dep of byId.get(id)?.depends ?? []) {
+      if (!byId.has(dep)) continue;
+      out.add(dep);
+      for (const a of visit(dep, seen)) out.add(a);
+    }
+    memo.set(id, out);
+    return out;
+  };
+  return new Map(milestones.map((m) => [m.id, visit(m.id)]));
+}
+
+/** Lint warnings for milestones that can never run in parallel. */
+function parallelWarnings(milestones) {
+  if (milestones.length < 2) return [];
+  const warnings = [];
+  const deps = ancestors(milestones);
+  for (const m of milestones)
+    if (m.files.length > 0 && wholeRepo(m.files))
+      warnings.push(
+        `milestone ${m.id}: Files covers the whole repository, so it never runs in parallel; list its files`
+      );
+  milestones.forEach((a, i) => {
+    for (const b of milestones.slice(i + 1)) {
+      if (deps.get(a.id).has(b.id) || deps.get(b.id).has(a.id)) continue;
+      if (wholeRepo(a.files) || wholeRepo(b.files)) continue;
+      if (filesOverlap(a.files, b.files))
+        warnings.push(
+          `milestones ${a.id} and ${b.id} share files but neither depends on the other, so they cannot run in parallel: add a Depends, or move the shared files to an earlier milestone`
+        );
+    }
+  });
+  return warnings;
+}
+
+/**
+ * Dependency waves of a plan, each split into batches of milestones with
+ * disjoint files (at most `maxParallel` per batch). Wave N holds the
+ * milestones whose longest dependency chain has N - 1 links. A milestone
+ * without files, or one that covers the whole repository, is a batch alone.
+ * `done` milestones (IDs) are left out. Returns `{ waves: [{ wave,
+ * milestones, batches }], max_batch, parallel, summary }`.
+ */
+export function planBatches(plan, { maxParallel = Infinity, done = [] } = {}) {
+  const skip = new Set(done);
+  const ids = new Set(plan.milestones.map((m) => m.id));
+  const level = new Map();
+  for (const m of plan.milestones) {
+    const deps = m.depends.filter((d) => ids.has(d) && !skip.has(d));
+    level.set(m.id, 1 + Math.max(0, ...deps.map((d) => level.get(d) ?? 0)));
+  }
+  const cap = Math.max(1, Number(maxParallel) || Infinity);
+  const waves = [];
+  for (const m of plan.milestones) {
+    if (skip.has(m.id)) continue;
+    const n = level.get(m.id);
+    let wave = waves.find((w) => w.wave === n);
+    if (!wave) {
+      wave = { wave: n, milestones: [], batches: [] };
+      waves.push(wave);
+    }
+    wave.milestones.push(m.id);
+    const solo = m.files.length === 0 || wholeRepo(m.files);
+    const batch = solo
+      ? null
+      : wave.batches.find(
+          (b) =>
+            !b.solo &&
+            b.ids.length < cap &&
+            b.files.every((f) => !filesOverlap(f, m.files))
+        );
+    if (batch) {
+      batch.ids.push(m.id);
+      batch.files.push(m.files);
+    } else wave.batches.push({ ids: [m.id], files: [m.files], solo });
+  }
+  waves.sort((a, b) => a.wave - b.wave);
+  const out = waves.map((w) => ({
+    wave: w.wave,
+    milestones: w.milestones,
+    batches: w.batches.map((b) => b.ids)
+  }));
+  const maxBatch = Math.max(
+    0,
+    ...out.flatMap((w) => w.batches.map((b) => b.length))
+  );
+  return {
+    waves: out,
+    max_batch: maxBatch,
+    parallel: maxBatch >= 2,
+    summary: out.map(
+      (w) =>
+        `Wave ${w.wave}: ${w.batches.map((b) => b.join(" + ")).join(", then ")}`
+    )
   };
 }
 
@@ -476,12 +621,12 @@ export function diffPlans(previous, next, completed = []) {
 // (`### ESH-03: Triage`, at any level). Each package section may carry
 // `**Goal**`-style fields and Tasks, Acceptance Criteria and Validation
 // lists, as subsections or bold labels.
-const PACKAGE_ID = /^(?:\*\*|`)?([A-Z][A-Z0-9]*-\d+[a-z]?)\b(?:\*\*|`)?[\s:.)-]*/;
+const PACKAGE_ID =
+  /^(?:\*\*|`)?([A-Z][A-Z0-9]*-\d+[a-z]?)\b(?:\*\*|`)?[\s:.)-]*/;
 const PACKAGE_REF = /\b[A-Z][A-Z0-9]*-\d+[a-z]?\b/g;
 const CHECKBOX = /^\s{0,3}[-*+]\s+\[([ xX])\]\s+(.*)$/;
 const ANY_HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
-const BOLD_FIELD =
-  /^\s*(?:[-*+]\s+)?\*\*([A-Za-z][A-Za-z ]*?):?\*\*:?\s*(.*)$/;
+const BOLD_FIELD = /^\s*(?:[-*+]\s+)?\*\*([A-Za-z][A-Za-z ]*?):?\*\*:?\s*(.*)$/;
 const PACKAGE_FIELDS = {
   goal: "goal",
   objective: "goal",
@@ -901,10 +1046,13 @@ Commands:
   import <file>           Convert a task list into a plan draft, one milestone per unchecked
                           package; prints the lint report of the written file, plus mapping
   synthesize              A one-milestone plan with no model (--title, --goal, --validation)
+  batches <file>          Dependency waves split into batches of milestones with disjoint
+                          files: { waves: [{ wave, milestones, batches }], max_batch, parallel }
 
 Options:
-  --completed <M1,M2>     Completed milestone IDs (diff)
-  --run-dir <path>        diff: read completed milestones from <run-dir>/state.json;
+  --completed <M1,M2>     Completed milestone IDs (diff, batches)
+  --max-parallel <n>      batches: most milestones per batch (default: no limit)
+  --run-dir <path>        diff, batches: read completed milestones from <run-dir>/state.json;
                           import, synthesize: write <run-dir>/plan.md
   --out <file>            import, synthesize: write this file (default: print the plan)
   --type <type>           import, synthesize: feature, bug or chore (default: feature)
@@ -978,6 +1126,36 @@ export function run(argv) {
         );
       }
       return { output: report, exitCode: report.valid ? 0 : 1 };
+    }
+    case "batches": {
+      if (!args[0])
+        throw new PlanError(
+          "Usage: batches <file> [--max-parallel <n>] [--completed M1,M2] [--run-dir <path>]",
+          2
+        );
+      const { plan, errors } = readPlan(args[0]);
+      if (errors.length > 0)
+        return { output: { valid: false, errors }, exitCode: 1 };
+      const max = options["max-parallel"];
+      if (
+        max !== undefined &&
+        !(Number.isInteger(Number(max)) && Number(max) >= 1)
+      )
+        throw new PlanError("--max-parallel must be an integer >= 1", 2);
+      const done = new Set(
+        String(options.completed ?? "")
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean)
+      );
+      if (options["run-dir"])
+        for (const id of completedFromState(options["run-dir"])) done.add(id);
+      return {
+        output: planBatches(plan, {
+          maxParallel: max === undefined ? Infinity : Number(max),
+          done: [...done]
+        })
+      };
     }
     case "tasks": {
       if (!args[0]) throw new PlanError("Usage: tasks <file>", 2);

@@ -5,13 +5,13 @@ The `build` phase of the orchestrated track. `ship.mjs next` returns `phase: bui
 ## Setup
 
 1. `phase build --status started`.
-2. `milestone init --base <git rev-parse HEAD>` (in the working directory `cwd` from `next`). It creates `state.json` from the plan, or syncs it with an amended plan and keeps the done milestones. It is safe to repeat, so a resume runs it too.
+2. `milestone init --base <git rev-parse HEAD>` (in the working directory `cwd` from `next`). It creates `state.json` from the plan, or syncs it with an amended plan and keeps the done milestones. It is safe to repeat, so a resume runs it too. Its `parallel` output (`mode`, `enabled`, `reason`, `max_parallel`, `worktrees_root`, `batches`) says whether `next` returns parallel batches: `ship.parallel` `on` or `off` is taken as is, and `auto` (the default) is on only when the plan has a batch of two or more milestones with disjoint files and `worktrees.root` is usable. Log it once as a low-risk `policy` decision (`Build in parallel batches` or `Build one milestone at a time`, with the reason).
 3. Parse the plan once with `node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" parse <plan_path>` and keep the milestone blocks.
 4. `milestone gates --project-dir <cwd>` once for the full gates, then `milestone gates --milestone <id> --project-dir <cwd>` for each milestone: its `commands` are the scoped checks of its builder and verifier (see gates.md).
 
 ## Loop
 
-Run `milestone next` (add `--parallel` with `--parallel`, or when `ship.parallel` is `on`) and act on `action`:
+Run `milestone next` (add `--parallel` when the skill got `--parallel`: it forces batches even when `milestone init` resolved them off) and act on `action`:
 
 - **`done`**: every milestone is done. Go to Wrap Up
 - **`halt`** or **`blocked`**: follow Halting
@@ -40,13 +40,14 @@ The builder writes `steps/<NN>-build-<id>/result.json` and the verifier `steps/<
 
 ## Parallel Batches
 
-`next` returns a `batch` of runnable milestones whose `files` do not overlap (a milestone without files never runs in parallel). For each milestone of the batch:
+`next` returns a `batch` of at most `ship.max_parallel` (default `3`) runnable milestones whose `files` do not overlap. A milestone without files, or whose files cover the whole repository, never runs in a batch. Batches never run in Single Milestone Mode. For a batch:
 
-1. Create a worktree from the current HEAD: `git worktree add <worktrees.root>/<run-id>-<id> -b <branch>-<id> HEAD`.
-2. `milestone start <id> --base <HEAD>`, then spawn its builder and its verifier, in parallel with the other milestones of the batch, telling each to work in the worktree path.
-3. When every milestone of the batch has a result, integrate the verified ones in plan order: `git cherry-pick <commit>` onto the task branch, then `milestone finish <id> --status done --commit <new HEAD>`. When a cherry-pick conflicts, run `git cherry-pick --abort` and finish the milestone as `failed` with reason `conflict with <ids>` and no `--commit`: its retry runs sequentially in the main tree.
-4. Finish the unverified milestones as `failed` without `--commit` (their commit is not on the task branch), then remove every worktree of the batch (`git worktree remove --force <path>`, `git branch -D <branch>-<id>`).
-5. After integrating two or more milestones, run the gate commands once in the main tree. If one fails, halt the build with a Halt decision (`gates-exhausted`): the combination broke what each milestone passed alone.
+1. **Worktrees**: for each milestone, create a worktree from the current HEAD: `git worktree add <worktrees_root>/<run-id>-<id> -b <branch>-<id> HEAD` (`worktrees_root` from `milestone init`).
+2. **Build and verify**: `milestone start <id> --base <HEAD>` for each milestone, then spawn every builder at once (several Agent calls in one message), each told to work in its worktree path. Spawn each verifier, in the same worktree, as soon as its builder returns a commit.
+3. **Integrate**: when every milestone of the batch has a result, take the verified ones in plan order: `git cherry-pick <commit>` onto the task branch in the main tree, then `milestone finish <id> --status done --commit <new HEAD>`. When a cherry-pick conflicts, run `git cherry-pick --abort` and `milestone finish <id> --status failed --reason "conflict with <ids>"` with no `--commit`: `next` then returns it as a `retry` with a batch of one, which runs sequentially in the main tree from the new HEAD.
+4. **Unverified**: finish each milestone whose verifier failed as `failed`, without `--commit` (its commit is not on the task branch). Its retry also runs sequentially.
+5. **Clean up**: remove every worktree of the batch (`git worktree remove --force <path>`) and its branch (`git branch -D <branch>-<id>`), even after a failure.
+6. **Combined gates**: after integrating two or more milestones, run `milestone gates --files <files of the integrated milestones>` once in the main tree and run its `commands`. If one fails, halt the build with a Halt decision (`gates-exhausted`): the combination broke what each milestone passed alone. The full gates still run once in the `final-gates` phase.
 
 ## Halting
 

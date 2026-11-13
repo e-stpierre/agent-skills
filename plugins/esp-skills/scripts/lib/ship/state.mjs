@@ -209,9 +209,9 @@ export function shipSettings(config, track = "orchestrated") {
       ship.budgets?.[track]?.max_wall_minutes ?? (inline ? 60 : 240),
     max_milestones: ship.budgets?.orchestrated?.max_milestones ?? 12,
     max_retries_per_milestone: ship.max_retries_per_milestone ?? 2,
-    // ship.parallel is auto|on|off. Only on builds batches for now: auto stays
-    // sequential until the batch detection decides it.
-    parallel: ship.parallel === "on",
+    // auto|on|off: `milestone init` resolves auto from the plan batches.
+    parallel: ship.parallel ?? "auto",
+    max_parallel: ship.max_parallel ?? 3,
     commit_per_milestone: ship.commit_per_milestone ?? true,
     gates: ship.gates ?? {},
     gates_scope: ship.gates_scope ?? "milestone",

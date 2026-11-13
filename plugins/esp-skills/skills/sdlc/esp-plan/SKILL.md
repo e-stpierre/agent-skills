@@ -79,6 +79,7 @@ esp-plan is a steerable skill: it writes a result block, reads operator messages
 | Latest plan              | `runs.mjs plan` (`{ path, version }`, version 0 when there is none)                                |
 | Lint                     | `plan.mjs lint <plan-file>`                                                                        |
 | Import draft             | `plan.mjs import <path> --run-dir <path> [--type <type>]` writes `plan.md` and prints its lint     |
+| Parallel batches         | `plan.mjs batches <plan-file>` prints `{ waves, max_batch, parallel, summary }`                    |
 | Amendment check          | `plan.mjs diff <previous> <next> --run-dir <path>`                                                 |
 | Amendment log            | `runs.mjs amend --text <amendment> --affects <ids> --from user`                                    |
 | Decision                 | `runs.mjs decision --json '<decision>'` (see the decision policy for fields and `x-esp-class`)     |
@@ -86,6 +87,15 @@ esp-plan is a steerable skill: it writes a result block, reads operator messages
 | Own run finished         | `runs.mjs update --status done`, or `halted` or `awaiting-human` to match the result               |
 
 The step name is `plan` for a new plan and `plan-v<N>` for an amendment that writes version N.
+
+### Parallel Milestones
+
+`esp-ship` builds milestones that do not depend on each other and touch disjoint files at the same time, in separate worktrees. Shape the milestones so the most work can run in parallel:
+
+- **Depends**: declare a dependency only when the milestone really needs the other one's code. Order alone is not a dependency
+- **Files**: list every file the milestone creates or changes, so the list is exhaustive. Keep the lists of milestones that could run at the same time disjoint, and avoid `.` (the whole repository): such a milestone always runs alone
+- **Shared scaffolding**: move what several milestones need (a shared type, a config entry, a registry line) into its own early milestone, so the later ones fan out from it instead of touching the same file
+- **Batches**: `plan.mjs batches <plan-file>` prints the dependency waves, each split into batches of milestones with disjoint files. Plan-lint warns on two independent milestones that share a file and on a milestone whose files cover the whole repository
 
 ### Operator Messages
 
@@ -116,7 +126,8 @@ Classify every open choice with the decision policy:
 12. **Read the latest plan and completed milestones**: `runs.mjs plan` gives version N (fail if it is 0). Completed milestones are the `milestones` entries of `<run-dir>/state.json` with `status: done`; when there is no `state.json`, treat none as completed.
 13. **Write `plan.v<N+1>.md`** with `version: N+1`: copy the previous version, keep every completed milestone block byte for byte, and change, add or remove only remaining milestones to apply the amendment. New milestones get new IDs; existing IDs keep theirs.
 14. **Check and log the amendment**: run `plan.mjs diff <previous> <new> --run-dir <run-dir>` and fix the new file until it passes. Then run `runs.mjs amend --text <amendment> --affects <affects>` with the `affects` list from the diff. It appends to `amendments.jsonl` and logs the operator decision.
-15. **Plan-lint**: run `plan.mjs lint` on the written file. Fix every error and lint again until `valid` is true. Resolve each warning, or state in the report why it stays.
+15. **Plan-lint**: run `plan.mjs lint` on the written file. Fix every error and lint again until `valid` is true. Resolve each warning, or state in the report why it stays. A shared-file warning is resolved by a real `Depends`, or by moving the shared files to an earlier milestone (see Parallel Milestones).
+    - **Parallel batches**: when the plan has two or more milestones, run `plan.mjs batches <plan-file>` (with `--run-dir <run-dir>` for an amendment, so completed milestones are left out) and write its `summary` lines as a list in a `## Parallel Batches` context section, just before `## Milestones` (replace the section of a copied version). Lint again.
 16. **Interactive approval** (`plan` or `all`): present the summary and ask for approval before the result block. Apply requested changes to the same file (the version is final only once approved) and lint again.
 17. **Write the result block** with `runs.mjs result <step>` and update an own run's status. Use `status: done` (or `awaiting-human` with `needs_input`, see Asking and Deciding), `max_risk` from the plan's risks, and `outputs` with `plan_path`, `plan_version`, `plan_type`, `milestones` (IDs) and `milestones_remaining` (IDs not completed). For an import, add `source` (the path) and `imported` (package ID to milestone ID). For an amendment, add `amendment` (the `A00n` ID) and `affects`.
 18. **Report** the summary (see Output Guidance), then end with the line printed by `runs.mjs result` as the final output line.

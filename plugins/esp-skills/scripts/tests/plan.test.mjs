@@ -9,8 +9,11 @@ import {
   completedFromState,
   diffPlans,
   importTaskList,
+  filesOverlap,
   parsePlan,
   parseTaskList,
+  planBatches,
+  renderPlan,
   synthesizePlan
 } from "../plan.mjs";
 
@@ -543,10 +546,16 @@ describe("task lists", () => {
   });
 
   test("missing fields stay empty so plan-lint names them", () => {
-    const text = TASK_LIST.replace(/\*\*Validation\*\*:\n\n- `npm test api`\n/, "");
+    const text = TASK_LIST.replace(
+      /\*\*Validation\*\*:\n\n- `npm test api`\n/,
+      ""
+    );
     const { errors } = parsePlan(importTaskList(text).markdown);
     assert.equal(errors.length, 1);
-    assert.match(errors[0], /milestone M1 .*"#### Validation" has no list items/);
+    assert.match(
+      errors[0],
+      /milestone M1 .*"#### Validation" has no list items/
+    );
     assert.throws(
       () => importTaskList(TASK_LIST.replace(/- \[ \]/g, "- [x]")),
       /every package/
@@ -618,5 +627,177 @@ describe("CLI import and synthesize", () => {
     assert.equal(plan.milestones[0].complexity, "high");
     const usage = cli(["synthesize", "--title", "t", "--goal", "g"]);
     assert.equal(usage.code, 2);
+  });
+});
+
+/** A plan with one milestone per entry: `[id, files, depends]`. */
+function toyPlan(entries) {
+  return renderPlan({
+    title: "Toy",
+    created: "2026-11-12",
+    overview: "A toy plan.",
+    milestones: entries.map(([id, files, depends = []]) => ({
+      id,
+      title: `Build ${id}`,
+      goal: `${id} works`,
+      complexity: "low",
+      depends,
+      files,
+      tasks: [`Implement ${id}`],
+      acceptance: [`${id} is tested`],
+      validation: ["npm test"]
+    }))
+  });
+}
+
+describe("parallel batches", () => {
+  test("filesOverlap compares files, directories, globs and the whole repo", () => {
+    assert.equal(filesOverlap(["src\\a.js"], ["./src/a.js"]), true);
+    assert.equal(filesOverlap(["src/"], ["src/x/y.js"]), true);
+    assert.equal(filesOverlap(["src/ab.js"], ["src/a"]), false);
+    assert.equal(filesOverlap(["."], ["docs/x.md"]), true);
+    assert.equal(filesOverlap(["src/**/*.js"], ["src/a/b.js"]), true);
+    assert.equal(filesOverlap(["src/*.js"], ["docs/a.md"]), false);
+    assert.equal(filesOverlap(["*.md"], ["src/a.js"]), true);
+  });
+
+  test("waves follow the dependencies and batches keep files disjoint", () => {
+    const { plan } = parsePlan(
+      toyPlan([
+        ["M1", ["src/core.js"]],
+        ["M2", ["src/a.js"], ["M1"]],
+        ["M3", ["src/b.js"], ["M1"]],
+        ["M4", ["src/a.js"], ["M1"]],
+        ["M5", ["docs/x.md"], ["M2", "M3"]]
+      ])
+    );
+    const out = planBatches(plan);
+    assert.deepEqual(out.waves, [
+      { wave: 1, milestones: ["M1"], batches: [["M1"]] },
+      {
+        wave: 2,
+        milestones: ["M2", "M3", "M4"],
+        batches: [["M2", "M3"], ["M4"]]
+      },
+      { wave: 3, milestones: ["M5"], batches: [["M5"]] }
+    ]);
+    assert.equal(out.max_batch, 2);
+    assert.equal(out.parallel, true);
+    assert.deepEqual(out.summary, [
+      "Wave 1: M1",
+      "Wave 2: M2 + M3, then M4",
+      "Wave 3: M5"
+    ]);
+  });
+
+  test("maxParallel caps a batch, and done milestones are left out", () => {
+    const { plan } = parsePlan(
+      toyPlan([
+        ["M1", ["a"]],
+        ["M2", ["b"]],
+        ["M3", ["c"]],
+        ["M4", ["d"], ["M1"]]
+      ])
+    );
+    assert.deepEqual(planBatches(plan, { maxParallel: 2 }).waves[0].batches, [
+      ["M1", "M2"],
+      ["M3"]
+    ]);
+    const rest = planBatches(plan, { done: ["M1"] });
+    assert.deepEqual(rest.waves, [
+      { wave: 1, milestones: ["M2", "M3", "M4"], batches: [["M2", "M3", "M4"]] }
+    ]);
+  });
+
+  test("a whole-repository milestone runs alone, and a chain is not parallel", () => {
+    const { plan } = parsePlan(
+      toyPlan([
+        ["M1", ["."]],
+        ["M2", ["src/a.js"]]
+      ])
+    );
+    assert.deepEqual(planBatches(plan).waves[0].batches, [["M1"], ["M2"]]);
+    assert.equal(planBatches(plan).parallel, false);
+    const chain = parsePlan(
+      toyPlan([
+        ["M1", ["a"]],
+        ["M2", ["b"], ["M1"]]
+      ])
+    ).plan;
+    assert.equal(planBatches(chain).parallel, false);
+    assert.equal(planBatches(chain).max_batch, 1);
+  });
+
+  test("lint warns on independent milestones that share files", () => {
+    const { errors, warnings } = parsePlan(
+      toyPlan([
+        ["M1", ["src/a.js"]],
+        ["M2", ["src"]],
+        ["M3", ["src/a.js"], ["M1"]],
+        ["M4", ["src/a.js", "docs/b.md"], ["M3"]]
+      ])
+    );
+    assert.deepEqual(errors, []);
+    assert.equal(warnings.length, 3, warnings.join("\n"));
+    assert.match(warnings[0], /M1 and M2 share files/);
+    assert.match(warnings[1], /M2 and M3 share files/);
+    assert.match(warnings[2], /M2 and M4 share files/);
+  });
+
+  test("lint warns on a whole-repository milestone only when there are others", () => {
+    const multi = parsePlan(
+      toyPlan([
+        ["M1", ["."]],
+        ["M2", ["a"], ["M1"]]
+      ])
+    );
+    assert.equal(multi.warnings.length, 1);
+    assert.match(multi.warnings[0], /M1: Files covers the whole repository/);
+    assert.deepEqual(parsePlan(toyPlan([["M1", ["."]]])).warnings, []);
+  });
+
+  describe("CLI", () => {
+    let dir;
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), "esp-plan-batches-"));
+    });
+    afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+    test("batches prints the waves, with --max-parallel and --completed", () => {
+      const file = join(dir, "plan.md");
+      writeFileSync(
+        file,
+        toyPlan([
+          ["M1", ["a"]],
+          ["M2", ["b"]],
+          ["M3", ["c"], ["M1"]]
+        ])
+      );
+      const out = cli(["batches", file]).json();
+      assert.deepEqual(out.summary, ["Wave 1: M1 + M2", "Wave 2: M3"]);
+      assert.equal(out.parallel, true);
+      const capped = cli(["batches", file, "--max-parallel", "1"]).json();
+      assert.equal(capped.parallel, false);
+      const rest = cli(["batches", file, "--completed", "M1"]).json();
+      assert.deepEqual(rest.summary, ["Wave 1: M2 + M3"]);
+      writeFileSync(
+        join(dir, "state.json"),
+        JSON.stringify({ milestones: { M1: { status: "done" } } })
+      );
+      assert.deepEqual(
+        cli(["batches", file, "--run-dir", dir]).json().summary,
+        ["Wave 1: M2 + M3"]
+      );
+    });
+
+    test("batches refuses an invalid plan and a bad --max-parallel", () => {
+      const bad = join(dir, "bad.md");
+      writeFileSync(bad, "# nothing\n");
+      assert.equal(cli(["batches", bad]).code, 1);
+      const file = join(dir, "plan.md");
+      writeFileSync(file, toyPlan([["M1", ["a"]]]));
+      assert.equal(cli(["batches", file, "--max-parallel", "0"]).code, 2);
+      assert.equal(cli(["batches"]).code, 2);
+    });
   });
 });
