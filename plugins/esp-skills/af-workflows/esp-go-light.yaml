@@ -1,0 +1,56 @@
+name: esp-go-light
+version: "1.0"
+description: |
+  Take a small task from request to merged pull request with esp-skills under agentic-forge:
+  esp-ship on the inline track (one session, one commit) until the pull request is open, then
+  a token-free bot review wait, the review fix rounds, the required checks and the merge.
+requires: { agentic-forge: ">=0.12", contract: 1 }
+settings:
+  required-tools: [Read, Edit, Write, Glob, Grep, Bash]
+  timeout-minutes: 240
+  worktree:
+    enabled: "{{ variables.use_worktree }}"
+    cleanup: on-merge
+
+variables:
+  - name: task
+    type: string
+    required: true
+    description: The task, a GitHub issue URL or #number, or a path to a file that describes it
+  - name: reviewers
+    type: string
+    required: false
+    default: claude
+    description: Pull request reviewers to wait for, comma-separated (claude, codex or GitHub logins)
+  - name: use_worktree
+    type: boolean
+    required: false
+    default: false
+    description: Run in an isolated worktree (needed to run beside another run of the same repository)
+
+steps:
+  # esp-ship ends with status escalate when the task outgrows the inline track: the run
+  # stops blocked, and `af resume` (or esp-go) continues it.
+  - name: ship
+    type: skill
+    skill: esp-skills:esp-ship
+    args: "--track inline --stop-before-wait {{ variables.task }}"
+    timeout-minutes: 90
+
+  - name: wait-review
+    type: wait-for-review
+    reviewers: "{{ variables.reviewers }}"
+    trigger: true
+
+  - name: fix-review
+    type: skill
+    skill: esp-skills:esp-fix-review
+    args: "--reviewers {{ variables.reviewers }}"
+    timeout-minutes: 90
+
+  - name: wait-checks
+    type: wait-for-checks
+
+  - name: merge
+    type: merge
+    skill: esp-skills:esp-merge

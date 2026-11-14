@@ -58,13 +58,16 @@ When a skill runs with `--run-dir` and is headless, "Ask" becomes a `needs_input
     ],
     "recommended": "keep",
     "context": "Comment https://github.com/o/r/pull/12#discussion_r1; 3 call sites",
-    "blocking": true
+    "blocking": true,
+    "kind": "decision",
+    "risk": "medium"
   }
 }
 ```
 
 - **B-Decide** requests set `blocking: false` and always set `recommended`: the harness may apply it after its timeout.
 - **B-Scope** and **Halt** requests set `blocking: true`.
+- Set `kind` (`question` for missing information, `permission` to approve an action, `decision` for a choice the step may not take alone) and `risk`, the decision's risk. A harness applies `recommended` on its own only to a `risk: low` request: leave `risk` out, or set it higher, when a wrong default would hurt.
 - Before ending with `needs_input`, finish every item that does not depend on the answer, and log those decisions.
 - The answer comes back as an operator message. Log it with `source: operator` (`runs.mjs deliver` does this) and continue.
 
