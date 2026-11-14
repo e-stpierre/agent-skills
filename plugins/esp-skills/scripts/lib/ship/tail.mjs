@@ -278,12 +278,18 @@ export function cmdHalt(options, env = process.env) {
   });
 }
 
-/** Phase steps in run order: plan, build, the internal review rounds, then the tail. */
+/**
+ * Phase steps in run order: plan, build (or the last milestone step), the
+ * internal review rounds, then the tail.
+ */
 function orderedSteps(steps) {
   const ordered = [];
   const named = (n) => latestNamed(steps, n);
-  for (const name of ["plan", "build"])
-    if (named(name)) ordered.push({ name, result: named(name) });
+  if (named("plan")) ordered.push({ name: "plan", result: named("plan") });
+  // The build phase ends with the aggregate build step, or with the last
+  // milestone step when the loop stopped on one (it carries its needs_input).
+  const build = steps.filter((s) => /^build(-.+)?$/.test(s.name)).at(-1);
+  if (build) ordered.push({ name: build.name, result: build.result });
   const fixes = stepsByRound(steps, "fix-review");
   const reviews = [...stepsByRound(steps, "review").entries()].sort(
     (a, b) => a[0] - b[0]

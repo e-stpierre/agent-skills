@@ -171,6 +171,10 @@ export function applyTrack(state, track, config) {
     ])
   );
   state.max_wall_minutes = settings.max_wall_minutes;
+  // An inline run has no plan: moving it to the orchestrated track needs a
+  // plan source the plan phase can act on, honoring the plan mode.
+  if (track === "orchestrated" && state.plan_source === "none")
+    state.plan_source = state.plan_mode === "skip" ? "synthesize" : "generate";
   return state;
 }
 

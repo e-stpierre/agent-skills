@@ -1080,7 +1080,7 @@ describe("inline limits", () => {
 
 describe("switch-track", () => {
   test("moves an owned inline run to the orchestrated track in place", () => {
-    initInline();
+    initInline("--plan-source", "none");
     ship("phase", "context", "--status", "done");
     ship("phase", "branch", "--status", "done", "--branch", "feature/oauth");
     ship("phase", "implement", "--status", "started");
@@ -1121,6 +1121,9 @@ describe("switch-track", () => {
     const next = ship("next").json();
     assert.equal(next.phase, "plan");
     assert.equal(next.role, "planner");
+    // The inline-only plan source is replaced by one the plan phase handles.
+    assert.equal(s.plan_source, "generate");
+    assert.equal(next.plan_source, "generate");
     const block = ship("result").json();
     assert.equal(block.outputs.track, "orchestrated");
     assert.equal(block.outputs.escalated_from.trigger, "files");
@@ -1259,7 +1262,13 @@ describe("escalate (caller-owned run)", () => {
   });
 
   test("a resume takes the escalated run over on the orchestrated track", () => {
-    initInline("--caller-owned");
+    initInline(
+      "--caller-owned",
+      "--plan-source",
+      "none",
+      "--plan-mode",
+      "skip"
+    );
     ship("phase", "branch", "--status", "done", "--branch", "feature/oauth");
     writeFileSync(join(repo, "b.txt"), "work in progress\n");
     const escalated = ship(
@@ -1292,7 +1301,10 @@ describe("escalate (caller-owned run)", () => {
         (e) => e.type === "run.resumed" && e.data.from === "inline"
       )
     );
-    assert.equal(ship("next").json().phase, "plan");
+    assert.equal(s.plan_source, "synthesize");
+    const next = ship("next").json();
+    assert.equal(next.phase, "plan");
+    assert.equal(next.plan_source, "synthesize");
     // The escalate step of the inline run does not decide the final status.
     ship("stop", "--status", "failed", "--reason", "gave up");
     assert.equal(ship("result").json().status, "failed");
@@ -1557,6 +1569,32 @@ describe("result", () => {
       "Gave up."
     );
     assert.equal(ship("result", "--status", "nope").code, 2);
+  });
+
+  test("passes the question of a milestone builder that stopped", () => {
+    init();
+    writeStep("plan", done());
+    const needs = {
+      id: "m2-storage",
+      question: "SQL or KV?",
+      options: [
+        { id: "sql", label: "SQL" },
+        { id: "kv", label: "KV" }
+      ],
+      recommended: "sql",
+      blocking: true
+    };
+    writeStep("build-M1", done({ milestone: "M1" }));
+    writeStep("build-M2", {
+      status: "awaiting-human",
+      summary: "M2 needs a storage choice.",
+      needs_input: needs
+    });
+    ship("stop", "--status", "awaiting-human", "--reason", "SQL or KV?");
+    const r = ship("result");
+    assert.equal(r.code, 10);
+    assert.equal(r.json().status, "awaiting-human");
+    assert.deepEqual(r.json().needs_input, needs);
   });
 });
 
