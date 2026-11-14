@@ -624,7 +624,7 @@ export function diffPlans(previous, next, completed = []) {
 const PACKAGE_ID =
   /^(?:\*\*|`)?([A-Z][A-Z0-9]*-\d+[a-z]?)\b(?:\*\*|`)?[\s:.)-]*/;
 const PACKAGE_REF = /\b[A-Z][A-Z0-9]*-\d+[a-z]?\b/g;
-const CHECKBOX = /^\s{0,3}[-*+]\s+\[([ xX])\]\s+(.*)$/;
+const CHECKBOX = /^\s{0,3}[-*+]\s+\[([^\]])\]\s+(.*)$/;
 const ANY_HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
 const BOLD_FIELD = /^\s*(?:[-*+]\s+)?\*\*([A-Za-z][A-Za-z ]*?):?\*\*:?\s*(.*)$/;
 const PACKAGE_FIELDS = {
@@ -647,13 +647,18 @@ const PACKAGE_LISTS = {
   verification: "validation"
 };
 
-const stripFrontmatter = (text) =>
-  text.replace(/^\uFEFF?---\r?\n[\s\S]*?\r?\n---\r?(?:\n|$)/, "");
+const FRONTMATTER = /^\uFEFF?---\r?\n[\s\S]*?\r?\n---\r?(?:\n|$)/;
+const stripFrontmatter = (text) => text.replace(FRONTMATTER, "");
 
 /** Lines outside code fences, with their heading level when they are one. */
 function markdownLines(text) {
   let fence = false;
-  return stripComments(stripFrontmatter(text))
+  // Blank the frontmatter and comments but keep their newlines, so line
+  // numbers match the file.
+  const blank = (m) => m.replace(/[^\n]/g, "");
+  return text
+    .replace(FRONTMATTER, blank)
+    .replace(/<!--[\s\S]*?-->/g, blank)
     .split(/\r?\n/)
     .map((t, i) => {
       const toggles = /^\s*(```|~~~)/.test(t);
@@ -749,7 +754,8 @@ export function parseTaskList(text) {
     const m = CHECKBOX.exec(l.text);
     const ref = m ? splitPackageTitle(m[2]) : null;
     if (ref && !checkboxes.some((c) => c.id === ref.id))
-      checkboxes.push({ ...ref, checked: m[1] !== " ", line: l.line });
+      // Only [x] is done: [ ], [~], [-] or [/] (in progress) stay open.
+      checkboxes.push({ ...ref, checked: /[xX]/.test(m[1]), line: l.line });
   }
   const headings = new Map();
   lines.forEach((l, index) => {
@@ -763,6 +769,17 @@ export function parseTaskList(text) {
     const heading = headings.get(box.id);
     if (!heading) {
       unmatched.push(box.id);
+      // An open item with no section is still open work: import it from its
+      // checkbox title, with empty fields that lint names.
+      if (!box.checked)
+        packages.push({
+          id: box.id,
+          title: box.title,
+          checked: false,
+          line: box.line,
+          ...parsePackageSection([]),
+          depends: []
+        });
       continue;
     }
     const level = lines[heading.index].level;
@@ -923,9 +940,11 @@ export function importTaskList(text, { source = null, type, created } = {}) {
     files: p.files,
     tasks: p.tasks,
     acceptance: p.acceptance,
-    validation: p.validation.map((v) => {
-      const m = /^`([^`]+)`/.exec(v);
-      return m ? m[1] : v;
+    // The first backtick span is the command; prose with none is dropped,
+    // so an empty Validation is named by lint.
+    validation: p.validation.flatMap((v) => {
+      const m = /`([^`]+)`/.exec(v);
+      return m ? [m[1]] : [];
     })
   }));
   const title = list.title || (source ? basename(source) : "Imported tasks");

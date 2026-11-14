@@ -81,10 +81,32 @@ const localExists = (repoDir, branch) =>
     repoDir
   ) !== null;
 
+/**
+ * Reject a branch or base name git would read as an option or refuse as a
+ * ref, before it reaches a git command line.
+ */
+function checkRefName(repoDir, name, label) {
+  if (name === null || name === undefined) return;
+  const value = String(name);
+  if (
+    value.startsWith("-") ||
+    tryGit(["check-ref-format", "--branch", value], repoDir) === null
+  )
+    throw new ShipError(`${label} is not a valid branch name: ${value}`, 2);
+}
+
 /** Whether origin has the branch (asks the remote, so a missing fetch does not hide it). */
 function remoteExists(repoDir, branch) {
   if (!hasOrigin(repoDir)) return false;
   const out = tryGit(["ls-remote", "--heads", "origin", branch], repoDir);
+  // Unreachable remote: fall back to the remote-tracking ref of the last fetch.
+  if (out === null)
+    return (
+      tryGit(
+        ["rev-parse", "--verify", "--quiet", `refs/remotes/origin/${branch}`],
+        repoDir
+      ) !== null
+    );
   return lines(out).some((l) => l.endsWith(`refs/heads/${branch}`));
 }
 
@@ -165,6 +187,16 @@ export function decideWorkspace(
     : useWorktree
       ? "--worktree (or ship.worktree)"
       : null;
+  // A clean tree already on the branch works in place: git cannot check the
+  // same branch out in a second worktree.
+  if (!dirty && useWorktree && branch && branch === facts.current)
+    return {
+      workspace: "existing-branch",
+      action: "use",
+      branch,
+      location: "local",
+      reason: `${branch} is already checked out here: worked in place, not in a worktree`
+    };
   if (dirty || useWorktree)
     return branch
       ? { workspace: "worktree", action: "worktree", branch, location, reason }
@@ -176,8 +208,10 @@ export function decideWorkspace(
           reason
         };
   if (!branch) {
+    // With no known base, any branch could be the trunk: name a new one.
     const feature =
       facts.current &&
+      (facts.base || facts.default_branch) &&
       facts.current !== facts.base &&
       facts.current !== facts.default_branch;
     return feature
@@ -193,9 +227,11 @@ export function decideWorkspace(
           action: "name-branch",
           branch: null,
           location: null,
-          reason: facts.current
-            ? `the current branch ${facts.current} is the base or the default branch`
-            : "detached HEAD"
+          reason: !facts.current
+            ? "detached HEAD"
+            : !(facts.base || facts.default_branch)
+              ? `the base is unknown, so ${facts.current} may be the trunk`
+              : `the current branch ${facts.current} is the base or the default branch`
         };
   }
   if (branch === facts.current)
@@ -284,6 +320,8 @@ export function cmdWorkspace(options, env = process.env) {
   const config = configOf(state.config_snapshot);
   const repoDir = state.repo_dir;
   const branchOption = stringOption(options.branch) ?? state.branch;
+  checkRefName(repoDir, branchOption, "--branch");
+  checkRefName(repoDir, state.base, "the base");
   if (state.branch && state.workspace?.branch)
     return {
       ...state.workspace,
@@ -423,6 +461,8 @@ export function cmdWorktree(options, env = process.env) {
   const state = readState(dir);
   const branch = stringOption(options.branch);
   if (!branch) throw new ShipError("worktree needs --branch <name>", 2);
+  checkRefName(state.repo_dir, branch, "--branch");
+  checkRefName(state.repo_dir, state.base, "the base");
   if (state.worktree)
     return { path: state.worktree, branch: state.branch, created: false };
   const config = configOf(state.config_snapshot);

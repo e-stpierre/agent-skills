@@ -150,6 +150,23 @@ describe("decideWorkspace", () => {
     assert.equal(d.branch, "feature/x");
   });
 
+  test("an unknown base never uses the current branch as is", () => {
+    const d = decideWorkspace(
+      facts({ current: "develop", base: null, default_branch: null })
+    );
+    assert.equal(d.action, "name-branch");
+    assert.match(d.reason, /base is unknown/);
+  });
+
+  test("--worktree on a clean tree already on --branch works in place", () => {
+    const d = decideWorkspace(
+      facts({ current: "feature/x", branch: "feature/x", local: true }),
+      { useWorktree: true }
+    );
+    assert.equal(d.workspace, "existing-branch");
+    assert.equal(d.action, "use");
+  });
+
   test("--branch: local, remote and new", () => {
     assert.equal(
       decideWorkspace(facts({ branch: "feature/x", local: true })).action,
@@ -318,5 +335,13 @@ describe("ship.mjs workspace", () => {
     const r = ship("workspace", "--branch", "feature/current");
     assert.equal(r.code, 1);
     assert.match(r.stderr, /would mix/);
+  });
+
+  test("a branch name git would read as an option is refused", () => {
+    init();
+    const r = ship("workspace", "--branch=--upload-pack=x");
+    assert.equal(r.code, 2);
+    assert.match(r.stderr, /not a valid branch name/);
+    assert.equal(state().branch, null);
   });
 });

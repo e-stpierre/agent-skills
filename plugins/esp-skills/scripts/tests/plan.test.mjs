@@ -521,6 +521,34 @@ describe("task lists", () => {
     assert.deepEqual(api.acceptance, ["`GET /items` returns the list"]);
   });
 
+  test("in-progress and section-less open items stay open", () => {
+    const text = TASK_LIST.replace("- [ ] BKL-2: API", "- [~] BKL-2: API")
+      .replace("- [ ] BKL-3: UI", "- [x] BKL-3: UI")
+      .replace("- [ ] Some unrelated chore", "- [ ] BKL-4: Docs");
+    const list = parseTaskList(text);
+    assert.deepEqual(
+      list.packages.map((p) => [p.id, p.checked]),
+      [
+        ["BKL-1", true],
+        ["BKL-2", false],
+        ["BKL-3", true],
+        ["BKL-4", false]
+      ]
+    );
+    assert.deepEqual(list.unmatched, ["BKL-4"]);
+    const draft = importTaskList(text);
+    assert.deepEqual(draft.mapping, { "BKL-2": "M1", "BKL-4": "M2" });
+  });
+
+  test("import keeps the first command of a validation item and drops prose", () => {
+    const text = TASK_LIST.replace(
+      "- `npm test ui`",
+      "- Run `npm test ui` and read the output\n- Manual check in the browser"
+    );
+    const { plan } = parsePlan(importTaskList(text).markdown);
+    assert.deepEqual(plan.milestones[1].validation, ["npm test ui"]);
+  });
+
   test("a file without matching package headings has no packages", () => {
     assert.deepEqual(parseTaskList("# Notes\n\n- [ ] buy milk\n").packages, []);
     assert.deepEqual(parseTaskList(EXAMPLE).packages, []);
