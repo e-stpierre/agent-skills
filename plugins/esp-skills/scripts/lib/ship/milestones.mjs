@@ -628,10 +628,7 @@ export function builderUsed(builder, cost) {
       builder.tokens
     );
   }
-  return runs.reduce(
-    (sum, r) => sum + costOf(cost, r.complexity),
-    0
-  );
+  return runs.reduce((sum, r) => sum + costOf(cost, r.complexity), 0);
 }
 
 function builderModel(state, m, options) {

@@ -750,7 +750,10 @@ describe("loops", () => {
   test("reviewLoop reruns an unfinished round recorded before a resume", () => {
     const dir = mkdtempSync(join(tmpdir(), "ship-review-resume-"));
     try {
-      const entry = step("review-1", { status: "awaiting-human", summary: "q" });
+      const entry = step("review-1", {
+        status: "awaiting-human",
+        summary: "q"
+      });
       mkdirSync(join(dir, "steps", entry.step), { recursive: true });
       writeFileSync(join(dir, "steps", entry.step, "result.json"), "{}");
       assert.equal(reviewLoop(dir, base, [entry]).action, "stop");
@@ -975,7 +978,10 @@ describe("helpers", () => {
       "continue-over-budget"
     );
     // Time spent stopped (awaiting-human, takeover) is not counted.
-    assert.equal(budgetCheck({ ...s, paused_minutes: 45 }, at).action, "continue");
+    assert.equal(
+      budgetCheck({ ...s, paused_minutes: 45 }, at).action,
+      "continue"
+    );
     assert.equal(
       budgetCheck(s, new Date("2026-11-08T10:30:00.000Z")).action,
       "continue"

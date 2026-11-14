@@ -673,7 +673,8 @@ export async function waitForReview(options, deps) {
       state.checks = checksStatus(snapshot.checks, {
         // The grace runs from when this wait first saw the head, not from
         // the commit date: a push can land minutes after the commit.
-        headDate: latestDate(state.head_date, state.head_seen_at) ?? state.started_at,
+        headDate:
+          latestDate(state.head_date, state.head_seen_at) ?? state.started_at,
         now: now(),
         graceSeconds
       });

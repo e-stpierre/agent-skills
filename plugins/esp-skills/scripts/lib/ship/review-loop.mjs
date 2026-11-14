@@ -47,7 +47,10 @@ export function reviewLoop(dir, state, steps = readStepResults(dir)) {
   });
   if (round === 0) return next(1);
   const review = reviews.get(round).result;
-  if (!FINISHED.has(review.status) && beforeResume(dir, state, reviews.get(round)))
+  if (
+    !FINISHED.has(review.status) &&
+    beforeResume(dir, state, reviews.get(round))
+  )
     return next(round);
   if (!FINISHED.has(review.status))
     return {
@@ -68,7 +71,10 @@ export function reviewLoop(dir, state, steps = readStepResults(dir)) {
       reason: `review-${round} is clean`
     };
   const fix = fixes.get(round)?.result;
-  if (!fix || (!FINISHED.has(fix.status) && beforeResume(dir, state, fixes.get(round))))
+  if (
+    !fix ||
+    (!FINISHED.has(fix.status) && beforeResume(dir, state, fixes.get(round)))
+  )
     return {
       action: "fix",
       round,
