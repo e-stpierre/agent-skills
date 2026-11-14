@@ -1,6 +1,6 @@
 # Decision Policy
 
-The rules every esp-skills workflow skill and agent follows when it meets a choice: a review finding, a review comment, an ambiguous plan step, a failing gate. One policy means a fixer can act without asking, a user can predict what an autonomous run will do, and a harness can route the remaining questions.
+The single definition of how every esp-skills skill and agent handles a choice: a review finding, a review comment, an ambiguous plan step, a failing gate. Skills and agents point here instead of restating the classes, the stop conditions or the risk levels.
 
 ## Classes
 

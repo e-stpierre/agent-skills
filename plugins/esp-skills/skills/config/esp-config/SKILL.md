@@ -23,9 +23,9 @@ Manage the esp-skills configuration through the plugin's `config.mjs` script: cr
   - `unset` - Remove a key from the user or project file
   - `validate` - Validate every layer, or one file when `--key` is a file path
   - `sources` - List the config layers and which ones are in use
-- **`[-P|--project]`** (optional): Present as `-P` or `--project`: target the project file (`<repo>/.esp-skills/config.json`) instead of the user file (`~/.esp-skills/config.json`) for `init`, `set`, and `unset`.
-- **`[-f|--force]`** (optional): Present as `-f` or `--force`: overwrite an existing file on `init`.
-- **`[-k|--key <key>]`** (optional): Read from `-k` or `--key`. Section or dotted key for `get`, `set`, `unset` (required by those three). A file path for `validate`.
+- **`[-P|--project]`** (optional): Target the project file (`<repo>/.esp-skills/config.json`) instead of the user file (`~/.esp-skills/config.json`) for `init`, `set`, and `unset`.
+- **`[-f|--force]`** (optional): Overwrite an existing file on `init`.
+- **`[-k|--key <key>]`** (optional): Section or dotted key for `get`, `set`, `unset` (required by those three). A file path for `validate`.
 - **`[value]`** (optional): The trailing free text, the value for `set`. Parsed as JSON when valid (`true`, `3`, `null`, `["a"]`), otherwise used as a plain string.
 
 ### Values

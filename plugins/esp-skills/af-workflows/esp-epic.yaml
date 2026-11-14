@@ -25,8 +25,8 @@ steps:
       {{ variables.source }}
 
       Read the source first: a file path, GitHub issues (`gh issue view <n>`), or the text itself. Explore
-      only as much of the repository as you need to size the tasks and name the paths they touch. Do not
-      change the repository.
+      only as much of the repository as you need to size the tasks and name the paths they touch, read-only:
+      the run writes only `epic.md`.
 
       Write `{{ output_dir }}/epic.md`: a title, a one-paragraph goal, then one `### T<NN>: <title>` section
       per task with:

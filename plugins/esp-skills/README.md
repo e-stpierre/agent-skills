@@ -361,7 +361,7 @@ Workflow skills and agents share these references at the plugin root, reached th
 - `references/decision-policy.md`: classes A-Fix, B-Decide, B-Scope, Reject and Halt, interactive and autonomous behavior, `needs_input` under a harness, `ship.halt_on` stop conditions, risk levels and decision logging
 - `references/summary-template.md`: frontmatter and sections of a run `summary.md`
 - `references/plan-format.md`: plan format 1, the milestone block, parsed JSON, amendments and plan-lint
-- `references/model-selection.md`: roles and the model and effort precedence (`--model` -> milestone complexity -> config role -> agent frontmatter -> inherit)
+- `references/model-selection.md`: roles and the model and effort precedence
 
 ## Complete Examples
 

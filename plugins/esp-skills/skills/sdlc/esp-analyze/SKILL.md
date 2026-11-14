@@ -8,7 +8,7 @@ argument-hint: "-t|--type <type> [context]"
 
 ## Overview
 
-Analyze the codebase for one type of issue: bugs, technical debt, documentation, security vulnerabilities, or style inconsistencies. Findings are rated by severity, each with its file location and an actionable fix, saved as a markdown report, and summarized for the user.
+Analyze the codebase for one type of issue and save a markdown report: findings rated by severity, each with its file location and an actionable fix.
 
 ## Arguments
 
@@ -38,8 +38,7 @@ Load the one reference that matches `--type`:
 
 ## Core Principles
 
-- Report only real, unfixed issues: quality over quantity
-- Give every finding its exact file and line
+- Report only real, unfixed issues, each with its exact file and line
 - A finding is real only after you checked that the project's patterns, framework conventions, an intentional design choice, or code elsewhere do not already handle or explain it
 - Treat test-specific patterns and legitimate, handled edge cases as intended behavior
 - When nothing is found, the report still exists, with zero counts
