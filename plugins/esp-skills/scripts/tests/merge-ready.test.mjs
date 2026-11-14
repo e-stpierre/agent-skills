@@ -764,6 +764,20 @@ describe("check", () => {
     assert.equal(out.conditions.length, 8);
   });
 
+  test("no checks on a fresh head is pending during the grace period", () => {
+    const fresh = fakeClient(facts({ checks: [], required: [] }));
+    fresh.commitDate = () => new Date().toISOString();
+    const pending = report(ctx(fresh), "9");
+    assert.equal(pending.outcome, "pending");
+    const old = fakeClient(facts({ checks: [], required: [] }));
+    old.commitDate = () => "2020-01-01T00:00:00Z";
+    const out = report(ctx(old), "9");
+    assert.equal(
+      out.conditions.find((c) => c.name === "checks").status,
+      "pass"
+    );
+  });
+
   test("--wait polls until checks finish", async () => {
     const data = facts({ checks: [{ name: "test", bucket: "pending" }] });
     const client = fakeClient(data);

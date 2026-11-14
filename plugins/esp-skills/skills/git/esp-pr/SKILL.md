@@ -1,6 +1,6 @@
 ---
 name: esp-pr
-description: Create a pull request with contextual title and description
+description: Create a pull request with a title and description sized to the change. Use when asked to open a PR.
 argument-hint: "[-w|--draft] [-b|--base <branch>] [-d|--run-dir <path>]"
 ---
 
@@ -16,7 +16,7 @@ Create a pull request with the GitHub CLI, with a title and description sized to
 
 - **`[-w|--draft]`** (optional): Present as `-w` or `--draft`: create the PR as a draft. Defaults to `pr.draft` (`false`).
 - **`[-b|--base <branch>]`** (optional): Read from `-b` or `--base`. Target branch of the PR. Defaults to `pr.base`, or the repository default branch when `pr.base` is `null`.
-- **`[-d|--run-dir <path>]`** (optional): Read from `-d` or `--run-dir`. Run directory of the task (from `esp-go`, `esp-build` or a harness). With `pr.body_from_run`, the body is rendered from its artifacts, and the PR URL is recorded in its `run.json`. Defaults to none.
+- **`[-d|--run-dir <path>]`** (optional): Read from `-d` or `--run-dir`. Run directory of the task (from `esp-ship` or a harness). With `pr.body_from_run`, the body is rendered from its artifacts, and the PR URL is recorded in its `run.json`. Defaults to none.
 
 ### Values
 
@@ -42,23 +42,19 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults.language
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                 | Default                                                         | Effect                                                                                          |
-| ------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `pr.base`           | `null`                                                          | Base branch; `null` uses the repository default branch (`gh repo view --json defaultBranchRef`) |
-| `pr.draft`          | `false`                                                         | Open the PR as a draft even without `--draft`                                                   |
-| `pr.attribution`    | `true`                                                          | Append the AI attribution line to the body                                                      |
-| `defaults.language` | `en-US`                                                         | Language of the PR title and body                                                               |
-| `pr.body_from_run`  | `true`                                                          | With `--run-dir`: build the body from the run artifacts                                         |
-| `pr.body_sections`  | `summary, milestones, decisions, review-resolution, follow-ups` | Sections of a body built from the run, in order                                                 |
+- `pr.base` (default `null`): base branch; `null` uses the repository default branch (`gh repo view --json defaultBranchRef`)
+- `pr.draft` (default `false`): open the PR as a draft even without `--draft`
+- `pr.attribution` (default `true`): append the AI attribution line to the body
+- `pr.body_from_run` (default `true`): with `--run-dir`, build the body from the run artifacts
+- `pr.body_sections` (default `summary, milestones, decisions, review-resolution, follow-ups`): sections of a body built from the run, in order
+- `defaults.language` (default `en-US`): language of the PR title and body
 
 ### Size Categories
 
-| Size    | Scope                                    | Body                                            |
-| ------- | ---------------------------------------- | ----------------------------------------------- |
-| Trivial | <10 lines, single file, style/typo fix   | One-line description, then attribution          |
-| Small   | <50 lines, focused change                | One-line description, then attribution          |
-| Medium  | 50-200 lines, feature or significant fix | `## Summary` and `## Details`, then attribution |
-| Large   | >200 lines, major feature or refactor    | `## Summary` and `## Details`, then attribution |
+- **Trivial** (<10 lines, single file, style/typo fix): One-line description, then attribution
+- **Small** (<50 lines, focused change): One-line description, then attribution
+- **Medium** (50-200 lines, feature or significant fix): `## Summary` and `## Details`, then attribution
+- **Large** (>200 lines, major feature or refactor): `## Summary` and `## Details`, then attribution
 
 Trivial or small:
 

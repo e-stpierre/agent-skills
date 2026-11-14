@@ -16,8 +16,10 @@ import { afterEach, beforeEach, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
 import { CONTRACT_DIR } from "../lib/contract.mjs";
 import {
+  NOTES_MAX_LENGTH,
   indexRuns,
   latestPlan,
+  readNotes,
   slugify,
   stepDirName,
   validateFile
@@ -563,6 +565,123 @@ describe("plans, messages and amendments", () => {
       readJsonl(join(dir, "events.jsonl")).at(-1).type,
       "amendment.applied"
     );
+  });
+});
+
+describe("notes", () => {
+  test("appends one line per note and shows them in order", () => {
+    const dir = createRun();
+    const show = () => cli(["notes", "--show", "--run-dir", dir]);
+    assert.deepEqual(show().json().entries, []);
+    const first = cli([
+      "notes",
+      "--append",
+      "Run the API tests with\n  pnpm test:api",
+      "--milestone",
+      "M1",
+      "--run-dir",
+      dir
+    ]);
+    assert.equal(first.code, 0, first.stderr);
+    assert.deepEqual(first.json().entry, {
+      milestone: "M1",
+      text: "Run the API tests with pnpm test:api"
+    });
+    cli([
+      "notes",
+      "--append",
+      "Fixtures live in tests/fixtures",
+      "--milestone",
+      "M2",
+      "--run-dir",
+      dir
+    ]);
+    const path = join(dir, "notes.md");
+    assert.equal(
+      readFileSync(path, "utf8"),
+      "# Run Notes\n\n- **M1**: Run the API tests with pnpm test:api\n- **M2**: Fixtures live in tests/fixtures\n"
+    );
+    const out = show().json();
+    assert.equal(out.count, 2);
+    assert.deepEqual(
+      out.entries.map((e) => e.milestone),
+      ["M1", "M2"]
+    );
+    const m2 = cli(["notes", "--show", "--milestone", "M2", "--run-dir", dir]);
+    assert.deepEqual(m2.json().entries, [
+      { milestone: "M2", text: "Fixtures live in tests/fixtures" }
+    ]);
+    assert.equal(existsSync(`${path}.lock`), false);
+    assert.equal(readNotes(dir).length, 2);
+  });
+
+  test("rejects a missing milestone, an empty or long text, and bad usage", () => {
+    const dir = createRun();
+    const usage = [
+      ["notes", "--run-dir", dir],
+      [
+        "notes",
+        "--show",
+        "--append",
+        "x",
+        "--milestone",
+        "M1",
+        "--run-dir",
+        dir
+      ],
+      ["notes", "--append", "x", "--run-dir", dir],
+      ["notes", "--append", "x", "--milestone", "bad id", "--run-dir", dir],
+      ["notes", "--append", "  ", "--milestone", "M1", "--run-dir", dir],
+      [
+        "notes",
+        "--append",
+        "x".repeat(NOTES_MAX_LENGTH + 1),
+        "--milestone",
+        "M1",
+        "--run-dir",
+        dir
+      ]
+    ];
+    for (const args of usage) assert.equal(cli(args).code, 2, args.join(" "));
+    assert.equal(existsSync(join(dir, "notes.md")), false);
+    assert.equal(cli(["notes", "--show", "--run-dir", root]).code, 1);
+  });
+
+  test("concurrent appends keep every note whole", async () => {
+    const dir = createRun();
+    const workers = 8;
+    const perWorker = 5;
+    const runWorker = (w) =>
+      new Promise((resolvePromise, reject) => {
+        const code = `
+          const { appendNote } = await import(${JSON.stringify(
+            new URL("../runs.mjs", import.meta.url).href
+          )});
+          for (let i = 0; i < ${perWorker}; i++) {
+            appendNote(${JSON.stringify(dir)}, "M${w}", "note " + i + " " + "y".repeat(400));
+          }`;
+        const child = spawn(
+          process.execPath,
+          ["--input-type=module", "-e", code],
+          { stdio: ["ignore", "ignore", "pipe"] }
+        );
+        let stderr = "";
+        child.stderr.on("data", (d) => {
+          stderr += d;
+        });
+        child.on("exit", (status) =>
+          status === 0 ? resolvePromise() : reject(new Error(stderr))
+        );
+      });
+    await Promise.all(Array.from({ length: workers }, (_, w) => runWorker(w)));
+    const text = readFileSync(join(dir, "notes.md"), "utf8");
+    assert.equal(text.match(/# Run Notes/g).length, 1);
+    const entries = readNotes(dir);
+    assert.equal(entries.length, workers * perWorker);
+    for (const e of entries) assert.match(e.text, /^note \d y{400}$/);
+    for (let w = 0; w < workers; w++)
+      assert.equal(entries.filter((e) => e.milestone === `M${w}`).length, 5);
+    assert.equal(existsSync(join(dir, "notes.md.lock")), false);
   });
 });
 

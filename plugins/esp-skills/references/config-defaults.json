@@ -50,12 +50,6 @@
     "default_type": "auto",
     "explore_agents": { "feature": 3, "bug": 2, "chore": 2 }
   },
-  "build": {
-    "parallel": false,
-    "max_retries_per_milestone": 2,
-    "commit_per_milestone": true,
-    "gates": { "test": null, "lint": null, "typecheck": null, "build": null }
-  },
   "review": {
     "dimensions": [
       "correctness",
@@ -66,23 +60,25 @@
     "min_severity": "medium",
     "verify_findings": true
   },
-  "await-review": {
-    "reviewers": {
-      "claude": { "login": "claude[bot]", "trigger": null },
-      "codex": {
-        "login": "chatgpt-codex-connector[bot]",
-        "trigger": "@codex review"
-      }
-    },
-    "timeout_minutes": 30,
-    "poll_seconds": 60,
-    "auto_trigger": false
-  },
   "fix-review": {
     "max_rounds": 3,
     "fix_ci": true,
     "reply_to_rejected": true,
-    "deferred_items": "follow-up"
+    "deferred_items": "follow-up",
+    "wait": {
+      "reviewers": {
+        "claude": { "login": "claude[bot]", "trigger": null },
+        "codex": {
+          "login": "chatgpt-codex-connector[bot]",
+          "trigger": "@codex review"
+        }
+      },
+      "default_reviewers": ["claude"],
+      "timeout_minutes": 30,
+      "poll_seconds": 60,
+      "auto_trigger": false,
+      "checks_grace_seconds": 120
+    }
   },
   "merge": {
     "enabled": true,
@@ -94,43 +90,52 @@
     "use_auto_merge": false,
     "checks_timeout_minutes": 30
   },
-  "go": {
-    "phases": [
-      "plan",
-      "branch",
-      "build",
-      "review",
-      "pr",
-      "await-review",
-      "fix-review",
-      "merge"
-    ],
-    "default_reviewers": ["claude"],
+  "ship": {
+    "plan_mode": "auto",
+    "review_mode": "auto",
+    "auto": { "review_max_files": 3, "review_max_lines": 150 },
+    "review": {
+      "always_paths": [
+        "**/auth/**",
+        "**/security/**",
+        "**/migrations/**",
+        ".github/workflows/**",
+        ".gitlab-ci.yml",
+        "**/Jenkinsfile"
+      ]
+    },
     "internal_review_rounds": 2,
     "worktree": false,
+    "dirty_tree": "worktree",
     "pr_draft_until_reviewed": true,
-    "budgets": { "max_milestones": 12, "max_wall_minutes": 240 },
     "halt_on": [
       "critical-security",
       "gates-exhausted",
       "scope-change",
       "destructive-action",
       "budget"
-    ]
-  },
-  "go-light": {
-    "phases": [
-      "context",
-      "branch",
-      "implement",
-      "pr",
-      "await-review",
-      "fix-review",
-      "merge"
     ],
-    "max_files_changed": 10,
-    "escalate_to_go": true,
-    "budgets": { "max_wall_minutes": 60 }
+    "inline": { "max_files_changed": 10, "escalate": true },
+    "budgets": {
+      "inline": { "max_wall_minutes": 60 },
+      "orchestrated": { "max_wall_minutes": 240, "max_milestones": 12 }
+    },
+    "max_retries_per_milestone": 2,
+    "parallel": "auto",
+    "max_parallel": 3,
+    "commit_per_milestone": true,
+    "gates_scope": "milestone",
+    "gates": {
+      "test": null,
+      "lint": null,
+      "typecheck": null,
+      "build": null,
+      "always": []
+    },
+    "reuse": {
+      "limit_tokens": 250000,
+      "cost": { "low": 40000, "medium": 70000, "high": 120000 }
+    }
   },
   "recap": {
     "roots": ["~/.esp-skills/runs"],

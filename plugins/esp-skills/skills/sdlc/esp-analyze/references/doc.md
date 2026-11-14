@@ -15,7 +15,7 @@ Check documentation for:
 
 - Verify claims against code before marking as incorrect
 - Provide actionable fixes with correct information
-- Consider documentation might be ahead of code (planned features)
+- Before flagging a documented feature as missing from the code, check whether it is a planned feature the documentation describes ahead of the code
 - Different documentation types have different standards (user guides vs API references vs internal docs)
 
 ## Verification Steps

@@ -37,6 +37,7 @@ import {
   findRepoRoot,
   loadConfig
 } from "./config.mjs";
+import { classifyChecks, fetchChecks } from "./lib/checks.mjs";
 import { exitCodeFor, validateArtifact } from "./lib/contract.mjs";
 import { appendDecision, appendEvent } from "./runs.mjs";
 import { prArgument, repoFromUrl } from "./wait-for-review.mjs";
@@ -170,23 +171,22 @@ export function ghClient({ cwd, env = process.env } = {}) {
         auto_merge: Boolean(pr.autoMergeRequest)
       };
     },
+    commitDate(repo, sha) {
+      try {
+        return (
+          gh([
+            "api",
+            `repos/${repo}/commits/${sha}`,
+            "--jq",
+            ".commit.committer.date"
+          ]).trim() || null
+        );
+      } catch {
+        return null;
+      }
+    },
     checks(number, { required = false } = {}) {
-      // gh pr checks exits 8 while checks are pending and 1 when one failed.
-      const args = [
-        "pr",
-        "checks",
-        String(number),
-        "--json",
-        "name,state,bucket,link,workflow"
-      ];
-      if (required) args.push("--required");
-      const res = call(args);
-      const out = res.stdout.trim();
-      if (out.startsWith("[")) return JSON.parse(out);
-      const text = `${res.stderr}\n${res.stdout}`;
-      if (/no (required )?checks reported/i.test(text)) return [];
-      if (res.status === 0 && out === "") return [];
-      throw new MergeError(`gh pr checks failed: ${text.trim()}`);
+      return fetchChecks(call, number, { required, ErrorClass: MergeError });
     },
     unresolvedThreads(repo, number) {
       const [owner, name] = repo.split("/");
@@ -445,36 +445,8 @@ function condition(name, status, reason, extra = {}) {
   return { name, status, reason, ...extra };
 }
 
-/** Classify checks: `{ failing, pending, passing }` names within the scope. */
-export function classifyChecks(
-  all = [],
-  required = null,
-  { requireGreen = true } = {}
-) {
-  const requiredNames = new Set((required ?? []).map((c) => c.name));
-  const scope = requireGreen
-    ? all
-    : all.filter((c) => requiredNames.has(c.name));
-  const out = {
-    failing: [],
-    pending: [],
-    passing: [],
-    scope: requireGreen ? "all" : "required"
-  };
-  for (const check of scope) {
-    const bucket = String(check.bucket ?? "").toLowerCase();
-    if (bucket === "fail" || bucket === "cancel") out.failing.push(check.name);
-    else if (bucket === "pending") out.pending.push(check.name);
-    else out.passing.push(check.name);
-  }
-  // Required checks that have not reported yet are pending.
-  if (required) {
-    const seen = new Set(scope.map((c) => c.name));
-    for (const check of required)
-      if (!seen.has(check.name)) out.pending.push(check.name);
-  }
-  return out;
-}
+/** Classify checks (the shared module, kept as an export of this script). */
+export { classifyChecks };
 
 /**
  * Evaluate every merge condition from the gathered facts. Returns
@@ -693,6 +665,15 @@ export function gather(ctx, target) {
   const checks = classifyChecks(all, required, {
     requireGreen: merge.require_green_checks !== false
   });
+  // Checks register a short time after a push: an empty list on a head
+  // committed within the grace period is pending, not "no checks".
+  if (open && all.length === 0 && typeof client.commitDate === "function") {
+    const grace = config["fix-review"]?.wait?.checks_grace_seconds ?? 120;
+    const since = Date.parse(client.commitDate(repo, pr.head) ?? "");
+    const at = (ctx.now ?? (() => new Date()))().getTime();
+    if (Number.isFinite(since) && at - since < grace * 1000)
+      checks.pending = [...checks.pending, "(not registered yet)"];
+  }
   const threads =
     open && merge.require_resolved_threads !== false
       ? client.unresolvedThreads(repo, pr.number)

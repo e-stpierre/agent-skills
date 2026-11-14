@@ -9,7 +9,7 @@ metadata: { af-contract: 1, af-level: reporting }
 
 ## Overview
 
-Review a set of code changes in a fresh context and report verified, classified findings. The skill resolves the diff (local changes, a branch, a ref range, or a GitHub pull request), hands it to the read-only `esp-reviewer`, which checks it against the configured dimensions (correctness, security, plan conformance, tests, conventions, simplification, performance) in a find pass and a verify pass, and classifies every surviving finding as A, B-Decide or B-Scope with a severity and a fix. A fixer (`esp-fix-review --internal`, `esp-go`) can then act without asking. The skill produces text and a contract result block; the caller decides where the review goes (terminal, PR comment, file, CI log).
+Review a set of code changes in a fresh context and report verified, classified findings. The skill resolves the diff (local changes, a branch, a ref range, or a GitHub pull request), hands it to the read-only `esp-reviewer`, which checks it against the configured dimensions (correctness, security, plan conformance, tests, conventions, simplification, performance) in a find pass and a verify pass, and classifies every surviving finding as A, B-Decide or B-Scope with a severity and a fix. A fixer (`esp-fix-review --internal`, `esp-ship`) can then act without asking.
 
 ## Arguments
 
@@ -43,7 +43,7 @@ Arguments: $ARGUMENTS
 - Review only the diff. Pre-existing issues outside the changed lines are not findings; a serious one becomes a discovered item
 - High signal only: every finding survives a verify pass that tries to prove it wrong, unless `review.verify_findings` is off. The review holds findings and rejected candidates, nothing else: no praise, no general observations
 - Every finding carries a location, a dimension, a severity, a class and a fix precise enough to apply without asking
-- The skill is read-only and routes nothing: it produces text and a result block, and writes only into the run or temporary directory. The caller decides where the review goes (no PR comments, no inline-comment API calls)
+- The skill is read-only and routes nothing: it produces text and a contract result block, and writes only into the run or temporary directory. The caller decides where the review goes (terminal, PR comment, file, CI log); the skill itself posts no PR comments and makes no inline-comment API calls
 - Run every script with Bash, with the literal `"${CLAUDE_PLUGIN_ROOT}/scripts/..."` path. Counts, result files and the result block always come from `review.mjs` and `runs.mjs`
 
 ## Skill-Specific Guidelines
@@ -59,13 +59,11 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                        | Default                                                      | Effect                                                   |
-| -------------------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
-| `review.dimensions`        | `correctness`, `security`, `conventions`, `plan-conformance` | Dimensions checked when `--focus` names none             |
-| `review.min_severity`      | `medium`                                                     | Findings below it are dropped from the review            |
-| `review.verify_findings`   | `true`                                                       | Run the verify pass; `false` marks the review unverified |
-| `defaults.interactive`     | `off`                                                        | Interactive mode when `--interactive` is not given       |
-| `defaults.models.reviewer` | `opus`, effort `high`                                        | Model and effort passed to the `esp-reviewer` subagent   |
+- `review.dimensions` (default `correctness`, `security`, `conventions`, `plan-conformance`): dimensions checked when `--focus` names none
+- `review.min_severity` (default `medium`): findings below it are dropped from the review
+- `review.verify_findings` (default `true`): run the verify pass; `false` marks the review unverified
+- `defaults.interactive` (default `off`): interactive mode when `--interactive` is not given
+- `defaults.models.reviewer` (default `opus`, effort `high`): model and effort passed to the `esp-reviewer` subagent
 
 The available dimensions are `correctness`, `security`, `plan-conformance`, `tests`, `conventions`, `simplification` and `performance`.
 
@@ -73,15 +71,13 @@ The available dimensions are `correctness`, `security`, `plan-conformance`, `tes
 
 `scripts/review.mjs` resolves the target and parses the review. Every `runs.mjs` call takes `--run-dir <path>` (and `--config-snapshot <path>` when given):
 
-| Moment           | Command                                                                                                                |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Resolve target   | `review.mjs target [<target>] --project-dir <repo-root> [--run-dir <path>]` (`<target>`: the `--target` value)         |
-| Latest plan      | `runs.mjs plan` (`{ path, version }`, version 0 when there is none)                                                    |
-| Pending messages | `runs.mjs messages`, then `runs.mjs deliver <id>...` once applied                                                      |
-| Reviewer model   | `runs.mjs update --model reviewer=<alias>[:<effort>]`                                                                  |
-| Parse and filter | `review.mjs parse <review_path> --min-severity <level> --verified <bool> --md-out <review_path> --out <findings_path>` |
-| User decision    | `runs.mjs decision --json '<decision>'` with `phase: review` and `source: operator`                                    |
-| Result block     | The same `parse` command plus `--result`, piped into `runs.mjs result <step>` with `--run-dir`                         |
+- **Resolve target**: `review.mjs target [<target>] --project-dir <repo-root> [--run-dir <path>]` (`<target>`: the `--target` value)
+- **Latest plan**: `runs.mjs plan` (`{ path, version }`, version 0 when there is none)
+- **Pending messages**: `runs.mjs messages`, then `runs.mjs deliver <id>...` once applied
+- **Reviewer model**: `runs.mjs update --model reviewer=<alias>[:<effort>]`
+- **Parse and filter**: `review.mjs parse <review_path> --min-severity <level> --verified <bool> --md-out <review_path> --out <findings_path>`
+- **User decision**: `runs.mjs decision --json '<decision>'` with `phase: review` and `source: operator`
+- **Result block**: the same `parse` command plus `--result`, piped into `runs.mjs result <step>` with `--run-dir`
 
 `target` prints `{ kind, base, head, files, untracked, pr, empty, step, diff_path, review_path, findings_path }`. With `--run-dir`, the paths are `<run-dir>/review-<N>.diff`, `.md` and `.json`, where N is the next review round. `parse` exits 1 with the list of malformed findings when the review does not follow the finding format.
 

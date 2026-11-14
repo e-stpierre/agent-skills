@@ -610,6 +610,75 @@ export function cmdAmend(options, env = process.env) {
 }
 
 // ---------------------------------------------------------------------------
+// Run notes
+// ---------------------------------------------------------------------------
+
+// notes.md is a run artifact outside contract v1: short facts a builder learns
+// (a pattern, a gotcha, a command that works) for the builders of later
+// milestones. Never committed. Verifiers do not read it.
+export const NOTES_FILE = "notes.md";
+export const NOTES_MAX_LENGTH = 500;
+const NOTES_HEADER = "# Run Notes\n\n";
+const NOTE_LINE = /^- \*\*([^*]+)\*\*: (.*)$/;
+
+/** Parse notes.md into `{ milestone, text }` entries, in file order. */
+export function readNotes(dir) {
+  const path = join(dir, NOTES_FILE);
+  if (!existsSync(path)) return [];
+  return readFileSync(path, "utf8")
+    .split(/\r?\n/)
+    .map((line) => NOTE_LINE.exec(line))
+    .filter(Boolean)
+    .map((m) => ({ milestone: m[1], text: m[2] }));
+}
+
+/** Append one note under the notes.md lock; the text becomes one line. */
+export function appendNote(dir, milestone, text) {
+  if (!milestone || milestone === true || !ID_PATTERN.test(String(milestone)))
+    throw new RunsError(
+      `notes --append requires --milestone <id>, got ${milestone ?? "(missing)"}`,
+      2
+    );
+  const line = String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!line || text === true)
+    throw new RunsError("notes --append requires a non-empty text", 2);
+  if (line.length > NOTES_MAX_LENGTH)
+    throw new RunsError(
+      `A note holds at most ${NOTES_MAX_LENGTH} characters (got ${line.length}): split it or keep only the fact`,
+      2
+    );
+  const path = join(dir, NOTES_FILE);
+  return withLock(path, () => {
+    const prefix = existsSync(path) ? "" : NOTES_HEADER;
+    appendFileSync(path, `${prefix}- **${milestone}**: ${line}\n`, "utf8");
+    return {
+      path,
+      entry: { milestone: String(milestone), text: line },
+      count: readNotes(dir).length
+    };
+  });
+}
+
+export function cmdNotes(options) {
+  const dir = requireRunDir(options);
+  const append = options.append !== undefined;
+  if (append === Boolean(options.show))
+    throw new RunsError(
+      "Usage: notes --append <text> --milestone <id> | notes --show [--milestone <id>] --run-dir <path>",
+      2
+    );
+  if (append) return appendNote(dir, options.milestone, options.append);
+  const all = readNotes(dir);
+  const entries =
+    options.milestone && options.milestone !== true
+      ? all.filter((e) => e.milestone === String(options.milestone))
+      : all;
+  return { path: join(dir, NOTES_FILE), count: entries.length, entries };
+}
+
+// ---------------------------------------------------------------------------
 // Index
 // ---------------------------------------------------------------------------
 
@@ -876,6 +945,8 @@ Commands:
   send                   Queue an inbox message (--text, --from, --mode, --target, --step)
   deliver <id>...        Mark messages delivered and log them as operator decisions
   amend                  Append to amendments.jsonl (--text, --affects M2,M3, --plan-version <N>)
+  notes                  Run notes in notes.md: --append <text> --milestone <id> (one fact, under the lock),
+                         or --show [--milestone <id>]
   index                  List runs (--root, --since, --until, --last 7d, --repo, --status, --risk, --limit)
   pr-body                Pull request body from the run artifacts (--summary <text>, --out <file>)
   validate <file>        Validate a contract file (--schema <artifact> when it cannot be inferred)
@@ -888,7 +959,7 @@ Options:
   --project-dir <dir>       Project root for config resolution
   --help                    Show this help`;
 
-const BOOLEAN_FLAGS = new Set(["all", "help"]);
+const BOOLEAN_FLAGS = new Set(["all", "help", "show"]);
 const REPEATABLE = new Set(["root", "model", "budget", "affects", "status"]);
 
 export function parseArgs(argv) {
@@ -948,6 +1019,8 @@ export function run(argv, env = process.env) {
       return { output: cmdDeliver(args, options, env) };
     case "amend":
       return { output: cmdAmend(options, env) };
+    case "notes":
+      return { output: cmdNotes(options) };
     case "index":
       return { output: cmdIndex(options, env) };
     case "pr-body":

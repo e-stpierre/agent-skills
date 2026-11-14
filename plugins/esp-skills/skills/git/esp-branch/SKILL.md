@@ -1,6 +1,6 @@
 ---
 name: esp-branch
-description: Create a branch with standardized naming convention
+description: Create and check out a git branch named by the configured convention. Use when starting work that needs a new branch.
 argument-hint: "-s|--slug <slug> [-t|--type <type>] [-g|--issue <id>] [-b|--base <branch>]"
 ---
 
@@ -41,12 +41,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get branch
 
 If the command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                            | Default                                   | Effect                                                     |
-| ------------------------------ | ----------------------------------------- | ---------------------------------------------------------- |
-| `branch.pattern`               | `{category}/{issue}_{name}`               | Branch name when an issue ID is known                      |
-| `branch.pattern_without_issue` | `{category}/{name}`                       | Branch name when no issue ID is known                      |
-| `branch.default_category`      | `feature`                                 | Type when none is given or inferred                        |
-| `branch.categories`            | `feature, fix, chore, doc, refactor, poc` | Suggested types when inferring; other `--type` values work |
+- `branch.pattern` (default `{category}/{issue}_{name}`): branch name when an issue ID is known
+- `branch.pattern_without_issue` (default `{category}/{name}`): branch name when no issue ID is known
+- `branch.default_category` (default `feature`): type when none is given or inferred
+- `branch.categories` (default `feature, fix, chore, doc, refactor, poc`): suggested types when inferring; other `--type` values work
 
 ## Instructions
 

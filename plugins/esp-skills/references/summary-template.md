@@ -1,6 +1,6 @@
 # Summary Template
 
-The format of `summary.md`, written once per run by the skill that owns the run (`esp-go`, `esp-go-light`, or `esp-build` when run on its own) when the run ends, halts, or escalates. `esp-recap` and the PR body read it. Summaries live in the run dir only and are never committed.
+The format of `summary.md`, written once per run by the skill that owns the run (`esp-ship`) when the run ends, halts, or escalates. `esp-recap` and the PR body read it. Summaries live in the run dir only and are never committed.
 
 ## Writing Rules
 
@@ -19,7 +19,7 @@ Values are flat scalars (no lists or nested objects), validated by `contract/v1/
 | `task`              | Yes      | The run ID (the run directory name)                                               |
 | `title`             | Yes      | Task title, quoted                                                                |
 | `status`            | Yes      | Final status: a `run.json` status (`done`, `merged`, `halted`, ...) or `escalate` |
-| `workflow`          | No       | Skill or workflow that owned the run (`esp-go`, `esp-go-light`), or `null`        |
+| `workflow`          | No       | Skill or workflow that owned the run (`esp-ship`), or `null`                      |
 | `pr`                | No       | Pull request URL, or `null`                                                       |
 | `max_risk`          | No       | `low`, `medium`, `high`, or `null` (copy from `run.json`)                         |
 | `decisions`         | No       | Number of lines in `decisions.jsonl`                                              |
@@ -28,17 +28,17 @@ Values are flat scalars (no lists or nested objects), validated by `contract/v1/
 
 ## Sections
 
-| Section                          | Content                                                                                                  |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Outcome                          | One paragraph: what was delivered, final status, PR, and what is left                                    |
-| Decisions                        | The decisions worth a reviewer's attention (medium and high risk first), one line each with ID and class |
-| Surprises                        | What differed from expectations: unexpected code, flaky gates, wrong assumptions in the plan             |
-| Critical Findings                | 🔴 Critical and high-severity findings, how each was resolved or why it is still open                    |
-| Review Comment Resolution        | Per reviewer: comments fixed, rejected (with reason), deferred; rounds used                              |
-| Operator Messages and Amendments | Each delivered message and amendment, and what changed because of it                                     |
-| Deviations from Plan             | Milestones changed, skipped, split, or added, with the reason                                            |
-| Follow-ups Created               | Deferred and discovered items (from `discovered_items`), with type and where they were recorded          |
-| Metrics                          | Milestones done, commits, gate retries, review rounds, duration, models used                             |
+| Section                          | Content                                                                                                                                                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Outcome                          | One paragraph: what was delivered, the track (`inline` or `orchestrated`, and a track switch), the workspace (kind, and for a worktree its path and cleanup), final status, PR, and what is left |
+| Decisions                        | The decisions worth a reviewer's attention (medium and high risk first), one line each with ID and class                                                                                         |
+| Surprises                        | What differed from expectations: unexpected code, flaky gates, wrong assumptions in the plan                                                                                                     |
+| Critical Findings                | 🔴 Critical and high-severity findings, how each was resolved or why it is still open                                                                                                            |
+| Review Comment Resolution        | Per reviewer: comments fixed, rejected (with reason), deferred; rounds used                                                                                                                      |
+| Operator Messages and Amendments | Each delivered message and amendment, and what changed because of it                                                                                                                             |
+| Deviations from Plan             | Milestones changed, skipped, split, or added, and each skipped phase (`outputs.skipped_phases`, the review gate), with the reason                                                                |
+| Follow-ups Created               | Deferred and discovered items (from `discovered_items`), with type and where they were recorded                                                                                                  |
+| Metrics                          | Milestones done, commits, gate retries, final-gates runs and fix rounds, builder reuses, review rounds, duration, models used                                                                    |
 
 ## Template
 
@@ -46,7 +46,7 @@ Values are flat scalars (no lists or nested objects), validated by `contract/v1/
 ---
 task: 2026-11-10-add-token-refresh
 title: "Add token refresh"
-workflow: esp-go
+workflow: esp-ship
 status: merged
 pr: https://github.com/o/r/pull/42
 max_risk: medium
@@ -59,7 +59,7 @@ duration_minutes: 96
 
 ## Outcome
 
-Token refresh is implemented and merged in PR #42 (squash). The three plan milestones shipped as three commits, plus one review-fix commit. Nothing is left open.
+Token refresh is implemented on the orchestrated track, on a new branch in the main checkout, and merged in PR #42 (squash). The three plan milestones shipped as three commits, plus one review-fix commit. Nothing is left open.
 
 ## Decisions
 
@@ -85,6 +85,7 @@ None.
 ## Deviations from Plan
 
 - M3 kept the deprecated alias (A001).
+- No phase was skipped: the review gate ran the internal review (D005: 9 files, 412 lines, M2 is `high`).
 
 ## Follow-ups Created
 
@@ -92,6 +93,6 @@ None.
 
 ## Metrics
 
-- Milestones: 3 of 3, commits: 4, gate retries: 1 (M2 lint), review rounds: internal 1, PR 2
+- Milestones: 3 of 3, commits: 4, gate retries: 1 (M2 lint), final gates: 1 run, 0 fix rounds, builder reuses: 1 (M3 continued the M2 builder), review rounds: internal 1, PR 2
 - Duration: 96 minutes; builder opus, reviewer opus (high), verifier sonnet
 ```

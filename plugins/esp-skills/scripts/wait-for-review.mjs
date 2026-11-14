@@ -1,12 +1,15 @@
 #!/usr/bin/env node
-// esp-skills wait primitive for esp-await-review.
+// esp-skills wait primitive for esp-fix-review --wait and the esp-ship tail.
 //
 // Waits until every requested bot reviewer has reviewed the current head SHA
-// of a GitHub pull request, without an LLM session polling: the skill starts
-// this script in the background and resumes when it exits. Each poll reads
-// the pull request, its reviews and its issue comments through `gh`, matches
-// reviewer completion on the head SHA, optionally posts the trigger comment of
-// a reviewer that needs one, and backs off while nothing changes.
+// of a GitHub pull request and, with --checks, until no CI check of that head
+// is pending, without an LLM session polling: the skill starts this script in
+// the background and resumes when it exits. Each poll reads the pull request,
+// its reviews, its issue comments and (with --checks) its checks through
+// `gh`, matches reviewer completion on the head SHA, optionally posts the
+// trigger comment of a reviewer that needs one, and backs off while nothing
+// changes. A failing check never ends the wait early: the reviews are always
+// awaited, so the next fix round handles both.
 //
 // The last stdout line is a contract result block. Progress goes to stderr and
 // to the state file, which a session can read while the script runs.
@@ -26,6 +29,7 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ConfigError, findRepoRoot, loadConfig } from "./config.mjs";
+import { classifyChecks, fetchChecks } from "./lib/checks.mjs";
 import { exitCodeFor, validateArtifact } from "./lib/contract.mjs";
 import { appendEvent } from "./runs.mjs";
 
@@ -38,6 +42,8 @@ export class WaitError extends Error {
 }
 
 export const STATE_FORMAT = 1;
+export const DEFAULT_STATE_FILE = "fix-review-wait.json";
+export const DEFAULT_CHECKS_GRACE_SECONDS = 120;
 const SHORT_SHA = 7;
 const MAX_CONSECUTIVE_ERRORS = 5;
 const CODEX_STATE = /<!--\s*codex-review-state:v1\s+(\{.*?\})\s*-->/s;
@@ -59,14 +65,18 @@ export function sameLogin(a, b) {
 
 /**
  * Resolve requested reviewer names to `{ name, login, trigger }`. A name found
- * in `await-review.reviewers` uses its login and trigger. Any other value is
+ * in `fix-review.wait.reviewers` uses its login and trigger. Any other value is
  * taken as a raw login with no trigger.
  */
-export function resolveReviewers(names, configured = {}) {
+export function resolveReviewers(
+  names,
+  configured = {},
+  { allowEmpty = false } = {}
+) {
   const list = (Array.isArray(names) ? names : String(names ?? "").split(","))
     .map((name) => String(name).trim())
     .filter((name) => name !== "");
-  if (list.length === 0)
+  if (list.length === 0 && !allowEmpty)
     throw new WaitError("No reviewers to wait for (pass --reviewers)", 2);
   const seen = new Set();
   const reviewers = [];
@@ -243,6 +253,37 @@ export function triggerPosted(trigger, snapshot) {
   });
 }
 
+/**
+ * The check state of a head: `{ failing, pending, passing, registered }`
+ * names. An empty check list is pending (`registered: false`) for
+ * `graceSeconds` after the head commit date, since checks register a short
+ * time after a push, then counts as "no checks".
+ */
+function latestDate(a, b) {
+  const ta = Date.parse(a ?? "");
+  const tb = Date.parse(b ?? "");
+  if (!Number.isFinite(ta)) return Number.isFinite(tb) ? b : null;
+  if (!Number.isFinite(tb)) return a;
+  return ta >= tb ? a : b;
+}
+
+export function checksStatus(list, { headDate, now, graceSeconds }) {
+  const checks = list ?? [];
+  if (checks.length > 0) {
+    const { failing, pending, passing } = classifyChecks(checks);
+    return { failing, pending, passing, registered: true };
+  }
+  const since = Date.parse(headDate ?? "");
+  const inGrace =
+    Number.isFinite(since) && now.getTime() - since < graceSeconds * 1000;
+  return {
+    failing: [],
+    pending: inGrace ? ["(not registered yet)"] : [],
+    passing: [],
+    registered: false
+  };
+}
+
 // ---------------------------------------------------------------------------
 // GitHub client
 // ---------------------------------------------------------------------------
@@ -334,6 +375,13 @@ export function ghClient({ cwd, env = process.env } = {}) {
     },
     comment(number, body) {
       gh(["pr", "comment", String(number), "--body", body]);
+    },
+    checks(number) {
+      return fetchChecks(
+        (args) => exec(prefix[0], [...prefix.slice(1), ...args], cwd),
+        number,
+        { ErrorClass: WaitError }
+      );
     }
   };
 }
@@ -370,18 +418,19 @@ export function nextInterval(base, factor, idlePolls, cap) {
 
 function needsInput(pending, minutes) {
   return {
-    id: "await-review-timeout",
-    question: `No review from ${pending.join(", ")} on the head commit after ${minutes} minute${minutes === 1 ? "" : "s"}. Wait again or continue without it?`,
+    id: "fix-review-wait-timeout",
+    question: `Still waiting for ${pending.join(", ")} on the head commit after ${minutes} minute${minutes === 1 ? "" : "s"}. Wait again or continue without it?`,
     options: [
       {
         id: "wait",
         label: "Wait again",
-        description: "Run esp-await-review again with the same reviewers"
+        description: "Run the wait again with the same reviewers and state file"
       },
       {
         id: "skip",
-        label: "Continue without the review",
-        description: "Treat the missing reviews as not coming"
+        label: "Continue without it",
+        description:
+          "Treat the missing reviews and checks as not coming, and fix what arrived"
       }
     ],
     recommended: "wait",
@@ -389,10 +438,19 @@ function needsInput(pending, minutes) {
   };
 }
 
+function checksSummary(checks, pr, short) {
+  if (!checks.registered) return `no checks on #${pr} at ${short}`;
+  const failing = checks.failing.length;
+  return failing > 0
+    ? `checks finished on #${pr} at ${short}, ${failing} failing (${checks.failing.join(", ")})`
+    : `checks passed on #${pr} at ${short}`;
+}
+
 /**
- * Wait for reviewers. Options: `pr`, `reviewers` (resolved), `timeoutMinutes`,
- * `pollSeconds`, `maxPollSeconds`, `backoff`, `trigger`, `once`, `statePath`,
- * `runDir`. Deps: `client`, `sleep(ms)`, `now()` (Date), `log(line)`, `env`.
+ * Wait for reviewers, and for checks with `checks`. Options: `pr`,
+ * `reviewers` (resolved), `timeoutMinutes`, `pollSeconds`, `maxPollSeconds`,
+ * `backoff`, `trigger`, `once`, `statePath`, `runDir`, `checks`,
+ * `checksGraceSeconds`. Deps: `client`, `sleep(ms)`, `now()` (Date), `log(line)`, `env`.
  * Returns `{ result, state }`.
  */
 export async function waitForReview(options, deps) {
@@ -408,6 +466,11 @@ export async function waitForReview(options, deps) {
   const base = options.pollSeconds;
   const cap = Math.max(base, options.maxPollSeconds ?? base * 5);
   const factor = options.backoff ?? 1.5;
+  const withChecks = Boolean(options.checks);
+  const graceSeconds =
+    options.checksGraceSeconds ?? DEFAULT_CHECKS_GRACE_SECONDS;
+  if (reviewers.length === 0 && !withChecks)
+    throw new WaitError("No reviewers to wait for (pass --reviewers)", 2);
 
   const previous = readState(options.statePath);
   const startedAt = now();
@@ -425,6 +488,7 @@ export async function waitForReview(options, deps) {
     polls: 0,
     status: "waiting",
     reviewers: {},
+    checks: null,
     triggered: Array.isArray(previous?.triggered) ? previous.triggered : [],
     heads: Array.isArray(previous?.heads) ? previous.heads : [],
     errors: []
@@ -434,10 +498,12 @@ export async function waitForReview(options, deps) {
     options.pr == null ||
     String(previous?.pr) === String(options.pr) ||
     previous?.url === options.pr;
+  let carriedClock = false;
   if (previous && !previous.ended_at && previous.started_at && samePr) {
     state.started_at = previous.started_at;
+    carriedClock = true;
   }
-  const deadline = Date.parse(state.started_at) + timeoutMs;
+  let deadline = Date.parse(state.started_at) + timeoutMs;
   const announced = new Set(
     Object.entries(previous?.reviewers ?? {})
       .filter(([, r]) => r.status === "reviewed" && r.head === previous.head)
@@ -475,6 +541,15 @@ export async function waitForReview(options, deps) {
         triggered: state.triggered
           .filter((t) => t.head === state.head)
           .map((t) => t.reviewer),
+        ...(withChecks
+          ? {
+              checks: {
+                failing: state.checks?.failing ?? [],
+                pending: state.checks?.pending ?? [],
+                passing: state.checks?.passing ?? []
+              }
+            }
+          : {}),
         polls: state.polls,
         waited_seconds: Math.max(
           0,
@@ -500,6 +575,18 @@ export async function waitForReview(options, deps) {
     let closedState = null;
     try {
       const pr = client.pr(options.pr);
+      // Without a PR argument, a clock carried from another pull request
+      // is reset once the pull request is known.
+      if (
+        carriedClock &&
+        options.pr == null &&
+        previous.pr != null &&
+        String(previous.pr) !== String(pr.number)
+      ) {
+        state.started_at = startedAt.toISOString();
+        deadline = startedAt.getTime() + timeoutMs;
+      }
+      carriedClock = false;
       state.pr = pr.number;
       state.url = pr.url;
       state.repo ??= repoFromUrl(pr.url);
@@ -510,8 +597,15 @@ export async function waitForReview(options, deps) {
           log(
             `head changed: ${state.head.slice(0, SHORT_SHA)} -> ${pr.head.slice(0, SHORT_SHA)}, waiting on the new head`
           );
+        // Fetch the date first: a failed call leaves the old head in place,
+        // so the next poll retries instead of keeping the old head's date.
+        const headDate = client.commitDate(state.repo, pr.head);
         state.head = pr.head;
-        state.head_date = client.commitDate(state.repo, pr.head);
+        state.head_date = headDate;
+        state.head_seen_at =
+          previous?.head === pr.head && previous?.head_seen_at
+            ? previous.head_seen_at
+            : now().toISOString();
         if (!state.heads.includes(pr.head)) state.heads.push(pr.head);
         idle = 0;
       }
@@ -519,7 +613,8 @@ export async function waitForReview(options, deps) {
         head: state.head,
         headDate: state.head_date,
         reviews: client.reviews(state.repo, state.pr),
-        comments: client.comments(state.repo, state.pr)
+        comments: client.comments(state.repo, state.pr),
+        checks: withChecks ? client.checks(state.pr) : null
       };
       consecutiveErrors = 0;
     } catch (err) {
@@ -574,21 +669,37 @@ export async function waitForReview(options, deps) {
       }
     }
 
+    if (withChecks) {
+      state.checks = checksStatus(snapshot.checks, {
+        // The grace runs from when this wait first saw the head, not from
+        // the commit date: a push can land minutes after the commit.
+        headDate:
+          latestDate(state.head_date, state.head_seen_at) ?? state.started_at,
+        now: now(),
+        graceSeconds
+      });
+    }
+    const checksPending = withChecks ? state.checks.pending : [];
+
     const pending = reviewers.filter(
       (r) => state.reviewers[r.name].status !== "reviewed"
     );
-    if (pending.length === 0) {
+    const short = state.head.slice(0, SHORT_SHA);
+    if (pending.length === 0 && checksPending.length === 0) {
       const names = reviewers.map((r) => r.name).join(", ");
-      return finish(
-        "done",
-        `${names} reviewed #${state.pr} at ${state.head.slice(0, SHORT_SHA)}.`
-      );
+      const parts = [];
+      if (names) parts.push(`${names} reviewed #${state.pr} at ${short}`);
+      if (withChecks) parts.push(checksSummary(state.checks, state.pr, short));
+      return finish("done", `${parts.join("; ")}.`);
     }
     if (closedState) {
-      const missing = pending.map((r) => r.name).join(", ");
+      const missing = [
+        ...pending.map((r) => r.name),
+        ...(checksPending.length > 0 ? ["the checks"] : [])
+      ].join(", ");
       return finish(
         "failed",
-        `Pull request #${state.pr} is ${closedState} and ${missing} did not review its head, nothing to wait for.`
+        `Pull request #${state.pr} is ${closedState} and ${missing} did not finish on its head, nothing to wait for.`
       );
     }
 
@@ -638,7 +749,12 @@ export async function waitForReview(options, deps) {
       }
     }
 
-    const pendingNames = pending.map((r) => r.name);
+    const pendingNames = [
+      ...pending.map((r) => r.name),
+      ...(checksPending.length > 0
+        ? [`checks (${checksPending.join(", ")})`]
+        : [])
+    ];
     if (options.once) {
       return finish(
         "awaiting-human",
@@ -654,7 +770,10 @@ export async function waitForReview(options, deps) {
       );
     }
 
-    const key = `${state.head}|${reviewers.map((r) => `${r.name}:${state.reviewers[r.name].status}`).join(",")}`;
+    const checksKey = withChecks
+      ? `|checks:${state.checks.failing.join(",")}/${checksPending.join(",")}`
+      : "";
+    const key = `${state.head}|${reviewers.map((r) => `${r.name}:${state.reviewers[r.name].status}`).join(",")}${checksKey}`;
     if (key !== lastKey) idle = 0;
     lastKey = key;
     const wait = Math.min(
@@ -677,20 +796,26 @@ export async function waitForReview(options, deps) {
 
 const USAGE = `Usage: node wait-for-review.mjs [pr] [options]
 
-Waits until every reviewer has reviewed the head commit of a pull request.
+Waits until every reviewer has reviewed the head commit of a pull request
+and, with --checks, until no check of that commit is pending.
 [pr] is a number, #<n>, or a URL (default: the pull request of the current branch).
 The last stdout line is a contract result block; progress goes to stderr.
 
 Options:
-  --reviewers <a,b>          Reviewer names from await-review.reviewers, or raw logins
-                             (default: go.default_reviewers)
-  --timeout-minutes <n>      Give up after n minutes (default: await-review.timeout_minutes)
-  --poll-seconds <n>         First poll interval (default: await-review.poll_seconds)
+  --reviewers <a,b>          Reviewer names from fix-review.wait.reviewers, or raw logins
+                             (default: fix-review.wait.default_reviewers)
+  --timeout-minutes <n>      Give up after n minutes (default: fix-review.wait.timeout_minutes)
+  --poll-seconds <n>         First poll interval (default: fix-review.wait.poll_seconds)
   --max-poll-seconds <n>     Backoff cap (default: 5 x poll seconds)
   --backoff <factor>         Interval multiplier while nothing changes (default 1.5)
-  --trigger / --no-trigger   Post trigger comments (default: await-review.auto_trigger)
+  --trigger / --no-trigger   Post trigger comments (default: fix-review.wait.auto_trigger)
+  --checks                   Also wait until no CI check of the head is pending (a
+                             failing check does not end the wait early); the result
+                             carries outputs.checks { failing, pending, passing }
+  --checks-grace-seconds <n> An empty check list is pending for n seconds after the
+                             head commit (default: fix-review.wait.checks_grace_seconds)
   --once                     Check once and exit (0 done, 10 still pending)
-  --state <file>             Progress file (default: <run-dir>/await-review.json)
+  --state <file>             Progress file (default: <run-dir>/${DEFAULT_STATE_FILE})
   --run-dir <path>           Run directory: state file location and review.received events
   --config-snapshot <path>   Config snapshot to read instead of the user and project layers
   --project-dir <dir>        Repository (default: nearest git root, else cwd)
@@ -701,7 +826,13 @@ Exit codes: 0 done, 10 awaiting-human, 1 failed, 2 usage error.
 Environment:
   ESP_GH_CMD                 JSON array replacing the gh command (tests)`;
 
-const BOOLEAN_OPTIONS = new Set(["trigger", "no-trigger", "once", "help"]);
+const BOOLEAN_OPTIONS = new Set([
+  "trigger",
+  "no-trigger",
+  "once",
+  "checks",
+  "help"
+]);
 
 export function parseArgs(argv) {
   const options = {};
@@ -759,7 +890,7 @@ export function resolveOptions(cli, positional, env = process.env) {
       throw new WaitError(err.message, err.exitCode ?? 1);
     throw err;
   }
-  const section = config["await-review"] ?? {};
+  const section = config["fix-review"]?.wait ?? {};
   const runDir = cli["run-dir"] ? resolve(cli["run-dir"]) : null;
   if (runDir && !existsSync(join(runDir, "run.json")))
     throw new WaitError(`Not a run directory (no run.json): ${runDir}`, 2);
@@ -771,9 +902,15 @@ export function resolveOptions(cli, positional, env = process.env) {
     projectDir,
     pr: prArgument(positional.join(" ")),
     reviewers: resolveReviewers(
-      cli.reviewers ?? config.go?.default_reviewers ?? [],
-      section.reviewers ?? {}
+      cli.reviewers ?? section.default_reviewers ?? [],
+      section.reviewers ?? {},
+      { allowEmpty: Boolean(cli.checks) }
     ),
+    checks: Boolean(cli.checks),
+    checksGraceSeconds:
+      cli["checks-grace-seconds"] !== undefined
+        ? positiveNumber(cli["checks-grace-seconds"], "checks-grace-seconds", 0)
+        : (section.checks_grace_seconds ?? DEFAULT_CHECKS_GRACE_SECONDS),
     timeoutMinutes:
       cli["timeout-minutes"] !== undefined
         ? positiveNumber(cli["timeout-minutes"], "timeout-minutes", 0)
@@ -796,7 +933,7 @@ export function resolveOptions(cli, positional, env = process.env) {
     statePath: cli.state
       ? resolve(cli.state)
       : runDir
-        ? join(runDir, "await-review.json")
+        ? join(runDir, DEFAULT_STATE_FILE)
         : null,
     runDir
   };

@@ -7,7 +7,7 @@
 //
 // Exit codes: 0 success, 1 invalid plan or failed check, 2 usage error.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseFrontmatter } from "./lib/contract.mjs";
@@ -351,6 +351,7 @@ export function parsePlan(text, { file } = {}) {
         `milestone ${m.id}: touches ${m.files.length} files; consider splitting it`
       );
   }
+  warnings.push(...parallelWarnings(milestones));
 
   const plan = {
     plan_format: front.plan_format ?? null,
@@ -392,6 +393,150 @@ export function lintPlan(file) {
     milestones: plan.milestones.map((m) => m.id),
     errors,
     warnings
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Parallel batches
+// ---------------------------------------------------------------------------
+
+/** A file ref as a comparable path: forward slashes, no `./`, no trailing `/`. */
+function normalizeFile(f) {
+  const path = String(f)
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/\/+$/, "");
+  // A glob compares by its static directory prefix (`src/**/x.js` -> `src`).
+  const glob = path.search(/[*?[{]/);
+  if (glob === -1) return path === "." ? "" : path;
+  const prefix = path.slice(0, glob);
+  return prefix.slice(0, Math.max(0, prefix.lastIndexOf("/")));
+}
+
+/** True when a file list covers the whole repository (`.`, or a top-level glob). */
+export const wholeRepo = (files) => files.some((f) => normalizeFile(f) === "");
+
+/**
+ * True when two file lists share a file, or one is a directory (or a glob
+ * prefix) of the other. `.` overlaps everything.
+ */
+export function filesOverlap(a, b) {
+  const left = a.map(normalizeFile);
+  const right = b.map(normalizeFile);
+  return left.some((x) =>
+    right.some(
+      (y) =>
+        x === "" ||
+        y === "" ||
+        x === y ||
+        x.startsWith(`${y}/`) ||
+        y.startsWith(`${x}/`)
+    )
+  );
+}
+
+/** Milestone ID -> set of every milestone it depends on, directly or not. */
+function ancestors(milestones) {
+  const byId = new Map(milestones.map((m) => [m.id, m]));
+  const memo = new Map();
+  const visit = (id, seen = new Set()) => {
+    if (memo.has(id)) return memo.get(id);
+    const out = new Set();
+    if (seen.has(id)) return out;
+    seen.add(id);
+    for (const dep of byId.get(id)?.depends ?? []) {
+      if (!byId.has(dep)) continue;
+      out.add(dep);
+      for (const a of visit(dep, seen)) out.add(a);
+    }
+    memo.set(id, out);
+    return out;
+  };
+  return new Map(milestones.map((m) => [m.id, visit(m.id)]));
+}
+
+/** Lint warnings for milestones that can never run in parallel. */
+function parallelWarnings(milestones) {
+  if (milestones.length < 2) return [];
+  const warnings = [];
+  const deps = ancestors(milestones);
+  for (const m of milestones)
+    if (m.files.length > 0 && wholeRepo(m.files))
+      warnings.push(
+        `milestone ${m.id}: Files covers the whole repository, so it never runs in parallel; list its files`
+      );
+  milestones.forEach((a, i) => {
+    for (const b of milestones.slice(i + 1)) {
+      if (deps.get(a.id).has(b.id) || deps.get(b.id).has(a.id)) continue;
+      if (wholeRepo(a.files) || wholeRepo(b.files)) continue;
+      if (filesOverlap(a.files, b.files))
+        warnings.push(
+          `milestones ${a.id} and ${b.id} share files but neither depends on the other, so they cannot run in parallel: add a Depends, or move the shared files to an earlier milestone`
+        );
+    }
+  });
+  return warnings;
+}
+
+/**
+ * Dependency waves of a plan, each split into batches of milestones with
+ * disjoint files (at most `maxParallel` per batch). Wave N holds the
+ * milestones whose longest dependency chain has N - 1 links. A milestone
+ * without files, or one that covers the whole repository, is a batch alone.
+ * `done` milestones (IDs) are left out. Returns `{ waves: [{ wave,
+ * milestones, batches }], max_batch, parallel, summary }`.
+ */
+export function planBatches(plan, { maxParallel = Infinity, done = [] } = {}) {
+  const skip = new Set(done);
+  const ids = new Set(plan.milestones.map((m) => m.id));
+  const level = new Map();
+  for (const m of plan.milestones) {
+    const deps = m.depends.filter((d) => ids.has(d) && !skip.has(d));
+    level.set(m.id, 1 + Math.max(0, ...deps.map((d) => level.get(d) ?? 0)));
+  }
+  const cap = Math.max(1, Number(maxParallel) || Infinity);
+  const waves = [];
+  for (const m of plan.milestones) {
+    if (skip.has(m.id)) continue;
+    const n = level.get(m.id);
+    let wave = waves.find((w) => w.wave === n);
+    if (!wave) {
+      wave = { wave: n, milestones: [], batches: [] };
+      waves.push(wave);
+    }
+    wave.milestones.push(m.id);
+    const solo = m.files.length === 0 || wholeRepo(m.files);
+    const batch = solo
+      ? null
+      : wave.batches.find(
+          (b) =>
+            !b.solo &&
+            b.ids.length < cap &&
+            b.files.every((f) => !filesOverlap(f, m.files))
+        );
+    if (batch) {
+      batch.ids.push(m.id);
+      batch.files.push(m.files);
+    } else wave.batches.push({ ids: [m.id], files: [m.files], solo });
+  }
+  waves.sort((a, b) => a.wave - b.wave);
+  const out = waves.map((w) => ({
+    wave: w.wave,
+    milestones: w.milestones,
+    batches: w.batches.map((b) => b.ids)
+  }));
+  const maxBatch = Math.max(
+    0,
+    ...out.flatMap((w) => w.batches.map((b) => b.length))
+  );
+  return {
+    waves: out,
+    max_batch: maxBatch,
+    parallel: maxBatch >= 2,
+    summary: out.map(
+      (w) =>
+        `Wave ${w.wave}: ${w.batches.map((b) => b.join(" + ")).join(", then ")}`
+    )
   };
 }
 
@@ -468,8 +613,445 @@ export function diffPlans(previous, next, completed = []) {
 }
 
 // ---------------------------------------------------------------------------
-// CLI
+// Task lists
 // ---------------------------------------------------------------------------
+
+// A task list is a markdown file with a checkbox progress list whose items
+// name work packages (`- [ ] ESH-03: Triage`) and one heading per package
+// (`### ESH-03: Triage`, at any level). Each package section may carry
+// `**Goal**`-style fields and Tasks, Acceptance Criteria and Validation
+// lists, as subsections or bold labels.
+const PACKAGE_ID =
+  /^(?:\*\*|`)?([A-Z][A-Z0-9]*-\d+[a-z]?)\b(?:\*\*|`)?[\s:.)-]*/;
+const PACKAGE_REF = /\b[A-Z][A-Z0-9]*-\d+[a-z]?\b/g;
+const CHECKBOX = /^\s{0,3}[-*+]\s+\[([^\]])\]\s+(.*)$/;
+const ANY_HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
+const BOLD_FIELD = /^\s*(?:[-*+]\s+)?\*\*([A-Za-z][A-Za-z ]*?):?\*\*:?\s*(.*)$/;
+const PACKAGE_FIELDS = {
+  goal: "goal",
+  objective: "goal",
+  complexity: "complexity",
+  size: "complexity",
+  depends: "depends",
+  "depends on": "depends",
+  dependencies: "depends",
+  files: "files",
+  "files changed": "files"
+};
+const PACKAGE_LISTS = {
+  tasks: "tasks",
+  steps: "tasks",
+  "acceptance criteria": "acceptance",
+  acceptance: "acceptance",
+  validation: "validation",
+  verification: "validation"
+};
+
+const FRONTMATTER = /^\uFEFF?---\r?\n[\s\S]*?\r?\n---\r?(?:\n|$)/;
+const stripFrontmatter = (text) => text.replace(FRONTMATTER, "");
+
+/** Lines outside code fences, with their heading level when they are one. */
+function markdownLines(text) {
+  let fence = false;
+  // Blank the frontmatter and comments but keep their newlines, so line
+  // numbers match the file.
+  const blank = (m) => m.replace(/[^\n]/g, "");
+  return text
+    .replace(FRONTMATTER, blank)
+    .replace(/<!--[\s\S]*?-->/g, blank)
+    .split(/\r?\n/)
+    .map((t, i) => {
+      const toggles = /^\s*(```|~~~)/.test(t);
+      if (toggles) fence = !fence;
+      const h = !fence && !toggles ? ANY_HEADING.exec(t) : null;
+      return {
+        text: t,
+        line: i + 1,
+        fenced: fence || toggles,
+        level: h ? h[1].length : 0,
+        heading: h ? h[2] : null
+      };
+    });
+}
+
+function splitPackageTitle(text) {
+  const m = PACKAGE_ID.exec(text.trim());
+  if (!m) return null;
+  return { id: m[1], title: text.trim().slice(m[0].length).trim() };
+}
+
+function fileRefs(value) {
+  const ticks = [...String(value).matchAll(/`([^`]+)`/g)].map((m) =>
+    m[1].trim()
+  );
+  return ticks.length > 0 ? ticks.filter(Boolean) : splitRefs(value);
+}
+
+const cleanItem = (item) => item.replace(/^\[[ xX]\]\s+/, "").trim();
+
+/** Fields and lists of one package section. */
+function parsePackageSection(lines) {
+  const out = {
+    goal: null,
+    complexity: null,
+    depends: null,
+    files: null,
+    tasks: [],
+    acceptance: [],
+    validation: []
+  };
+  let list = null;
+  let buffer = [];
+  const flush = () => {
+    if (list) out[list] = listItems(buffer).map(cleanItem).filter(Boolean);
+    buffer = [];
+  };
+  for (const l of lines) {
+    if (l.level > 0) {
+      flush();
+      list = PACKAGE_LISTS[l.heading.toLowerCase()] ?? null;
+      continue;
+    }
+    const bold = l.fenced ? null : BOLD_FIELD.exec(l.text);
+    const label = bold?.[1].trim().toLowerCase();
+    if (bold && PACKAGE_LISTS[label] && bold[2].trim() === "") {
+      flush();
+      list = PACKAGE_LISTS[label];
+      continue;
+    }
+    if (bold && PACKAGE_FIELDS[label]) {
+      flush();
+      list = null;
+      out[PACKAGE_FIELDS[label]] = bold[2].trim();
+      continue;
+    }
+    if (list) buffer.push(l);
+  }
+  flush();
+  out.files = out.files ? fileRefs(out.files) : [];
+  return out;
+}
+
+/**
+ * Parse a task list. Returns `{ title, intro, packages, unmatched }`:
+ * `packages` are the checkbox items that have a matching heading, in list
+ * order, each with `{ id, title, checked, line, goal, complexity, depends,
+ * files, tasks, acceptance, validation }`. `unmatched` lists checkbox IDs
+ * with no heading. A file with no package is not a task list.
+ */
+export function parseTaskList(text) {
+  const lines = markdownLines(text);
+  let front = null;
+  try {
+    front = parseFrontmatter(text);
+  } catch {
+    front = null;
+  }
+  const h1 = lines.find((l) => l.level === 1);
+  const checkboxes = [];
+  for (const l of lines) {
+    if (l.fenced || l.level) continue;
+    const m = CHECKBOX.exec(l.text);
+    const ref = m ? splitPackageTitle(m[2]) : null;
+    if (ref && !checkboxes.some((c) => c.id === ref.id))
+      // Only [x] is done: [ ], [~], [-] or [/] (in progress) stay open.
+      checkboxes.push({ ...ref, checked: /[xX]/.test(m[1]), line: l.line });
+  }
+  const headings = new Map();
+  lines.forEach((l, index) => {
+    if (!l.level) return;
+    const ref = splitPackageTitle(l.heading);
+    if (ref && !headings.has(ref.id)) headings.set(ref.id, { ...ref, index });
+  });
+  const packages = [];
+  const unmatched = [];
+  for (const box of checkboxes) {
+    const heading = headings.get(box.id);
+    if (!heading) {
+      unmatched.push(box.id);
+      // An open item with no section is still open work: import it from its
+      // checkbox title, with empty fields that lint names.
+      if (!box.checked)
+        packages.push({
+          id: box.id,
+          title: box.title,
+          checked: false,
+          line: box.line,
+          ...parsePackageSection([]),
+          depends: []
+        });
+      continue;
+    }
+    const level = lines[heading.index].level;
+    let end = heading.index + 1;
+    while (
+      end < lines.length &&
+      !(lines[end].level && lines[end].level <= level)
+    )
+      end++;
+    const section = parsePackageSection(lines.slice(heading.index + 1, end));
+    packages.push({
+      id: box.id,
+      title: heading.title || box.title,
+      checked: box.checked,
+      line: lines[heading.index].line,
+      ...section,
+      depends:
+        section.depends === null || NONE.test(section.depends.trim())
+          ? []
+          : [...section.depends.matchAll(PACKAGE_REF)].map((m) => m[0])
+    });
+  }
+  let intro = "";
+  if (h1) {
+    const start = lines.indexOf(h1) + 1;
+    const block = [];
+    for (let i = start; i < lines.length && !lines[i].level; i++)
+      if (!CHECKBOX.test(lines[i].text)) block.push(lines[i].text);
+    intro = block.join("\n").trim();
+  }
+  return {
+    title:
+      (typeof front?.title === "string" && front.title.trim()) ||
+      h1?.heading ||
+      null,
+    intro,
+    packages,
+    unmatched
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Writing plans: import and synthesize
+// ---------------------------------------------------------------------------
+
+const yamlString = (value) => JSON.stringify(String(value));
+
+function localDay(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+const listBlock = (items, numbered = false) =>
+  items.map((item, i) => `${numbered ? `${i + 1}.` : "-"} ${item}`).join("\n");
+
+/** Render a plan in plan format 1 from plain data (see references/plan-format.md). */
+export function renderPlan({
+  title,
+  type = "feature",
+  task = null,
+  source = null,
+  created = localDay(),
+  overview,
+  context = [],
+  milestones,
+  risks = [],
+  openQuestions = [],
+  outOfScope = []
+}) {
+  const front = [
+    "---",
+    "plan_format: 1",
+    `title: ${yamlString(title)}`,
+    `type: ${type}`,
+    "version: 1",
+    ...(task ? [`task: ${yamlString(task)}`] : []),
+    ...(source ? [`source: ${yamlString(source)}`] : []),
+    `created: ${created}`,
+    "---"
+  ];
+  const orNone = (items) => (items.length ? listBlock(items) : "- None");
+  const sub = (heading, items, numbered) =>
+    `#### ${heading}\n\n${items.length ? listBlock(items, numbered) : ""}`.trimEnd();
+  const blocks = milestones.map((m) =>
+    [
+      `### ${m.id}: ${m.title}`,
+      [
+        `- **Goal**: ${m.goal}`,
+        `- **Complexity**: ${m.complexity}`,
+        `- **Depends**: ${m.depends.length ? m.depends.join(", ") : "none"}`,
+        `- **Files**: ${m.files.map((f) => `\`${f}\``).join(", ")}`.trimEnd()
+      ].join("\n"),
+      sub("Tasks", m.tasks, true),
+      sub("Acceptance Criteria", m.acceptance),
+      sub(
+        "Validation",
+        m.validation.map((v) => (v.startsWith("`") ? v : `\`${v}\``))
+      )
+    ].join("\n\n")
+  );
+  return `${[
+    front.join("\n"),
+    `# Plan: ${title}`,
+    `## Overview\n\n${overview}`,
+    ...context.map((c) => `## ${c.title}\n\n${c.body}`),
+    `## Milestones\n\n${blocks.join("\n\n")}`,
+    `## Risks\n\n${orNone(risks)}`,
+    `## Open Questions\n\n${orNone(openQuestions)}`,
+    `## Out of Scope\n\n${orNone(outOfScope)}`
+  ].join("\n\n")}\n`;
+}
+
+/** Order packages so each comes after the packages it depends on (stable). */
+function dependencyOrder(packages) {
+  const byId = new Map(packages.map((p) => [p.id, p]));
+  const done = new Set();
+  const visiting = new Set();
+  const ordered = [];
+  const visit = (p) => {
+    if (done.has(p.id) || visiting.has(p.id)) return;
+    visiting.add(p.id);
+    for (const dep of p.depends) if (byId.has(dep)) visit(byId.get(dep));
+    visiting.delete(p.id);
+    done.add(p.id);
+    ordered.push(p);
+  };
+  for (const p of packages) visit(p);
+  return ordered;
+}
+
+/**
+ * Convert a task list into a plan draft, with no model: one milestone per
+ * unchecked package, in dependency order. Fields the source lacks stay empty,
+ * so plan-lint names what is left to fill. Returns `{ markdown, milestones,
+ * mapping, dropped }`.
+ */
+export function importTaskList(text, { source = null, type, created } = {}) {
+  const list = parseTaskList(text);
+  if (list.packages.length === 0)
+    throw new PlanError(
+      "Not a task list: no checkbox item matches a package heading"
+    );
+  const open = dependencyOrder(list.packages.filter((p) => !p.checked));
+  const done = list.packages.filter((p) => p.checked);
+  if (open.length === 0)
+    throw new PlanError(
+      "Nothing to import: every package of the task list is checked"
+    );
+  const idOf = new Map(open.map((p, i) => [p.id, `M${i + 1}`]));
+  const milestones = open.map((p) => ({
+    id: idOf.get(p.id),
+    title: `${p.id} ${p.title}`.trim(),
+    goal: p.goal || p.title || p.id,
+    complexity: COMPLEXITIES.includes(p.complexity?.toLowerCase())
+      ? p.complexity.toLowerCase()
+      : "medium",
+    depends: p.depends.filter((d) => idOf.has(d)).map((d) => idOf.get(d)),
+    files: p.files,
+    tasks: p.tasks,
+    acceptance: p.acceptance,
+    // The first backtick span is the command; prose with none is dropped,
+    // so an empty Validation is named by lint.
+    validation: p.validation.flatMap((v) => {
+      const m = /`([^`]+)`/.exec(v);
+      return m ? [m[1]] : [];
+    })
+  }));
+  const title = list.title || (source ? basename(source) : "Imported tasks");
+  const name = source ? basename(source) : "the task list";
+  const overview = [
+    list.intro,
+    `Imported from ${name}: ${open.length} of ${list.packages.length} packages remain (${open.map((p) => p.id).join(", ")}).`
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const markdown = renderPlan({
+    title,
+    type: PLAN_TYPES.includes(type) ? type : "feature",
+    task: `Implement the remaining packages of ${name}`,
+    source,
+    created,
+    overview,
+    context: [
+      {
+        title: "Packages",
+        body: listBlock(open.map((p) => `${idOf.get(p.id)}: ${p.id}`))
+      }
+    ],
+    milestones,
+    outOfScope: done.map((p) => `${p.id}: ${p.title} (already done)`)
+  });
+  return {
+    markdown,
+    milestones: milestones.map((m) => m.id),
+    mapping: Object.fromEntries(idOf),
+    dropped: done.map((p) => p.id)
+  };
+}
+
+const asList = (value) =>
+  value === undefined
+    ? []
+    : (Array.isArray(value) ? value : [value]).map(String).filter(Boolean);
+
+/**
+ * A one-milestone plan with no model, for a request that skips planning but
+ * is too large for the inline track. Without files, the milestone covers the
+ * whole repository (`.`).
+ */
+export function synthesizePlan({
+  title,
+  goal,
+  files = [],
+  validation = [],
+  tasks = [],
+  acceptance = [],
+  complexity = "medium",
+  type = "feature",
+  task = null,
+  created
+}) {
+  if (!title || !goal)
+    throw new PlanError("synthesize needs --title and --goal", 2);
+  if (validation.length === 0)
+    throw new PlanError(
+      "synthesize needs at least one --validation <command>",
+      2
+    );
+  if (!COMPLEXITIES.includes(complexity))
+    throw new PlanError(
+      `--complexity must be one of ${COMPLEXITIES.join(", ")}`,
+      2
+    );
+  if (!PLAN_TYPES.includes(type))
+    throw new PlanError(`--type must be one of ${PLAN_TYPES.join(", ")}`, 2);
+  return renderPlan({
+    title,
+    type,
+    task: task ?? goal,
+    created,
+    overview: `${goal}. One milestone, synthesized without a planning model.`,
+    milestones: [
+      {
+        id: "M1",
+        title,
+        goal,
+        complexity,
+        depends: [],
+        files: files.length ? files : ["."],
+        tasks: tasks.length ? tasks : [goal],
+        acceptance: acceptance.length ? acceptance : [goal],
+        validation
+      }
+    ]
+  });
+}
+
+/** Write a new plan: `--out <file>`, else `<run-dir>/plan.md`, else stdout. */
+function writePlan(markdown, options, extra = {}) {
+  const target = options.out
+    ? resolve(options.out)
+    : options["run-dir"]
+      ? join(resolve(options["run-dir"]), "plan.md")
+      : null;
+  if (!target) return { output: markdown };
+  if (existsSync(target))
+    throw new PlanError(
+      `${target} already exists: a written plan version is final`
+    );
+  writeFileSync(target, markdown, "utf8");
+  return { output: { ...lintPlan(target), ...extra } };
+}
 
 const USAGE = `Usage: node plan.mjs <command> [args] [options]
 
@@ -478,10 +1060,28 @@ Commands:
   lint <file>             Check the plan format; prints { valid, errors, warnings, milestones }
   diff <previous> <next>  Compare two plan versions for an amendment; completed milestones
                           must be unchanged. Prints { changed, added, removed, affects, ... }
+  tasks <file>            Parse a task list (checkbox progress list + package headings):
+                          { title, packages: [{ id, title, checked, ... }], unmatched }
+  import <file>           Convert a task list into a plan draft, one milestone per unchecked
+                          package; prints the lint report of the written file, plus mapping
+  synthesize              A one-milestone plan with no model (--title, --goal, --validation)
+  batches <file>          Dependency waves split into batches of milestones with disjoint
+                          files: { waves: [{ wave, milestones, batches }], max_batch, parallel }
 
 Options:
-  --completed <M1,M2>     Completed milestone IDs (diff)
-  --run-dir <path>        Read completed milestones from <run-dir>/state.json (diff)
+  --completed <M1,M2>     Completed milestone IDs (diff, batches)
+  --max-parallel <n>      batches: most milestones per batch (default: no limit)
+  --run-dir <path>        diff, batches: read completed milestones from <run-dir>/state.json;
+                          import, synthesize: write <run-dir>/plan.md
+  --out <file>            import, synthesize: write this file (default: print the plan)
+  --type <type>           import, synthesize: feature, bug or chore (default: feature)
+  --title <text>          synthesize: plan and milestone title
+  --goal <text>           synthesize: milestone goal
+  --files <a,b>           synthesize: files of the milestone (default: . for the whole repo)
+  --validation <command>  synthesize: a validation command (repeat for more)
+  --task <text>           synthesize: a task (repeat for more; default: the goal)
+  --acceptance <text>     synthesize: an acceptance criterion (repeat; default: the goal)
+  --complexity <level>    synthesize: low, medium or high (default: medium)
   --help                  Show this help`;
 
 function parseArgs(argv) {
@@ -496,7 +1096,8 @@ function parseArgs(argv) {
       const value = eq === -1 ? argv[++i] : arg.slice(eq + 1);
       if (value === undefined)
         throw new PlanError(`--${key} requires a value`, 2);
-      options[key] = value;
+      if (options[key] === undefined) options[key] = value;
+      else options[key] = [...asList(options[key]), value];
     } else positional.push(arg);
   }
   return { command: positional[0], args: positional.slice(1), options };
@@ -544,6 +1145,74 @@ export function run(argv) {
         );
       }
       return { output: report, exitCode: report.valid ? 0 : 1 };
+    }
+    case "batches": {
+      if (!args[0])
+        throw new PlanError(
+          "Usage: batches <file> [--max-parallel <n>] [--completed M1,M2] [--run-dir <path>]",
+          2
+        );
+      const { plan, errors } = readPlan(args[0]);
+      if (errors.length > 0)
+        return { output: { valid: false, errors }, exitCode: 1 };
+      const max = options["max-parallel"];
+      if (
+        max !== undefined &&
+        !(Number.isInteger(Number(max)) && Number(max) >= 1)
+      )
+        throw new PlanError("--max-parallel must be an integer >= 1", 2);
+      const done = new Set(
+        String(options.completed ?? "")
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean)
+      );
+      if (options["run-dir"])
+        for (const id of completedFromState(options["run-dir"])) done.add(id);
+      return {
+        output: planBatches(plan, {
+          maxParallel: max === undefined ? Infinity : Number(max),
+          done: [...done]
+        })
+      };
+    }
+    case "tasks": {
+      if (!args[0]) throw new PlanError("Usage: tasks <file>", 2);
+      const path = resolve(args[0]);
+      if (!existsSync(path)) throw new PlanError(`File not found: ${path}`);
+      return { output: parseTaskList(readFileSync(path, "utf8")) };
+    }
+    case "import": {
+      if (!args[0])
+        throw new PlanError(
+          "Usage: import <file> [--run-dir <path> | --out <file>] [--type <type>]",
+          2
+        );
+      const path = resolve(args[0]);
+      if (!existsSync(path)) throw new PlanError(`File not found: ${path}`);
+      const draft = importTaskList(readFileSync(path, "utf8"), {
+        source: path,
+        type: options.type
+      });
+      return writePlan(draft.markdown, options, {
+        mapping: draft.mapping,
+        dropped: draft.dropped
+      });
+    }
+    case "synthesize": {
+      const one = (key) =>
+        options[key] === undefined ? undefined : asList(options[key]).at(-1);
+      const markdown = synthesizePlan({
+        title: one("title"),
+        goal: one("goal"),
+        files: asList(options.files).flatMap((f) => splitRefs(f)),
+        validation: asList(options.validation),
+        tasks: asList(options.task),
+        acceptance: asList(options.acceptance),
+        complexity: one("complexity") ?? "medium",
+        type: one("type") ?? "feature"
+      });
+      return writePlan(markdown, options);
     }
     default:
       throw new PlanError(`Unknown command: ${command}\n\n${USAGE}`, 2);

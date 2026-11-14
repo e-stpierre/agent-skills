@@ -251,7 +251,7 @@ A section title is a heading, which provides semantic structure and navigation; 
 - Start with a top-level heading (`# Title`)
 - Use hierarchical headings (`##`, `###`, `####`) for sections
 - Separate sections with a single blank line
-- Use tables for structured comparisons
+- Use a table only for a true grid: several attributes compared across many rows. In skill and agent files, prefer a `**Key**: effect` list (see esp-create-skill)
 - Place references and links at the end of the document
 
 ## Instructions

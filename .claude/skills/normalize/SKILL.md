@@ -232,7 +232,7 @@ Template: docs/templates/readme-template.md
 ### plugins/my-plugin/.claude-plugin/plugin.json (Skill registration)
 
 - [PASS] 11 skills listed, all paths exist
-- [FAIL] Skill not listed: `./skills/sdlc/esp-build`
+- [FAIL] Skill not listed: `./skills/sdlc/esp-ship`
 - [INFO] Not shipped (in progress): `skills/in-progress/esp-recap`
 
 ## Summary

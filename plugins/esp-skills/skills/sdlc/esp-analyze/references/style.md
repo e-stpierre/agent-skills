@@ -35,29 +35,25 @@ Look for normalization gaps, since the codebase should have one way of doing eac
 - Majority pattern wins - align outliers to dominant pattern
 - Automated tools first - focus on what automation misses (ESLint/Prettier handle formatting)
 - Some inconsistency is acceptable for legacy code or external dependencies
-- Focus on actual inconsistencies, not stylistic preferences
+- Flag only deviations from a pattern the codebase already establishes, never a personal preference
 
 ## What to Check
 
 ### Naming Conventions
 
-| Pattern    | Variations to Detect                                |
-| ---------- | --------------------------------------------------- |
-| Functions  | `getUserData` vs `get_user_data` vs `GetUserData`   |
-| Variables  | `isLoading` vs `loading` vs `is_loading`            |
-| Constants  | `MAX_RETRIES` vs `maxRetries` vs `MaxRetries`       |
-| Components | `UserCard` vs `userCard` vs `User_Card`             |
-| Files      | `UserCard.tsx` vs `user-card.tsx` vs `userCard.tsx` |
+- **Functions**: `getUserData` vs `get_user_data` vs `GetUserData`
+- **Variables**: `isLoading` vs `loading` vs `is_loading`
+- **Constants**: `MAX_RETRIES` vs `maxRetries` vs `MaxRetries`
+- **Components**: `UserCard` vs `userCard` vs `User_Card`
+- **Files**: `UserCard.tsx` vs `user-card.tsx` vs `userCard.tsx`
 
 ### Patterns
 
-| Area           | Variations to Detect                      |
-| -------------- | ----------------------------------------- |
-| Error handling | try/catch vs .catch() vs error boundaries |
-| Async          | async/await vs .then() vs callbacks       |
-| State updates  | setState vs reducer vs signals            |
-| Props          | destructuring vs props.x                  |
-| Exports        | named vs default vs barrel files          |
+- **Error handling**: try/catch vs .catch() vs error boundaries
+- **Async**: async/await vs .then() vs callbacks
+- **State updates**: setState vs reducer vs signals
+- **Props**: destructuring vs props.x
+- **Exports**: named vs default vs barrel files
 
 ## Severity Guidelines
 

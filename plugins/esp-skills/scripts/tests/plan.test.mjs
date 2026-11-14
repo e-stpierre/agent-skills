@@ -5,7 +5,17 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
-import { completedFromState, diffPlans, parsePlan } from "../plan.mjs";
+import {
+  completedFromState,
+  diffPlans,
+  importTaskList,
+  filesOverlap,
+  parsePlan,
+  parseTaskList,
+  planBatches,
+  renderPlan,
+  synthesizePlan
+} from "../plan.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCRIPT = join(HERE, "..", "plan.mjs");
@@ -432,5 +442,390 @@ describe("CLI", () => {
       .split("\n")
       .map((l) => JSON.parse(l));
     assert.deepEqual(decisions.at(-1).refs, ["A001", "M2"]);
+  });
+});
+
+const TASK_LIST = `# Backlog
+
+Two packages remain.
+
+- [x] BKL-1: Data model
+- [ ] BKL-2: API
+- [ ] BKL-3: UI
+- [ ] Some unrelated chore
+
+### BKL-1: Data model
+
+- **Goal**: Store the items
+- **Files**: \`src/model.ts\`
+
+### BKL-3: UI
+
+- **Goal**: Show the items
+- **Complexity**: low
+- **Depends**: BKL-2, BKL-1
+- **Files**: \`src/ui.ts\` (new)
+
+#### Tasks
+
+- [ ] Add the list view
+
+#### Acceptance Criteria
+
+- The list shows every item
+
+#### Validation
+
+- \`npm test ui\`
+
+### BKL-2: API
+
+- **Goal**: Serve the items
+- **Complexity**: High
+- **Depends**: BKL-1
+- **Files**: \`src/api.ts\`, \`test/api.test.ts\`
+
+**Tasks**:
+
+1. Add \`GET /items\`
+
+**Acceptance Criteria**:
+
+- \`GET /items\` returns the list
+
+**Validation**:
+
+- \`npm test api\`
+`;
+
+describe("task lists", () => {
+  test("parseTaskList reads the packages, their state and their fields", () => {
+    const list = parseTaskList(TASK_LIST);
+    assert.equal(list.title, "Backlog");
+    assert.equal(list.intro, "Two packages remain.");
+    assert.deepEqual(
+      list.packages.map((p) => [p.id, p.checked]),
+      [
+        ["BKL-1", true],
+        ["BKL-2", false],
+        ["BKL-3", false]
+      ]
+    );
+    const ui = list.packages[2];
+    assert.deepEqual(ui.depends, ["BKL-2", "BKL-1"]);
+    assert.deepEqual(ui.files, ["src/ui.ts"]);
+    assert.deepEqual(ui.tasks, ["Add the list view"]);
+    assert.deepEqual(ui.validation, ["`npm test ui`"]);
+    const api = list.packages[1];
+    assert.deepEqual(api.tasks, ["Add `GET /items`"]);
+    assert.deepEqual(api.acceptance, ["`GET /items` returns the list"]);
+  });
+
+  test("in-progress and section-less open items stay open", () => {
+    const text = TASK_LIST.replace("- [ ] BKL-2: API", "- [~] BKL-2: API")
+      .replace("- [ ] BKL-3: UI", "- [x] BKL-3: UI")
+      .replace("- [ ] Some unrelated chore", "- [ ] BKL-4: Docs");
+    const list = parseTaskList(text);
+    assert.deepEqual(
+      list.packages.map((p) => [p.id, p.checked]),
+      [
+        ["BKL-1", true],
+        ["BKL-2", false],
+        ["BKL-3", true],
+        ["BKL-4", false]
+      ]
+    );
+    assert.deepEqual(list.unmatched, ["BKL-4"]);
+    const draft = importTaskList(text);
+    assert.deepEqual(draft.mapping, { "BKL-2": "M1", "BKL-4": "M2" });
+  });
+
+  test("import keeps the first command of a validation item and drops prose", () => {
+    const text = TASK_LIST.replace(
+      "- `npm test ui`",
+      "- Run `npm test ui` and read the output\n- Manual check in the browser"
+    );
+    const { plan } = parsePlan(importTaskList(text).markdown);
+    assert.deepEqual(plan.milestones[1].validation, ["npm test ui"]);
+  });
+
+  test("a file without matching package headings has no packages", () => {
+    assert.deepEqual(parseTaskList("# Notes\n\n- [ ] buy milk\n").packages, []);
+    assert.deepEqual(parseTaskList(EXAMPLE).packages, []);
+  });
+
+  test("importTaskList writes one milestone per open package, in dependency order", () => {
+    const draft = importTaskList(TASK_LIST, { source: "/r/backlog.md" });
+    const { plan, errors } = parsePlan(draft.markdown);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(draft.mapping, { "BKL-2": "M1", "BKL-3": "M2" });
+    assert.deepEqual(draft.dropped, ["BKL-1"]);
+    assert.equal(plan.source, "/r/backlog.md");
+    assert.equal(plan.title, "Backlog");
+    assert.deepEqual(
+      plan.milestones.map((m) => [m.id, m.title, m.complexity, m.depends]),
+      [
+        ["M1", "BKL-2 API", "high", []],
+        ["M2", "BKL-3 UI", "low", ["M1"]]
+      ]
+    );
+    assert.deepEqual(plan.milestones[0].validation, ["npm test api"]);
+    assert.deepEqual(plan.out_of_scope, ["BKL-1: Data model (already done)"]);
+  });
+
+  test("missing fields stay empty so plan-lint names them", () => {
+    const text = TASK_LIST.replace(
+      /\*\*Validation\*\*:\n\n- `npm test api`\n/,
+      ""
+    );
+    const { errors } = parsePlan(importTaskList(text).markdown);
+    assert.equal(errors.length, 1);
+    assert.match(
+      errors[0],
+      /milestone M1 .*"#### Validation" has no list items/
+    );
+    assert.throws(
+      () => importTaskList(TASK_LIST.replace(/- \[ \]/g, "- [x]")),
+      /every package/
+    );
+    assert.throws(() => importTaskList("# Notes\n"), /Not a task list/);
+  });
+
+  test("synthesizePlan writes a valid one-milestone plan", () => {
+    const { plan, errors } = parsePlan(
+      synthesizePlan({
+        title: "Rename the config keys",
+        goal: "Every config key uses the new prefix",
+        validation: ["pnpm test"]
+      })
+    );
+    assert.deepEqual(errors, []);
+    assert.equal(plan.milestones.length, 1);
+    assert.deepEqual(plan.milestones[0].files, ["."]);
+    assert.equal(plan.milestones[0].complexity, "medium");
+    assert.throws(
+      () => synthesizePlan({ title: "t", goal: "g" }),
+      /--validation/
+    );
+  });
+});
+
+describe("CLI import and synthesize", () => {
+  let dir;
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "esp-plan-write-"));
+  });
+  afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+  test("import writes plan.md in the run directory and never overwrites it", () => {
+    const source = join(dir, "backlog.md");
+    writeFileSync(source, TASK_LIST);
+    writeFileSync(join(dir, "run.json"), "{}");
+    const r = cli(["import", source, "--run-dir", dir, "--type", "chore"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.equal(r.json().valid, true);
+    assert.deepEqual(r.json().milestones, ["M1", "M2"]);
+    assert.match(readFileSync(join(dir, "plan.md"), "utf8"), /type: chore/);
+    const again = cli(["import", source, "--run-dir", dir]);
+    assert.equal(again.code, 1);
+    assert.match(again.stderr, /already exists/);
+  });
+
+  test("synthesize takes repeated options and prints the plan without --out", () => {
+    const r = cli([
+      "synthesize",
+      "--title",
+      "Split the module",
+      "--goal",
+      "The module is split in two",
+      "--files",
+      "src/a.ts,src/b.ts",
+      "--validation",
+      "pnpm test",
+      "--validation",
+      "pnpm lint",
+      "--complexity",
+      "high"
+    ]);
+    assert.equal(r.code, 0, r.stderr);
+    const { plan, errors } = parsePlan(r.stdout);
+    assert.deepEqual(errors, []);
+    assert.deepEqual(plan.milestones[0].files, ["src/a.ts", "src/b.ts"]);
+    assert.deepEqual(plan.milestones[0].validation, ["pnpm test", "pnpm lint"]);
+    assert.equal(plan.milestones[0].complexity, "high");
+    const usage = cli(["synthesize", "--title", "t", "--goal", "g"]);
+    assert.equal(usage.code, 2);
+  });
+});
+
+/** A plan with one milestone per entry: `[id, files, depends]`. */
+function toyPlan(entries) {
+  return renderPlan({
+    title: "Toy",
+    created: "2026-11-12",
+    overview: "A toy plan.",
+    milestones: entries.map(([id, files, depends = []]) => ({
+      id,
+      title: `Build ${id}`,
+      goal: `${id} works`,
+      complexity: "low",
+      depends,
+      files,
+      tasks: [`Implement ${id}`],
+      acceptance: [`${id} is tested`],
+      validation: ["npm test"]
+    }))
+  });
+}
+
+describe("parallel batches", () => {
+  test("filesOverlap compares files, directories, globs and the whole repo", () => {
+    assert.equal(filesOverlap(["src\\a.js"], ["./src/a.js"]), true);
+    assert.equal(filesOverlap(["src/"], ["src/x/y.js"]), true);
+    assert.equal(filesOverlap(["src/ab.js"], ["src/a"]), false);
+    assert.equal(filesOverlap(["."], ["docs/x.md"]), true);
+    assert.equal(filesOverlap(["src/**/*.js"], ["src/a/b.js"]), true);
+    assert.equal(filesOverlap(["src/*.js"], ["docs/a.md"]), false);
+    assert.equal(filesOverlap(["*.md"], ["src/a.js"]), true);
+  });
+
+  test("waves follow the dependencies and batches keep files disjoint", () => {
+    const { plan } = parsePlan(
+      toyPlan([
+        ["M1", ["src/core.js"]],
+        ["M2", ["src/a.js"], ["M1"]],
+        ["M3", ["src/b.js"], ["M1"]],
+        ["M4", ["src/a.js"], ["M1"]],
+        ["M5", ["docs/x.md"], ["M2", "M3"]]
+      ])
+    );
+    const out = planBatches(plan);
+    assert.deepEqual(out.waves, [
+      { wave: 1, milestones: ["M1"], batches: [["M1"]] },
+      {
+        wave: 2,
+        milestones: ["M2", "M3", "M4"],
+        batches: [["M2", "M3"], ["M4"]]
+      },
+      { wave: 3, milestones: ["M5"], batches: [["M5"]] }
+    ]);
+    assert.equal(out.max_batch, 2);
+    assert.equal(out.parallel, true);
+    assert.deepEqual(out.summary, [
+      "Wave 1: M1",
+      "Wave 2: M2 + M3, then M4",
+      "Wave 3: M5"
+    ]);
+  });
+
+  test("maxParallel caps a batch, and done milestones are left out", () => {
+    const { plan } = parsePlan(
+      toyPlan([
+        ["M1", ["a"]],
+        ["M2", ["b"]],
+        ["M3", ["c"]],
+        ["M4", ["d"], ["M1"]]
+      ])
+    );
+    assert.deepEqual(planBatches(plan, { maxParallel: 2 }).waves[0].batches, [
+      ["M1", "M2"],
+      ["M3"]
+    ]);
+    const rest = planBatches(plan, { done: ["M1"] });
+    assert.deepEqual(rest.waves, [
+      { wave: 1, milestones: ["M2", "M3", "M4"], batches: [["M2", "M3", "M4"]] }
+    ]);
+  });
+
+  test("a whole-repository milestone runs alone, and a chain is not parallel", () => {
+    const { plan } = parsePlan(
+      toyPlan([
+        ["M1", ["."]],
+        ["M2", ["src/a.js"]]
+      ])
+    );
+    assert.deepEqual(planBatches(plan).waves[0].batches, [["M1"], ["M2"]]);
+    assert.equal(planBatches(plan).parallel, false);
+    const chain = parsePlan(
+      toyPlan([
+        ["M1", ["a"]],
+        ["M2", ["b"], ["M1"]]
+      ])
+    ).plan;
+    assert.equal(planBatches(chain).parallel, false);
+    assert.equal(planBatches(chain).max_batch, 1);
+  });
+
+  test("lint warns on independent milestones that share files", () => {
+    const { errors, warnings } = parsePlan(
+      toyPlan([
+        ["M1", ["src/a.js"]],
+        ["M2", ["src"]],
+        ["M3", ["src/a.js"], ["M1"]],
+        ["M4", ["src/a.js", "docs/b.md"], ["M3"]]
+      ])
+    );
+    assert.deepEqual(errors, []);
+    assert.equal(warnings.length, 3, warnings.join("\n"));
+    assert.match(warnings[0], /M1 and M2 share files/);
+    assert.match(warnings[1], /M2 and M3 share files/);
+    assert.match(warnings[2], /M2 and M4 share files/);
+  });
+
+  test("lint warns on a whole-repository milestone only when there are others", () => {
+    const multi = parsePlan(
+      toyPlan([
+        ["M1", ["."]],
+        ["M2", ["a"], ["M1"]]
+      ])
+    );
+    assert.equal(multi.warnings.length, 1);
+    assert.match(multi.warnings[0], /M1: Files covers the whole repository/);
+    assert.deepEqual(parsePlan(toyPlan([["M1", ["."]]])).warnings, []);
+  });
+
+  describe("CLI", () => {
+    let dir;
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), "esp-plan-batches-"));
+    });
+    afterEach(() => rmSync(dir, { recursive: true, force: true }));
+
+    test("batches prints the waves, with --max-parallel and --completed", () => {
+      const file = join(dir, "plan.md");
+      writeFileSync(
+        file,
+        toyPlan([
+          ["M1", ["a"]],
+          ["M2", ["b"]],
+          ["M3", ["c"], ["M1"]]
+        ])
+      );
+      const out = cli(["batches", file]).json();
+      assert.deepEqual(out.summary, ["Wave 1: M1 + M2", "Wave 2: M3"]);
+      assert.equal(out.parallel, true);
+      const capped = cli(["batches", file, "--max-parallel", "1"]).json();
+      assert.equal(capped.parallel, false);
+      const rest = cli(["batches", file, "--completed", "M1"]).json();
+      assert.deepEqual(rest.summary, ["Wave 1: M2 + M3"]);
+      writeFileSync(
+        join(dir, "state.json"),
+        JSON.stringify({ milestones: { M1: { status: "done" } } })
+      );
+      assert.deepEqual(
+        cli(["batches", file, "--run-dir", dir]).json().summary,
+        ["Wave 1: M2 + M3"]
+      );
+    });
+
+    test("batches refuses an invalid plan and a bad --max-parallel", () => {
+      const bad = join(dir, "bad.md");
+      writeFileSync(bad, "# nothing\n");
+      assert.equal(cli(["batches", bad]).code, 1);
+      const file = join(dir, "plan.md");
+      writeFileSync(file, toyPlan([["M1", ["a"]]]));
+      assert.equal(cli(["batches", file, "--max-parallel", "0"]).code, 2);
+      assert.equal(cli(["batches"]).code, 2);
+    });
   });
 });

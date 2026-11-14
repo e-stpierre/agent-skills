@@ -1,11 +1,15 @@
 # Plan Format
 
-Plan format 1 is the machine-consumable plan that `esp-plan` writes and that `esp-build` and a harness read. A plan is a markdown file with flat YAML frontmatter and a fixed section and milestone layout, so `scripts/plan.mjs` can parse it into JSON without a model.
+Plan format 1 is the machine-consumable plan that `esp-plan` writes and that `esp-ship` and a harness read. A plan is a markdown file with flat YAML frontmatter and a fixed section and milestone layout, so `scripts/plan.mjs` can parse it into JSON without a model.
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" parse <run-dir>/plan.md   # plan as JSON
 node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" lint <run-dir>/plan.md    # plan-lint
 node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" diff <previous> <next> --run-dir <run-dir>  # amendment check
+node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" tasks <file>                              # task list as JSON
+node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" import <file> --run-dir <run-dir>         # task list -> plan.md
+node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" synthesize --run-dir <run-dir> --title <t> --goal <g> --validation <cmd>
+node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" batches <run-dir>/plan.md                   # parallel batches
 ```
 
 ## Files and Versions
@@ -17,15 +21,15 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/plan.mjs" diff <previous> <next> --run-dir <
 
 ## Frontmatter
 
-| Key           | Required | Value                                                   |
-| ------------- | -------- | ------------------------------------------------------- |
-| `plan_format` | Yes      | `1`                                                     |
-| `title`       | Yes      | Short plan title, also the source of the branch name    |
-| `type`        | Yes      | `feature`, `bug` or `chore`                             |
-| `version`     | Yes      | Plan version, `1` for `plan.md`, `N` for `plan.v<N>.md` |
-| `task`        | No       | The task as the user stated it, in one line             |
-| `source`      | No       | Issue URL or document path the task came from           |
-| `created`     | No       | Date the version was written (`YYYY-MM-DD`)             |
+| Key           | Required | Value                                                    |
+| ------------- | -------- | -------------------------------------------------------- |
+| `plan_format` | Yes      | `1`                                                      |
+| `title`       | Yes      | Short plan title, also the source of the branch name     |
+| `type`        | Yes      | `feature`, `bug` or `chore`                              |
+| `version`     | Yes      | Plan version, `1` for `plan.md`, `N` for `plan.v<N>.md`  |
+| `task`        | No       | The task as the user stated it, in one line              |
+| `source`      | No       | Issue URL, document or task list path the task came from |
+| `created`     | No       | Date the version was written (`YYYY-MM-DD`)              |
 
 Values are flat scalars (quote strings that contain `:` or `#`). Other keys are invalid, except `x-` extension keys.
 
@@ -34,7 +38,7 @@ Values are flat scalars (quote strings that contain `:` or `#`). Other keys are 
 Top-level sections are `##` headings, in this order:
 
 1. `## Overview` (required): what the task achieves and why, in a few sentences
-2. Context sections (optional, any title): type-specific material such as `## Requirements`, `## Architecture`, `## Root Cause`, `## Current State`. They come after Overview and before Milestones
+2. Context sections (optional, any title): type-specific material such as `## Requirements`, `## Architecture`, `## Root Cause`, `## Current State`. They come after Overview and before Milestones. `esp-plan` adds `## Parallel Batches` last, from `plan.mjs batches` (see Parallel Batches)
 3. `## Milestones` (required): one `###` block per milestone (see below)
 4. `## Risks` (required): a list, or `- None`
 5. `## Open Questions` (required): a list, or `- None`. An autonomous build proceeds without answers, so keep only questions the plan could not settle and state the assumption the plan makes
@@ -44,7 +48,7 @@ HTML comments are ignored. Lists use `-`, `*` or `1.`, and indented lines contin
 
 ## Milestones
 
-Each milestone is one coherent, reviewable commit. `esp-build` implements one milestone per builder run and produces exactly one commit for it.
+Each milestone is one coherent, reviewable commit. `esp-ship` implements one milestone per builder run and produces exactly one commit for it.
 
 ```markdown
 ### M2: Add token refresh
@@ -81,6 +85,17 @@ Each milestone is one coherent, reviewable commit. `esp-build` implements one mi
 | `#### Validation`          | Commands that prove the milestone, each item starting with the command in backticks                   |
 
 No other `**Field**` or `####` subsection is allowed in a milestone. Plan-lint warns on milestones with more than 12 tasks or 20 files.
+
+## Parallel Batches
+
+`esp-ship` builds milestones of the same batch at the same time, each in its own worktree. `plan.mjs batches <file>` prints the batches:
+
+- **Waves**: wave N holds the milestones whose longest `Depends` chain has N - 1 links, so every milestone of a wave can start once the earlier waves are done
+- **Batches**: each wave is split, in plan order, into batches of milestones whose `Files` do not overlap. Two refs overlap when they are the same path, one is a directory of the other, or a glob's directory prefix covers the other. A milestone with `.` (or a top-level glob) covers the whole repository and is always a batch alone
+- **Options**: `--max-parallel <n>` caps a batch (`esp-ship` passes `ship.max_parallel`), and `--completed <M1,M2>` or `--run-dir <path>` (its `state.json`) leaves completed milestones out
+- **Output**: `{ waves: [{ wave, milestones, batches }], max_batch, parallel, summary }`. `parallel` is true when a batch holds two or more milestones. `summary` has one line per wave, such as `Wave 2: M2 + M3, then M4`
+
+Plan-lint warns on two milestones with no dependency path between them that share a file (they can only run one after the other), and, in a plan of two or more milestones, on a milestone whose files cover the whole repository.
 
 ## Parsed JSON
 
@@ -122,14 +137,21 @@ No other `**Field**` or `####` subsection is allowed in a milestone. Plan-lint w
 
 An amendment changes only the remaining milestones:
 
-1. Read the latest version (`runs.mjs plan`) and the completed milestones: the `milestones` entries of `<run-dir>/state.json` with `status: done` (written by `esp-build`), plus any IDs the caller passes
+1. Read the latest version (`runs.mjs plan`) and the completed milestones: the `milestones` entries of `<run-dir>/state.json` with `status: done` (written by `esp-ship`), plus any IDs the caller passes
 2. Write `plan.v<N+1>.md` with `version: N+1`. Copy every completed milestone block unchanged. Change, add or remove only remaining milestones, and give new milestones new IDs
 3. Run `plan.mjs diff <previous> <next> --run-dir <run-dir>`. It fails when a completed milestone changed or disappeared, when the version is not the next one, or when the new plan does not lint. Its `affects` list holds the changed, added and removed IDs
 4. Log it with `runs.mjs amend --run-dir <run-dir> --text <amendment> --affects <affects>`, which appends to `amendments.jsonl`, emits `amendment.applied` and logs an operator decision
 
+## Plans Without a Planning Model
+
+Two commands write `plan.md` with no model and no codebase exploration. Both write `--out <file>`, else `<run-dir>/plan.md`, else print the plan. They refuse to overwrite an existing file, and print the lint report of the written file.
+
+- **`import <file>`**: converts a task list into a plan draft. A task list has a checkbox progress list whose items start with a package ID (`- [ ] FRC-02: Health probe`, `- [x] ORC-001 Scheduler loop`) and one heading per package at any level (`#### FRC-02: Health probe`). Each unchecked package becomes one milestone, in dependency order, titled `<package ID> <title>`. The package's `**Goal**`, `**Complexity**` (default `medium`), `**Depends**` (package IDs, mapped to milestone IDs; dependencies on checked packages are dropped) and `**Files**` fields, and its Tasks, Acceptance Criteria and Validation lists (as subsections or bold labels), become the milestone's. Checked packages go to `## Out of Scope`, a `## Packages` context section maps milestone IDs to package IDs, and `source` holds the path. A field the source lacks stays empty, so the lint errors name what is left to fill. `tasks <file>` prints the parsed task list
+- **`synthesize`**: a one-milestone plan from `--title`, `--goal` and at least one `--validation <command>` (repeat it for more), with optional `--files <a,b>` (default `.`, the whole repository), `--task`, `--acceptance`, `--complexity` and `--type`
+
 ## Plan-Lint
 
-`plan.mjs lint` checks the frontmatter, the section names and order, every milestone field and subsection, unique IDs, dependencies on earlier milestones only, complexity values, and validation commands. It returns `{ file, valid, version, milestones, errors, warnings }`. Warnings (open questions, large milestones) do not fail the lint.
+`plan.mjs lint` checks the frontmatter, the section names and order, every milestone field and subsection, unique IDs, dependencies on earlier milestones only, complexity values, and validation commands. It returns `{ file, valid, version, milestones, errors, warnings }`. Warnings (open questions, large milestones, milestones that cannot run in parallel) do not fail the lint.
 
 ## Example
 

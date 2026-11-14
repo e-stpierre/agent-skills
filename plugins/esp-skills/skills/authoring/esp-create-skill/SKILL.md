@@ -70,9 +70,9 @@ Rules:
 - **Order**: subcommand, flags, required options, optional options, free text
 - **Keep the hint short**: it is display text only. The skill body spells out how to read each option, by both names ("If `-n` or `--dry-run` is present, list changes without writing")
 
-Reserved short letters, never used for another meaning: `-h` help, `-v` verbose, `-q` quiet, `-f` force, `-o` output, `-n` dry-run, `-y` yes (skip confirmation).
+Reserved short letters keep one meaning in every skill: `-h` help, `-v` verbose, `-q` quiet, `-f` force, `-o` output, `-n` dry-run, `-y` yes (skip confirmation).
 
-Plugin-wide short letters, never used for another meaning:
+Plugin-wide short letters keep one meaning in every skill:
 
 - `-d|--run-dir <path>`
 - `-c|--config-snapshot <path>`
@@ -110,6 +110,12 @@ Omit both for a skill the user types and Claude also reaches on its own.
 
 Add `context: fork` when a skill should run in isolation without conversation history: its content becomes the subagent's prompt, so reserve it for skills with explicit task instructions.
 
+### Avoid Tables
+
+A skill is read in raw form, where a table is hard to scan and easy to break. Write a list of `**Key**: effect` items, or one sentence per option, so each item keeps every value its row would hold, for example `- **merge.method** (default repo): the merge method`.
+
+Keep a table only when the reader compares several attributes across many rows and a list would repeat the same labels on every item, such as a matrix of check marks. A config key with its default and its effect is still a list, even for ten or more keys.
+
 ## Instructions
 
 1. **Validate the name**: kebab-case, describes the action, and unused: a search for `<skill-name>` across `plugins/*/skills/` finds no existing directory.
@@ -118,6 +124,7 @@ Add `context: fork` when a skill should run in isolation without conversation hi
 4. **Write SKILL.md** from the template and `[context]`: frontmatter on line 1 with the fields that apply, every required section, the optional ones that apply, and every value defined as an option per [Argument Conventions](#argument-conventions). Supporting files go under `references/`, `scripts/` or `assets/`, each linked from SKILL.md.
 5. **Validate** until every check passes:
    - No `{{` placeholder and no template `<!--` instruction comment remains
+   - The frontmatter `name` matches the directory name, and the `description` follows the invocation rule in Core Principles
    - Section names and order match the template; Skill-Specific Guidelines are `###` subsections
    - `argument-hint` (quoted) matches the Definitions option for option, in the order of [Argument Conventions](#argument-conventions)
    - Every option has a unique short name, no reserved letter is reused, shared options use the plugin-wide letters, and the body reads each option by both names

@@ -1,7 +1,7 @@
 // Pull request body built from run artifacts.
 //
-// Shared by the workflow skills (esp-go-light now, esp-pr and esp-go later):
-// the body is rendered from files in the run directory, never from the
+// Shared by the workflow skills (esp-ship on both tracks, and esp-pr): the
+// body is rendered from files in the run directory, never from the
 // model's memory, so it can be refreshed before the merge and stays in sync
 // with decisions.jsonl and the step results.
 

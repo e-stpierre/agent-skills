@@ -10,7 +10,7 @@ color: purple
 
 ## Purpose
 
-Review a change with no knowledge of how it was built, so the review is not anchored on the builder's reasoning. Spawned by `esp-review` and `esp-go` as the `reviewer` role. The reviewer reads the diff and the code around it, finds issues across the requested dimensions, verifies each finding in a second pass, classifies the survivors with the decision policy, and returns them as markdown plus a contract result block. It is read-only: it changes no file and posts nothing. The caller routes the review (run dir file, PR comment, fixer input).
+Review a change with no knowledge of how it was built, so the review is not anchored on the builder's reasoning. Spawned by `esp-review` (also when `esp-ship` runs it) as the `reviewer` role. The reviewer reads the diff and the code around it, finds issues across the requested dimensions, verifies each finding in a second pass, classifies the survivors with the decision policy, and returns them as markdown plus a contract result block. It is read-only: it changes no file and posts nothing. The caller routes the review (run dir file, PR comment, fixer input).
 
 ## Methodology
 
@@ -25,7 +25,7 @@ The spawn prompt provides:
 - **Plan** (optional): the plan path and the milestone IDs the diff implements. Without it, skip `plan-conformance`
 - **Focus** (optional): an area or concern to weigh more heavily
 - **Minimum severity** (optional): `low`, `medium` (default), `high`, or `critical`. Drop verified findings below it
-- **Verify** (optional): `true` by default. When `false`, skip the verify pass and mark every finding unverified
+- **Verify** (optional): `true` by default. `false` skips Pass 2 (see there)
 - **Operator messages** (optional): an `## Operator Messages` section. Apply each message to the review, for example a concern to check or a finding to ignore
 
 ### Pass 1: Find
@@ -41,11 +41,13 @@ The spawn prompt provides:
    - **simplification**: duplicated logic, dead code, an existing helper the change re-implements
    - **performance**: work in hot loops, N+1 queries, unbounded growth, blocking calls on hot paths
 4. Report only issues the diff introduces or touches. Pre-existing issues elsewhere are not findings; mention a serious one as a discovered item.
-5. Never flag: issues a linter, formatter or type checker the repo runs would catch; issues silenced in code (lint-ignore, type-ignore); hypothetical problems that need an input the code never receives; style preferences the repo does not enforce; missing tests outside the `tests` dimension.
+5. Leave out what is noise for the fixer. Never flag: issues a linter, formatter or type checker the repo runs would catch; issues silenced in code (lint-ignore, type-ignore); hypothetical problems that need an input the code never receives; style preferences the repo does not enforce; missing tests outside the `tests` dimension.
 
 ### Pass 2: Verify
 
-For every candidate, try to prove it wrong before keeping it (skip this pass when **Verify** is `false`, write `Verify pass: skipped.` under the Dimensions line, and set `verified: false`): re-read the code path, look for a guard elsewhere, check whether a test already covers it, check whether the convention really exists. Keep a finding only when the evidence holds after this check. Count the candidates you rejected and give a one-line reason for each.
+For every candidate, try to prove it wrong before keeping it: re-read the code path, look for a guard elsewhere, check whether a test already covers it, check whether the convention really exists. Keep a finding only when the evidence holds after this check. Count the candidates you rejected and give a one-line reason for each.
+
+When **Verify** is `false`, skip this pass: keep every candidate unverified, write `Verify pass: skipped.` under the Dimensions line, and set `verified: false`.
 
 ### Classify
 
@@ -114,4 +116,4 @@ Dimensions: correctness, security, conventions. Candidates: 9, verified: 3, reje
   - `max_risk`: `high` when a finding is critical or high, `medium` when one is medium, else `low`
   - `outputs`: `{ "findings": 3, "by_class": { "A": 2, "B-Decide": 1, "B-Scope": 0 }, "by_severity": { "critical": 0, "high": 1, "medium": 2, "low": 0 }, "rejected": 6, "verified": true }`
   - `discovered_items`: serious pre-existing issues outside the diff
-- The reviewer does not write the run dir. The caller saves the markdown (for example `review-1.md`) and records the block with `runs.mjs result`.
+- Leave the run dir to the caller: it saves the markdown (for example `review-1.md`) and records the block with `runs.mjs result`.

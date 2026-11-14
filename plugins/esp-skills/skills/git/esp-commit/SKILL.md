@@ -1,6 +1,6 @@
 ---
 name: esp-commit
-description: Commit changes with a structured message
+description: Commit the current changes with a structured message. Use when asked to commit.
 argument-hint: "[-m|--message <title>]"
 ---
 
@@ -39,12 +39,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults.language
 
 If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), continue with the defaults.
 
-| Key                       | Default | Effect                                                                                   |
-| ------------------------- | ------- | ---------------------------------------------------------------------------------------- |
-| `commit.style`            | `plain` | `plain`: imperative title. `conventional`: `type(scope): subject` (Conventional Commits) |
-| `commit.co_author`        | `true`  | Add the `Co-Authored-By: Claude <model> <noreply@anthropic.com>` trailer                 |
-| `commit.plan_step_prefix` | `true`  | Add the plan step prefix (`[Task N]`, `[Milestone N]`) when following a plan             |
-| `defaults.language`       | `en-US` | Language of the commit title and description                                             |
+- `commit.style` (default `plain`): `plain`: imperative title. `conventional`: `type(scope): subject` (Conventional Commits)
+- `commit.co_author` (default `true`): add the `Co-Authored-By: Claude <model> <noreply@anthropic.com>` trailer
+- `commit.plan_step_prefix` (default `true`): add the plan step prefix (`[Task N]`, `[Milestone N]`) when following a plan
+- `defaults.language` (default `en-US`): language of the commit title and description
 
 ### Plan Step Reference
 
