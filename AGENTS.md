@@ -2,96 +2,47 @@
 
 ## Project Overview
 
-The `skills` repository is a collection of modular extensions for AI coding agents. It serves as a centralized hub for reusable agents, skills, hooks, configuration templates that enhance agent capabilities across diverse tasks and domains.
-
-All components are currently shipped as a single plugin, `esp-skills`, published through the `esp` marketplace.
-
-## Purpose
-
-The `skills` repository aims to offer ready-to-use components that solve common problems.
+The `skills` repository is a collection of modular extensions for AI coding agents: reusable agents, skills, scripts and workflows. Everything ships as a single plugin, `esp-skills` (`plugins/esp-skills/`), published through the `esp` marketplace (`.claude-plugin/marketplace.json`).
 
 ## Repository Structure
 
-### `/docs/`
-
-Comprehensive documentation for plugin development and usage.
-This directory also contains template files for agent and skill. These templates must be respected when creating a new prompt.
-
-### `/plugins/`
-
-Root directory containing all plugins. Each plugin is self-contained within its own subdirectory. The current plugin is `esp-skills` (`plugins/esp-skills/`), which contains every skill in the repository.
-
-### `/plugins/<plugin-name>/`
-
-Individual plugin directory structure that is organized with one directory per prompt type. Sub-directories can be used within a prompt type to organize it's content.
-
-#### `agents/`
-
-Sub-agent configurations for specialized, autonomous task execution. Agents should be self-contained and focused on a specific domain or task.
-
-#### `skills/`
-
-Reusable skill modules that provide composable functionality. Skills are grouped in category subfolders (`skills/<category>/<skill-name>/`, e.g., `skills/git/esp-branch/`). Each skill must be listed in the `skills` array of the plugin's `.claude-plugin/plugin.json` to ship with the plugin; skills that are not listed (e.g., work in progress kept under `skills/in-progress/`) stay in the repository but are not installed. Each skill is a directory containing:
-
-- `SKILL.md` (required) - Main skill definition file (uppercase)
-- `references/` (optional) - Additional documentation files
-- `scripts/` (optional) - Executable code for the skill
-- `assets/` (optional) - Static resources (templates, schemas)
-
-#### `hooks/`
-
-Runtime hooks that execute on specific events (session start, tool calls, etc.).
-
-#### `CHANGELOG.md`
-
-Plugin-specific version history.
-
-#### `README.md`
-
-Plugin-specific documentation. Should only contain information specific to this plugin, not general marketplace or installation instructions.
-
-The README must contain an initial section called `Overview` that allow a user to understand the plugin and how to use with a few examples it in 2 minute.
-
-The README must also have a complete example section at the end, that covers all the supported skills and arguments, with examples.
+- `docs/templates/`: the agent and plugin README templates
+- `plugins/<plugin-name>/`: one self-contained plugin
+  - `.claude-plugin/plugin.json`: the plugin manifest. Its `skills` array lists every skill that ships
+  - `agents/`: subagent prompts, each focused on one task
+  - `skills/<category>/<skill-name>/`: one skill per directory (e.g., `skills/git/esp-branch/`), with `SKILL.md` (required) and optional `references/`, `scripts/` and `assets/`. A skill missing from the `skills` array (e.g., work in progress under `skills/in-progress/`) stays in the repository but is not installed
+  - `references/`: reference shared by several skills (decision policy, plan format, config schema, harness contract)
+  - `scripts/`: Node 22 ESM scripts shared by the skills, with no runtime dependencies, and their `node:test` tests in `scripts/tests/`
+  - `af-workflows/`: workflows for the agentic-forge harness
+  - `CHANGELOG.md`: the plugin version history, brief, focused on what changed
+  - `README.md`: plugin-specific documentation only. It opens with an `Overview` section that lets a user understand and use the plugin in two minutes, and ends with a complete example section covering every skill and argument
 
 ## Plugin Development Guidelines
 
 ### Language Style
 
-Use US English spelling in all code, comments, documentation, and UI strings when a word has both UK and US variants (e.g., "analyze" not "analyse", "color" not "colour", "canceled" not "cancelled").
+Use US English spelling in all code, comments, documentation, and UI strings (e.g., "analyze", "color", "canceled").
 
 ### Naming Conventions
 
-- **Agents**: Use descriptive names with domain prefix (e.g., `devops-agent.md`, `test-agent.md`)
-- **Skills**: Use kebab-case directory names prefixed with `esp-` (e.g., `esp-branch/`, `esp-plan/`) with `SKILL.md` inside. The skill `name` in the frontmatter must match the directory name
-- **Hooks**: Include event name (e.g., `session-start-hook.sh`, `tool-call-hook.sh`)
+- **Agents**: kebab-case file names prefixed with `esp-` (e.g., `esp-builder.md`)
+- **Skills**: kebab-case directory names prefixed with `esp-` (e.g., `esp-branch/`, `esp-plan/`). The skill `name` in the frontmatter matches the directory name
 
 ### Documentation Guidelines
 
-- **Keep READMEs concise**: Plugin READMEs should only contain plugin-specific information
-- **Avoid duplication**: Do not repeat information from the root README (installation, marketplace setup, contributing guidelines, license, support)
-- **CHANGELOGs should be brief**: Focus on what changed, not detailed explanations
-- **Link to root docs**: Reference the root README or `/docs/` for general information
-- **ASCII only**: Code files must use only valid ASCII characters to avoid encoding issues across platforms. Markdown files (`.md`) follow the same rule, with one exception: minimal, functional emojis are allowed when they convey information the reader needs (e.g., status indicators, severity markers).
-- **Workflow diagrams**: Use arrow notation (`->`) for workflow documentation instead of long multi-line ASCII boxes. Example: `Plan -> Implement -> Validate -> Output` is preferred over complex box diagrams
-
-### File Formats
-
-- **Agents**: Markdown (`.md`) files in `plugins/<plugin-name>/agents/`
-- **Skills**: Directory per skill in `plugins/<plugin-name>/skills/<category>/<skill-name>/SKILL.md`, listed in the `skills` array of `plugins/<plugin-name>/.claude-plugin/plugin.json`
-- **Hooks**: Shell scripts (`.sh`) or executable programs in `plugins/<plugin-name>/hooks/`
+- **Plugin READMEs**: plugin-specific information only. Installation, marketplace setup, contributing, license and support live in the root README; link to it
+- **ASCII only**: code files use only ASCII characters, to avoid encoding issues across platforms. Markdown files follow the same rule, with one exception: minimal, functional emojis that convey information the reader needs (e.g., status indicators, severity markers)
+- **Workflow diagrams**: arrow notation (`Plan -> Implement -> Validate -> Output`) instead of ASCII box diagrams
 
 ### Prompt Template Convention
 
-All prompt files (agents, skills) and plugin READMEs must follow the exact structure defined in the template files:
+Every prompt file and plugin README follows the exact structure of its template:
 
-- `docs/templates/agent-template.md` - Structure for agent prompts
-- `plugins/esp-skills/skills/authoring/esp-create-skill/references/action-skill-template.md` - Structure for skill prompts
-- `docs/templates/readme-template.md` - Structure for plugin README files
+- `docs/templates/agent-template.md`: agent prompts
+- `plugins/esp-skills/skills/authoring/esp-create-skill/references/action-skill-template.md`: skill prompts
+- `docs/templates/readme-template.md`: plugin README files
 
-**Placeholder Convention:**
-
-Prompt templates use **Mustache/Handlebars-style placeholders** with the following format:
+Required sections are present, optional ones may be omitted, and section names match the template exactly (case-sensitive). Templates mark each placeholder `{{variable_name}}` and put the instructions for a section in an HTML comment below it:
 
 ```markdown
 ## {{section_title}}
@@ -101,55 +52,25 @@ Prompt templates use **Mustache/Handlebars-style placeholders** with the followi
 <!--
 Instructions:
 - Replace {{content}} with the actual content
-- Additional guidance for this section
 - Suggested elements (include others as needed):
   - Element 1
-  - Element 2
 -->
 ```
 
-**Key principles:**
-
-- Use `{{variable_name}}` for all placeholders (not `<placeholder>` or other formats)
-- Include HTML comments with instructions below each section
-- Mark suggested elements as "include others as needed" to allow flexibility
-- Required sections must be present; optional sections can be omitted
-- Section names must match the template exactly (case-sensitive)
-
-**Validation:**
-
-Use the `/normalize` skill to validate prompt files against templates:
-
-```bash
-# Validate all prompts in the repository
-/normalize
-
-# Validate specific files or directories
-/normalize plugins/my-plugin/skills/
-
-# Auto-fix non-compliant files
-/normalize --autofix plugins/my-plugin/
-```
+Validate prompt files against the templates with `/normalize [path]` (`--autofix` to fix them).
 
 ### Workflow Skill Namespacing
 
-Skills referenced in workflow YAML files must use the full plugin namespace to avoid ambiguity when multiple plugins provide skills with the same name.
-
-**Required format in workflows:**
+Workflow YAML files name skills with the full plugin namespace, so a skill name shared by several plugins stays unambiguous:
 
 ```yaml
-# Correct - explicit namespace
 - type: skill
   skill: esp-skills:esp-plan
-
-# Incorrect - ambiguous, could match multiple plugins
-- type: skill
-  skill: esp-plan
 ```
 
 ### Marketplace Ordering
 
-Plugins in `.claude-plugin/marketplace.json` must be listed in alphabetical order by `name`.
+Plugins in `.claude-plugin/marketplace.json` are listed in alphabetical order by `name`.
 
 ### Code Style and Formatting
 
@@ -157,4 +78,5 @@ CI validates format, lint, and tests on all pull requests. Run locally before op
 
 ```bash
 pnpm check          # Format and lint
+pnpm test           # Script tests
 ```

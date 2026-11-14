@@ -28,7 +28,7 @@ Arguments: $ARGUMENTS
 ## Instructions
 
 1. When the answer depends on the code, gather context read-only until every claim in the answer is backed by a file or line you read.
-2. Answer the question, leading with the answer.
+2. Answer the question.
 
 ## Output Guidance
 

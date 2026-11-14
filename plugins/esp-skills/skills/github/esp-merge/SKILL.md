@@ -1,6 +1,6 @@
 ---
 name: esp-merge
-description: Merge a pull request under objective conditions, with the method the repository allows
+description: Merge a pull request once its objective conditions hold
 argument-hint: "[-n|--dry-run] [-m|--method <method>] [-i|--interactive <mode>] [-p|--pr <pr>] [-d|--run-dir <path>] [-c|--config-snapshot <path>]"
 disable-model-invocation: true
 metadata: { af-contract: 1, af-level: reporting }
@@ -10,7 +10,7 @@ metadata: { af-contract: 1, af-level: reporting }
 
 ## Overview
 
-Merge a pull request only when objective conditions hold, and with the merge method the repository allows. `scripts/merge-ready.mjs` checks every condition (no halt recorded, checks green, review threads resolved, not a draft, no changes requested, up to date with the base, branch protection satisfied) and resolves the method from the repository settings, rulesets and merge queue. The skill acts on the outcome: it rebases a branch that is behind and checks again, waits in the background for pending checks, and otherwise merges, or reports why it did not. Unmet branch protection ends `awaiting-human` and is never bypassed. The method and the reason are logged as a decision, and the remote branch and the task worktree are cleaned up per config.
+Merge a pull request only when objective conditions hold, with the merge method the repository allows. `scripts/merge-ready.mjs` checks the conditions and resolves the method; the skill acts on its outcome: rebase a branch that is behind, wait for pending checks, then merge or report why not. The remote branch and the task worktree are cleaned up per config.
 
 ## Arguments
 

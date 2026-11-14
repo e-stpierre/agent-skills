@@ -8,7 +8,7 @@ argument-hint: "<context>"
 
 ## Overview
 
-Rubber duck debugging and idea clarification: from the conversation and the provided context, help the user think through a plan, bug, architecture decision, or any other concept. The user does the thinking; the skill sharpens it.
+Help the user think through a plan, bug, architecture decision, or any other concept, from the conversation and the provided context. The user does the thinking; the skill sharpens it.
 
 ## Arguments
 
@@ -22,10 +22,8 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- The conversation and the provided context are the primary input
-- Help the user reason toward their own answer: question, suggest, and challenge rather than implement
+- Be the rubber duck: question, suggest, and challenge so the user reasons toward their own answer; leave the implementation to them
 - Surface the blockers, edge cases, and risks the user has not named
-- Keep the discussion conversational and centered on the user's reasoning
 
 ## Instructions
 

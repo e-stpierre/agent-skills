@@ -371,7 +371,7 @@ Arguments follow CLI conventions: every discrete value is a named option with a 
 
 **Arguments:**
 
-- `-s|--slug <slug>` - Short kebab-case description (required)
+- `[-s|--slug <slug>]` - Short kebab-case description (defaults to one derived from the task)
 - `[-t|--type <type>]` - Branch type: feature (default: `branch.default_category`), fix, chore, doc, poc, refactor
 - `[-g|--issue <id>]` - GitHub issue number
 - `[-b|--base <branch>]` - Base branch to create from (defaults to current location)
