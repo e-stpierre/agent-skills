@@ -62,7 +62,7 @@ export function diffStats(cwd, base) {
   const files = [];
   let total = 0;
   for (const line of lines(
-    tryGit(["diff", "--numstat", `${base}..HEAD`], cwd)
+    tryGit(["diff", "--numstat", "--no-renames", `${base}..HEAD`], cwd)
   )) {
     const [added, deleted, ...rest] = line.split("\t");
     const changed =

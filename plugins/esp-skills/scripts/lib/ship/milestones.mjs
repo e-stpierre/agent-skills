@@ -407,7 +407,8 @@ export function nextStep(state, { parallel = false, only } = {}) {
   const batch = [runnable[0]];
   const alone = (id) => ms[id].files.length === 0 || wholeRepo(ms[id].files);
   const cap = Math.max(1, state.max_parallel ?? Infinity);
-  if (parallel && !alone(batch[0])) {
+  // Single Milestone Mode (only) never batches.
+  if (parallel && !only && !alone(batch[0])) {
     for (const id of runnable.slice(1)) {
       if (batch.length >= cap) break;
       if (alone(id)) continue;
@@ -462,7 +463,10 @@ export function cmdStart(id, options, env = process.env) {
       m.attempts += 1;
       m.started_at = now(env).toISOString();
       m.ended_at = null;
-      if (m.base === null) m.base = options.base ?? null;
+      // A retry with no commit to amend starts from the new HEAD (for example
+      // after a parallel batch was cherry-picked), so its base moves with it.
+      if (m.base === null || (m.commit === null && options.base))
+        m.base = options.base ?? m.base;
       return {
         milestone: id,
         attempt: m.attempts,
@@ -615,8 +619,16 @@ const sameModel = (a, b) =>
  * reported it, else the sum of the complexity costs of the work it ran.
  */
 export function builderUsed(builder, cost) {
-  if (Number.isInteger(builder?.tokens)) return builder.tokens;
-  return (builder?.runs ?? []).reduce(
+  const runs = builder?.runs ?? [];
+  if (Number.isInteger(builder?.tokens)) {
+    // Runs continued after the last reported usage add their estimate.
+    const after = runs.slice(builder.tokens_runs ?? runs.length);
+    return after.reduce(
+      (sum, r) => sum + costOf(cost, r.complexity),
+      builder.tokens
+    );
+  }
+  return runs.reduce(
     (sum, r) => sum + costOf(cost, r.complexity),
     0
   );
@@ -820,7 +832,10 @@ export function cmdAgent(id, options, env = process.env) {
         attempt: m.attempts,
         complexity: m.complexity
       });
-      if (tokens !== null) builder.tokens = tokens;
+      if (tokens !== null) {
+        builder.tokens = tokens;
+        builder.tokens_runs = builder.runs.length;
+      }
       state.builder = builder;
       m.builder = {
         agent_id: agentId,

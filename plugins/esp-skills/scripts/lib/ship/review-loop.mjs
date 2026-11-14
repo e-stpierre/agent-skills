@@ -1,5 +1,7 @@
 // Internal review loop of the orchestrated track, read from the run's steps.
 
+import { statSync } from "node:fs";
+import { join } from "node:path";
 import { readStepResults } from "../pr-body.mjs";
 import { FINISHED, stepsByRound } from "./state.mjs";
 
@@ -10,6 +12,21 @@ import { FINISHED, stepsByRound } from "./state.mjs";
  * fix round that fixed nothing. Critical findings left after the last fix halt
  * when critical-security is in halt_on.
  */
+/**
+ * True when an unfinished step was recorded before the run was resumed: the
+ * resume answered it, so the round runs again instead of stopping again.
+ */
+function beforeResume(dir, state, entry) {
+  const resumed = Date.parse(state.resumed_at ?? "");
+  if (!Number.isFinite(resumed) || !entry?.step) return false;
+  try {
+    const path = join(dir, "steps", entry.step, "result.json");
+    return statSync(path).mtimeMs < resumed;
+  } catch {
+    return false;
+  }
+}
+
 export function reviewLoop(dir, state, steps = readStepResults(dir)) {
   const max = state.internal_review_rounds;
   if (max === 0)
@@ -30,6 +47,8 @@ export function reviewLoop(dir, state, steps = readStepResults(dir)) {
   });
   if (round === 0) return next(1);
   const review = reviews.get(round).result;
+  if (!FINISHED.has(review.status) && beforeResume(dir, state, reviews.get(round)))
+    return next(round);
   if (!FINISHED.has(review.status))
     return {
       action: "stop",
@@ -49,7 +68,7 @@ export function reviewLoop(dir, state, steps = readStepResults(dir)) {
       reason: `review-${round} is clean`
     };
   const fix = fixes.get(round)?.result;
-  if (!fix)
+  if (!fix || (!FINISHED.has(fix.status) && beforeResume(dir, state, fixes.get(round))))
     return {
       action: "fix",
       round,

@@ -18,6 +18,7 @@ import { renderPrBody } from "../lib/pr-body.mjs";
 import { detectGates } from "../lib/ship/gates.mjs";
 import { gateFailureAction, scopeCheck } from "../lib/ship/inline.mjs";
 import {
+  builderUsed,
   filesOverlap,
   nextStep,
   parallelDecision,
@@ -746,6 +747,22 @@ describe("loops", () => {
     assert.equal(last.exhausted, true);
   });
 
+  test("reviewLoop reruns an unfinished round recorded before a resume", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ship-review-resume-"));
+    try {
+      const entry = step("review-1", { status: "awaiting-human", summary: "q" });
+      mkdirSync(join(dir, "steps", entry.step), { recursive: true });
+      writeFileSync(join(dir, "steps", entry.step, "result.json"), "{}");
+      assert.equal(reviewLoop(dir, base, [entry]).action, "stop");
+      const later = new Date(Date.now() + 60_000).toISOString();
+      const rerun = reviewLoop(dir, { ...base, resumed_at: later }, [entry]);
+      assert.equal(rerun.action, "review");
+      assert.equal(rerun.step, "review-1");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test("reviewLoop halts on critical findings left, and stops on a failed step", () => {
     const critical = step(
       "review-1",
@@ -957,6 +974,8 @@ describe("helpers", () => {
       budgetCheck({ ...s, halt_on: [] }, at).action,
       "continue-over-budget"
     );
+    // Time spent stopped (awaiting-human, takeover) is not counted.
+    assert.equal(budgetCheck({ ...s, paused_minutes: 45 }, at).action, "continue");
     assert.equal(
       budgetCheck(s, new Date("2026-11-08T10:30:00.000Z")).action,
       "continue"
@@ -2025,6 +2044,24 @@ describe("nextStep", () => {
     assert.deepEqual(nextStep(noFiles, { parallel: true }).batch, ["M1"]);
   });
 
+  test("--milestone next never batches", () => {
+    const s = make({ M1: { files: ["a"] }, M2: { files: ["b"] } });
+    assert.deepEqual(nextStep(s, { parallel: true, only: "next" }).batch, [
+      "M1"
+    ]);
+  });
+
+  test("builderUsed adds the runs continued after the reported tokens", () => {
+    const cost = { low: 40000, medium: 70000, high: 120000 };
+    const runs = [{ complexity: "medium" }, { complexity: "low" }];
+    assert.equal(
+      builderUsed({ tokens: 200000, tokens_runs: 1, runs }, cost),
+      240000
+    );
+    assert.equal(builderUsed({ tokens: 200000, runs }, cost), 200000);
+    assert.equal(builderUsed({ tokens: null, runs }, cost), 110000);
+  });
+
   test("sequential mode returns one milestone", () => {
     assert.deepEqual(
       nextStep(make({ M1: { files: ["a"] }, M2: { files: ["b"] } })).batch,
@@ -2091,7 +2128,8 @@ describe("parallel milestones", () => {
     assert.equal(retry.attempt, 2);
     assert.equal(retry.amend, null);
     assert.equal(retry.last_failure, "conflict with M1");
-    ship("milestone", "start", "M2", "--base", SHA2);
+    const restart = ship("milestone", "start", "M2", "--base", SHA2).json();
+    assert.equal(restart.base, SHA2);
     ship("milestone", "finish", "M2", "--status", "done", "--commit", SHA3);
     assert.equal(ship("milestone", "next").json().action, "done");
   });

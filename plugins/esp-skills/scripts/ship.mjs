@@ -115,7 +115,8 @@ Commands:
                        policy decision (--agent-id <id> held by this session, --single in
                        --milestone mode, --parallel, --model, --effort)
     agent <id>         Record the builder agent of the current attempt (--agent-id <id>
-                       [--tokens <n> reported by the Agent result] [--worktree])
+                       [--tokens <n> reported by the Agent result] [--worktree]
+                       [--model <m>] [--effort <e>] as given to milestone models)
     gates              Gate commands: configured, else detected from --project-dir, and the
                        checks of a scope: --milestone <id> (its validation commands plus
                        ship.gates.always, else the full gates) or --files <a,b> (a fix round:

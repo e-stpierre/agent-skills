@@ -304,12 +304,19 @@ export function resumeRun(dir, env = process.env) {
   const path = statePath(dir);
   let resumed = null;
   let takeover = null;
+  // Time spent stopped does not count against the wall-time budget.
+  const addPause = (s, since) => {
+    const gap = (now(env).getTime() - Date.parse(since ?? "")) / 60000;
+    if (Number.isFinite(gap) && gap > 0)
+      s.paused_minutes = (s.paused_minutes ?? 0) + gap;
+  };
   const state = updateState(
     dir,
     (s) => {
       if (s.halt) return;
       if (s.escalation && s.track === "inline") {
         takeover = s.escalation;
+        addPause(s, s.escalation.at);
         const { decision, trigger, reason, files, patch, stash, at } =
           s.escalation;
         s.escalated_from = {
@@ -340,6 +347,8 @@ export function resumeRun(dir, env = process.env) {
       }
       if (s.stop?.status !== "awaiting-human") return;
       resumed = s.stop;
+      addPause(s, s.stop.at);
+      s.resumed_at = now(env).toISOString();
       for (const [p, status] of Object.entries(s.stop.unfinished ?? {}))
         if (s.phase_status[p] === "skipped") s.phase_status[p] = status;
       s.stop = null;
@@ -399,7 +408,8 @@ export function nextPhase(state) {
 export function budgetCheck(state, at) {
   const elapsed = Math.max(
     0,
-    (at.getTime() - Date.parse(state.created_at)) / 60000
+    (at.getTime() - Date.parse(state.created_at)) / 60000 -
+      (state.paused_minutes ?? 0)
   );
   const max = state.max_wall_minutes;
   const exceeded = max !== null && max !== undefined && elapsed > max;
