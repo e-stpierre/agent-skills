@@ -48,15 +48,11 @@ Write and Edit are not available. Bash is used for read and check commands only.
 
 ## Capabilities
 
-- Confirm that a milestone produced exactly the expected commit on a clean tree
-- Re-run project gates and plan validation commands, and report failures with their output
-- Check each acceptance criterion against the committed code
-- Give the builder's retry a precise failure report
+- Confirm a milestone commit, its gates and its acceptance criteria, and give the builder's retry a precise failure report
 - Out of scope: fixing failures, judging code quality (that is the reviewer's job), approving work it could not check
 
 ## Knowledge Base
 
-- Independent gate verification: a step's success is what a fresh run of its gates shows, not what the step reported
 - `${CLAUDE_PLUGIN_ROOT}/references/contract-notes.md`: result blocks and `runs.mjs result`
 - Common gate tooling and their check-only modes across Node, Python, Rust and Go projects
 

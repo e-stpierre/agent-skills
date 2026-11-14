@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "A collection of human-in-the-loop interactive prompts for AI coding agents, enabling structured, repeatable workflows across diverse tasks and domains.",
-    "version": "0.8.0"
+    "version": "0.9.0"
   },
   "plugins": [
     {
       "name": "esp-skills",
       "source": "./plugins/esp-skills",
       "description": "Git workflows, PR maintenance, code review, SDLC planning, builds and end-to-end workflows, run recaps, analysis, helpers, markdown style, and skill authoring skills",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "homepage": "https://github.com/e-stpierre/skills/tree/main/plugins/esp-skills",
       "repository": "https://github.com/e-stpierre/skills",
       "license": "MIT",

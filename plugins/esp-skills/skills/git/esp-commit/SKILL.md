@@ -24,7 +24,6 @@ Arguments: $ARGUMENTS
 
 - The title names the main task completed: 50 characters ideal, 120 at most
 - The description is 1-5 bullets on the key aspects of a substantial change; a small change has none
-- Arguments override configuration; missing configuration falls back to the defaults below
 
 ## Skill-Specific Guidelines
 
@@ -66,12 +65,11 @@ Without a plan, the title has no brackets. With `conventional` style, the prefix
 1. Load the `commit` configuration (see Configuration).
 2. Run `git status`. With nothing to commit, report it and stop.
 3. Run `git diff --staged`; when nothing is staged, stage everything with `git add .` and read the staged diff.
-4. Determine the primary purpose of the changes and their scope (small fix or larger feature), and the plan step they complete (see Plan Step Reference).
-5. Construct the message in `defaults.language`:
-   - **Title**: the plan step prefix (if any), then `--message` when given, otherwise per `commit.style`: imperative mood, capitalized first letter, no period (`plain`), or `type(scope): subject` (`conventional`)
+4. Write the message in `defaults.language`:
+   - **Title**: the plan step prefix (see Plan Step Reference), then `--message` when given, otherwise per `commit.style`: imperative mood, capitalized first letter, no period (`plain`), or `type(scope): subject` (`conventional`)
    - **Description**: per Core Principles
    - **Trailer**: the `Co-Authored-By` line with your model name, unless `commit.co_author` is `false`
-6. Commit with a HEREDOC so the formatting survives:
+5. Commit with a HEREDOC so the formatting survives:
 
    ```bash
    git commit -m "$(cat <<'EOF'
@@ -85,7 +83,7 @@ Without a plan, the title has no brackets. With `conventional` style, the prefix
    )"
    ```
 
-7. Report the commit hash and title, read from `git log -1 --format='%h - %s'`.
+6. Report the commit hash and title, read from `git log -1 --format='%h - %s'`.
 
 ## Output Guidance
 

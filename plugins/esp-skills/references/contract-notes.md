@@ -86,19 +86,7 @@ Writers of `events.jsonl`, `decisions.jsonl`, `amendments.jsonl` and `run.json` 
 | Steerable  | Reporting, plus reads operator messages and emits `needs_input` |
 | Recappable | Steerable, plus writes `decisions.jsonl` and `summary.md`       |
 
-Skills declare their level in frontmatter metadata, for example `metadata: { af-contract: 1, af-level: recappable }`.
-
-Target level of each planned skill:
-
-| Skill                                      | Target level | Notes                                                                  |
-| ------------------------------------------ | ------------ | ---------------------------------------------------------------------- |
-| `esp-ship`                                 | Recappable   | Owns the run: creates it, writes `summary.md`; decisions per milestone |
-| `esp-plan`                                 | Steerable    | Also logs amendments as decisions                                      |
-| `esp-fix-review`                           | Steerable    | Also logs every comment resolution as a decision                       |
-| `esp-review`                               | Reporting    | Produces text; the caller routes it                                    |
-| `esp-merge`                                | Reporting    | Also logs the merge method and reason as a decision                    |
-| `esp-recap`                                | Plain        | Reads runs, writes none                                                |
-| `esp-config`, git, helper and style skills | Plain        | No run dir                                                             |
+Each skill declares its level in its frontmatter metadata, for example `metadata: { af-contract: 1, af-level: recappable }`. A skill without `af-level` is Plain.
 
 ## References
 

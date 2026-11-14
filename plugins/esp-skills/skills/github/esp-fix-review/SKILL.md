@@ -1,6 +1,6 @@
 ---
 name: esp-fix-review
-description: Fix, reply to, or defer PR review comments and failing CI checks, or esp-review findings
+description: Resolve PR review comments, failing CI checks, or esp-review findings
 argument-hint: "[-l|--internal] [-w|--wait] [-t|--timeout <minutes>] [-m|--rounds <n>] [-r|--reviewers <name>...] [-i|--interactive <mode>] [-p|--pr <pr>] [-e|--findings <path>] [-d|--run-dir <path>] [-c|--config-snapshot <path>]"
 disable-model-invocation: true
 metadata: { af-contract: 1, af-level: steerable }
@@ -10,7 +10,7 @@ metadata: { af-contract: 1, af-level: steerable }
 
 ## Overview
 
-Resolve review feedback under the decision policy, in a bounded number of rounds. In pull request mode, each round fetches the review comments (inline comments, review bodies, issue comments) of the requested reviewers that no earlier round handled, classifies each as A-Fix, B-Decide, B-Scope or Reject, fixes the comments and the failing CI checks in separate review-fix commits, pushes, replies to rejected and deferred comments, and resolves the handled threads; the bots then re-review and the checks finish before the next round. `--wait` adds the same wait for the head commit before round 1, so one invocation covers the whole pull request review loop. In internal mode (`--internal`), the skill applies the findings of an `esp-review` run to the local branch, with no pull request. `scripts/fix-review.mjs` keeps the handled IDs, the rounds and the GitHub replies and logs every resolution in `decisions.jsonl`; `scripts/wait-for-review.mjs` runs every wait in the background, so waits cost no tokens. Deferred items come back as `discovered_items` in the result block.
+Resolve review feedback under the decision policy, in a bounded number of rounds. In pull request mode, a round handles the new review comments and the failing CI checks of the pull request: fix, commit, push, reply, resolve threads, then wait for the re-review. `--wait` adds that wait before round 1, so one invocation covers the whole review loop. In internal mode (`--internal`), the skill applies the findings of an `esp-review` run to the local branch, with no pull request. Deferred items come back as `discovered_items` in the result block.
 
 ## Arguments
 
@@ -42,9 +42,8 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- Classify every item before acting on it, with the decision policy. When an item fits several classes, the most restrictive one wins
+- Classify every item with the decision policy before acting on it
 - Validate each comment against the current code: a comment on an older revision, or one that the code already handles, is a Reject with the reason
-- Outside `all` mode, a B-Scope item is deferred per `fix-review.deferred_items` and returned as a discovered item, never applied
 - Fix production bugs that tests reveal. A test changes only when the code change it covers was intended; silencing, skipping or weakening a test to make CI pass is never a fix
 - The script waits, the session sleeps: start the wait, end the turn, and resume on the exit notification. Polling GitHub from the conversation or running `sleep` loops is never the wait
 - A review or a check counts only on the current head commit. A push during a wait restarts it on the new head
@@ -155,12 +154,7 @@ Outcomes:
 
 ### Classifying Items
 
-Follow the decision policy. For pull request comments:
-
-- **A-Fix**: a real bug, a missing check, a convention the repo documents, one clear fix. Fix
-- **B-Decide**: a real issue with several fixes, none changing scope. Apply the best fit, record `alternatives`
-- **B-Scope**: a new feature, a public API or schema change, a behavior change users would notice. Defer per `fix-review.deferred_items`
-- **Reject**: wrong, outdated (`outdated: true` and no longer true), already handled, a preference the repo does not enforce. Reply with the reason
+The decision policy defines the classes and what each one does. For pull request comments, an `outdated: true` comment is a Reject only when it no longer holds on the current code, and a B-Decide records its `alternatives`.
 
 In internal mode, the finding's class is the reviewer's verified proposal: A becomes A-Fix, a B-Decide applies its `decision` line when it has one, else its `recommended` option. Re-check each finding against the code first: reject one you can prove wrong, with the reason.
 

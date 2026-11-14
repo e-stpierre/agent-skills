@@ -26,8 +26,6 @@ Arguments: $ARGUMENTS
 
 - The PR size sets the description length: a small change gets a small description
 - The title conveys the primary change; the description gives the why and the context, since the diff already shows the what
-- The body ends with the AI attribution line, unless `pr.attribution` is `false`
-- Arguments override configuration; missing configuration falls back to the defaults below
 
 ## Skill-Specific Guidelines
 
@@ -51,12 +49,10 @@ If a command exits with code 1 (invalid config), report its error and stop. If i
 
 ### Size Categories
 
-- **Trivial** (<10 lines, single file, style/typo fix): One-line description, then attribution
-- **Small** (<50 lines, focused change): One-line description, then attribution
-- **Medium** (50-200 lines, feature or significant fix): `## Summary` and `## Details`, then attribution
-- **Large** (>200 lines, major feature or refactor): `## Summary` and `## Details`, then attribution
+- **Small** (under 50 changed lines, one focused change): a one-line description, then the attribution line
+- **Larger** (50 lines or more): `## Summary` and `## Details`, then the attribution line
 
-Trivial or small:
+Small:
 
 ```bash
 gh pr create --title "Fix typo in README" --body "Corrects spelling error
@@ -64,7 +60,7 @@ gh pr create --title "Fix typo in README" --body "Corrects spelling error
 🤖 Generated with [Claude Code](https://claude.com/product/claude-code)"
 ```
 
-Medium or large:
+Larger:
 
 ```bash
 gh pr create --title "<title>" --body "## Summary
@@ -85,7 +81,7 @@ gh pr create --title "<title>" --body "## Summary
 4. Fetch the base and read the scope: `git fetch origin <base>`, `git log origin/<base>..HEAD --oneline`, and `git diff origin/<base>...HEAD --stat`.
 5. Write the title and body in `defaults.language`:
    - **From the run** (with `--run-dir` and `pr.body_from_run`): write a 1-2 sentence summary of why the change exists, then render the body with `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" pr-body --run-dir <path> --summary "<summary>" --out <path>/pr-body.md`. It applies `pr.body_sections` and `pr.attribution`.
-   - **From the diff** (otherwise): pick the size category from the stat and write the body per Size Categories. Drop the attribution line when `pr.attribution` is `false`.
+   - **From the diff** (otherwise): pick the size category from the stat and write the body per Size Categories, ending with the attribution line unless `pr.attribution` is `false`.
 6. Create the PR with `gh pr create --base <base> --title "<title>"`, plus `--body-file <path>/pr-body.md` for a body from the run or `--body "<body>"` otherwise, plus `--draft` when `-w`/`--draft` is present or `pr.draft` is `true`. Done when `gh` prints the PR URL.
 7. With `--run-dir`, record the URL: `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" update --run-dir <path> --pr <url>`.
 8. Report the PR URL and title.

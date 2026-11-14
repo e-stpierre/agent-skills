@@ -10,7 +10,7 @@ metadata: { af-contract: 1, af-level: recappable }
 
 ## Overview
 
-Take any task from request to merged pull request: a one-line fix, a clear chore, a feature prompt, a GitHub issue, or a plan from `esp-plan`. Triage picks the track. The inline track does the work in this session with one commit. The orchestrated track plans the work, then this session spawns one `esp-builder` and one `esp-verifier` per milestone, so each milestone is one verified commit, and runs the internal review. Both tracks share the same tail: open the pull request, wait for the bot reviews and the CI checks, fix both, refresh the body from the run artifacts, and merge under objective conditions. `scripts/ship.mjs` decides what runs next, with which model, and when the task stops. The state lives in `<run-dir>/ship.json` (phases) and `<run-dir>/state.json` (milestones), so an interrupted run resumes where it stopped.
+Take any task (a one-line fix, a feature prompt, a GitHub issue, a plan from `esp-plan`) to a merged pull request. Triage picks the track: inline (this session, one commit) or orchestrated (a plan, then one verified commit per milestone and an internal review). Both tracks share the pull request tail. `scripts/ship.mjs` decides what runs next and keeps the state in the run directory, so an interrupted run resumes where it stopped.
 
 `preflight -> triage -> [plan] -> branch -> implement (inline) or build (milestones) -> [internal review <-> fix] -> PR -> [wait (reviews + checks) <-> fix-review] -> refresh body -> merge -> summary`
 
@@ -64,7 +64,6 @@ Arguments: $ARGUMENTS
 - The inline track makes one implementation commit. The orchestrated track makes one verified commit per milestone. Review fixes are separate `fix(review): ...` commits
 - A milestone is done only when an independent `esp-verifier` passes it: the builder's own report never counts
 - A halted task stays unmerged. Push only the task branch, force-push only after a rebase of the task branch, and respect branch protection
-- Waiting costs no tokens: the review and checks wait runs as a background script in this session
 - Log each decision this session makes with `runs.mjs decision`, when it is made
 
 ## Skill-Specific Guidelines
@@ -80,21 +79,11 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get pr
 node "${CLAUDE_PLUGIN_ROOT}/scripts/config.mjs" get defaults
 ```
 
-If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), stop: the dispatch needs the scripts. The keys this session reads:
+If a command exits with code 1 (invalid config), report its error and stop. If it cannot run at all (no `node`), stop: the dispatch needs the scripts. `ship.mjs` applies most `ship.*` keys itself (phases, budgets, inline limits, draft handling); the reference file of each phase names the keys it reads. This session reads directly:
 
-- **`ship.phases`** (default: every phase of the track): the phases to run, filtered per track. The core phase (`implement` or `build`) is required, and the orchestrated track always plans
-- **`ship.internal_review_rounds`** (`2`): internal review and fix rounds before the pull request. `0` skips the internal review, like `--review pr`
-- **`ship.plan_mode`** (`auto`), **`ship.review_mode`** (`auto`), **`ship.auto.review_max_files`** (`3`), **`ship.auto.review_max_lines`** (`150`) and **`ship.review.always_paths`**: the plan and review modes, and the review gate (see plan.md and review.md)
-- **`ship.worktree`** (`false`): work in a task worktree when `--worktree` is not given
-- **`ship.pr_draft_until_reviewed`** (`true`): open the pull request as a draft, and mark it ready once its body is in place
-- **`ship.inline.max_files_changed`** (`10`) and **`ship.inline.escalate`** (`true`): the inline limit and whether going over it moves the task to the orchestrated track
-- **`ship.budgets.inline.max_wall_minutes`** (`60`), **`ship.budgets.orchestrated.max_wall_minutes`** (`240`) and **`ship.budgets.orchestrated.max_milestones`** (`12`): budgets checked at each phase boundary
-- **`ship.halt_on`** (all five stop conditions): the stop conditions honored (see decision-policy.md)
-- **`ship.max_retries_per_milestone`** (`2`), **`ship.parallel`** (`auto`), **`ship.max_parallel`** (`3`), **`ship.commit_per_milestone`** (`true`): the milestone loop
-- **`ship.gates.<test|lint|typecheck|build>`** (`null`: detected), **`ship.gates.always`** (`[]`) and **`ship.gates_scope`** (`milestone`): the gate commands, and the checks each builder, verifier and fixer runs (see gates.md)
-- **`fix-review.max_rounds`** (`3`) and **`fix-review.wait.default_reviewers`** (`["claude"]`): the pull request rounds and the reviewers waited for
-- **`pr.base`** (`null`: the repository default branch), **`pr.draft`** (`false`), **`pr.body_from_run`** (`true`) and **`pr.body_sections`**: the pull request
-- **`defaults.models.<role>`** (see model-selection.md) and **`defaults.interactive`** (`off`)
+- **`pr.base`** (`null`: the repository default branch) and **`defaults.interactive`**: the base and the interactive mode
+- **`ship.halt_on`**: the stop conditions honored (see decision-policy.md)
+- **`defaults.models.<role>`**: subagent models, already resolved by `ship.mjs` (see model-selection.md)
 
 The phase skills read their own sections (`plan`, `review`, `fix-review`, `merge`, `branch`, `commit`, `worktrees`) through the frozen snapshot.
 

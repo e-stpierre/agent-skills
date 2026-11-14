@@ -1,0 +1,50 @@
+name: esp-epic
+version: "1.0"
+description: |
+  Turn an epic (a file, a list of GitHub issues, or a description) into an epic file the
+  agentic-forge overseer takes as its backlog: one task per run, with its acceptance,
+  dependencies, conflict zones and suggested track (instruction, light or full).
+requires: { agentic-forge: ">=0.12", contract: 1 }
+settings:
+  required-tools: [Read, Write, Glob, Grep, Bash]
+  timeout-minutes: 60
+
+variables:
+  - name: source
+    type: string
+    required: true
+    description: The epic, as a file path, GitHub issues (#12 #13 or URLs), or a description
+
+steps:
+  - name: epic
+    type: prompt
+    model: opus
+    prompt: |
+      Split this epic into tasks for the agentic-forge overseer backlog:
+
+      {{ variables.source }}
+
+      Read the source first: a file path, GitHub issues (`gh issue view <n>`), or the text itself. Explore
+      only as much of the repository as you need to size the tasks and name the paths they touch, read-only:
+      the run writes only `epic.md`.
+
+      Write `{{ output_dir }}/epic.md`: a title, a one-paragraph goal, then one `### T<NN>: <title>` section
+      per task with:
+      - **Description**: what to do and how to check it is done, in two or three sentences
+      - **Depends on**: earlier task ids, or none
+      - **Conflict zones**: the paths or modules the task touches (`src/runs`, `docs/cli.md`)
+      - **Track**: `instruction` (trivial, one step), `light` (small, one module, no design decision:
+        the esp-go-light workflow) or `full` (several modules, a design decision or a public API:
+        the esp-go workflow), with a one-line reason
+
+      Each task must fit one run. Order the tasks so the dependencies come first.
+
+      End with this result block as your final line:
+      {"status": "done", "summary": "<n> tasks in epic.md", "outputs": {"epic_path": "{{ output_dir }}/epic.md"}}
+
+  - name: hand-off
+    type: human-input
+    message: "Review the epic at {{ outputs.epic.epic_path }}, then start the overseer with it: /af-overseer:overseer --epic {{ outputs.epic.epic_path }}"
+    options:
+      - { id: done, label: Done, description: End this run }
+    recommended: done

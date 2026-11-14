@@ -43,7 +43,7 @@ The builder writes `steps/<NN>-build-<id>/result.json` and the verifier `steps/<
 A builder that just built a related milestone already knows the code, so it continues with the next one instead of a fresh builder rediscovering it. `milestone reuse <id>` decides it deterministically and logs a `policy` decision. Pass `--agent-id <id>` with the agent ID of the last builder this session spawned or continued. Omit it when this session holds none, for example after a resume. Add `--model` and `--effort` when `--model` was given, and `--single` in Single Milestone Mode. It returns `decision: reuse` with the `agent_id` to continue only when every rule holds:
 
 - **Relevance**: the milestone is a retry of the builder's last milestone, or it depends on or shares files with a milestone that builder ran
-- **Model**: the builder model and effort of the milestone (`milestone models <id>`) equal the builder's
+- **Model**: the builder model and effort of the milestone (`milestone models <id>`) equal the builder's, because a continued agent keeps its own. A complexity change (a `low` milestone after a `medium` one) therefore starts fresh, and a `--model` flag makes reuse more likely
 - **Budget**: `used + cost <= ship.reuse.limit_tokens` (default `250000`). `cost` is `ship.reuse.cost.<complexity>` of the milestone (`low` `40000`, `medium` `70000`, `high` `120000`). `used` is the last `--tokens` recorded with `milestone agent` plus the costs of the work the builder ran after it, else the sum of the costs of the work the builder ran
 - **Always fresh**: a parallel batch, a builder that ran in a worktree, Single Milestone Mode, and a missing or different agent ID start fresh, with the reason logged
 

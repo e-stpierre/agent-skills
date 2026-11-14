@@ -41,27 +41,10 @@ All optional:
 - paths: glob patterns limiting when skill activates. Comma-separated or YAML list.
 - shell: shell for !`command` blocks. Options: bash (default), powershell.
 
-ARGUMENT CONVENTIONS (standard CLI structure; full rules in esp-create-skill SKILL.md):
-- Notation: `<value>` required placeholder, `[...]` optional, `a|b` alternatives, `...` repeatable
-- Every discrete value is an option with a short and a long name: `-t|--type <type>`.
-  `--type=<value>` works too. Short names are one letter, unique within the skill
-- Required options are bare (`-t|--type <type>`), optional ones bracketed (`[-b|--base <branch>]`)
-- Boolean flags are optional and take a short name too (`[-w|--draft]`)
-- Repeatable values: `[-r|--reviewers <name>...]`; a comma-separated value is accepted too
-- Free text the user types is the only positional: one trailing `<question>` or `[context]`
-- A skill that is a set of actions takes the action as a leading positional (`<action>`)
-- Order: subcommand, flags, required options, optional options, free text
-- The hint is display text only; the body says how to read each option by both names
-- Reserved letters: -h help, -v verbose, -q quiet, -f force, -o output, -n dry-run, -y yes
-- Plugin-wide letters: -d run-dir, -c config-snapshot, -i interactive, -r reviewers,
-  -p pr or plan, -u resume
-- Examples:
-  - `<question>` - free text only
-  - `-t|--type <type> [context]` - required option, free text
-  - `[-w|--draft] [-b|--base <branch>]` - flag, optional option
-  - `[-a|--amend] [-t|--type <type>] [-d|--run-dir <path>] [context]` - flag, options, free text
-- Wrong: `<type> [base]` (discrete values as positionals)
-- Correct: `-t|--type <type> [-b|--base <branch>]`
+ARGUMENT CONVENTIONS:
+Skills take arguments like a standard CLI: every discrete value is a named option with a short
+and a long name, and only free text is positional. The full rules (notation, order, reserved and
+plugin-wide short letters) are in the Argument Conventions section of esp-create-skill SKILL.md.
 
 STRING SUBSTITUTIONS:
 Claude Code replaces these variables in skill content before sending to the model:
@@ -72,10 +55,6 @@ Claude Code replaces these variables in skill content before sending to the mode
 - ${CLAUDE_SESSION_ID}: current session ID. Useful for logging or session-specific files.
 - ${CLAUDE_SKILL_DIR}: directory containing this SKILL.md. Use in !`command` to reference bundled
   scripts/files regardless of working directory.
-
-ARGUMENT ACCESS:
-Read options by name from `Arguments: $ARGUMENTS`. $ARGUMENTS[N] and $N are positional and
-shift when an option is added or omitted, so options-based skills do not use them.
 
 DYNAMIC CONTEXT INJECTION:
 - Use `!`command`` syntax to run shell commands before skill content is sent to Claude.

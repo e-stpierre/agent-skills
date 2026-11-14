@@ -16,9 +16,7 @@ Each spawn site names a role. The role selects a key under `defaults.models` in 
 | `fixer`      | `esp-fix-review`, `esp-ship`                              | `esp-skills:esp-builder`  | `opus`                   |
 | `mechanical` | any skill, for rote work; `esp-ship` branch and PR phases | any                       | `haiku`                  |
 
-On the orchestrated track, `esp-ship` spawns each phase as a subagent that follows the phase skill, with the model of the phase role from `ship.mjs next`: plan `planner` (an imported plan uses `sonnet`; a reused or synthesized plan spawns no model), branch and PR `mechanical`, review `reviewer`, internal and PR fixes, the final-gates fix round and the merge `fixer`. The main session runs the milestone loop itself and spawns the builders and verifiers directly, with the models from `ship.mjs milestone models <id>`. The review wait runs in the main session. The inline track spawns no phase subagent: every phase runs in the session.
-
-`builder` has one entry per plan milestone complexity: `low` (`sonnet`), `medium` (`opus`), `high` (`opus`, effort `high`).
+`esp-ship` resolves these for you: `ship.mjs next` returns the model of each phase subagent, and `ship.mjs milestone models <id>` the builder and verifier models of a milestone. `builder` has one entry per plan milestone complexity: `low` (`sonnet`), `medium` (`opus`), `high` (`opus`, effort `high`).
 
 ## Precedence
 
@@ -34,7 +32,7 @@ The first level that gives a value wins:
 
 Effort follows the same order, but only a level that sets `effort` counts: `--effort` flag (where a skill offers it), then the config entry the model came from. When no level sets it, pass no effort and let the runtime default apply.
 
-**Builder reuse**: the precedence still picks the builder model of every milestone, even when the esp-ship milestone loop continues an earlier builder instead of spawning a new one. A continued agent keeps its model and effort, so `ship.mjs milestone reuse <id>` continues a builder only when the resolved builder model and effort of the next milestone equal the builder's. Any difference, including one caused by complexity (a `low` milestone after a `medium` one), starts a fresh builder with the resolved model. A `--model` flag gives every builder the same model, which makes reuse more likely. Verifiers are never reused. The budget and relevance rules are in the esp-ship milestones reference.
+The precedence picks the builder model of every milestone, also when the esp-ship milestone loop continues an earlier builder: Builder Reuse in the esp-ship milestones reference continues one only when the resolved model and effort match.
 
 ## Rules
 

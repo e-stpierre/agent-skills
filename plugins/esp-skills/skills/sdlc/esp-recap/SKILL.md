@@ -71,7 +71,7 @@ Exit codes: `0` success, `1` failure (for example an unknown run), `2` usage err
 
 ### Workflow Names
 
-A run's `workflow` in the digests comes from `summary.md` when it exists, and `run_workflow` keeps the `run.json` value. An esp-ship run also has a `track` (`{ current, history }` from its `ship.json`): report it with the workflow, as `esp-ship, inline` or `esp-ship, orchestrated`. When `history` holds two tracks, the run started inline and switched to the orchestrated track: report it as `esp-ship, inline then orchestrated`. Runs from before `0.8.0` have no `track` and name `esp-go` or `esp-go-light`, with steps such as `go`, `go-light`, `build-<id>` or `await-review`: report them under their recorded names. For an `esp-go-light` run that escalated and that `esp-go` took over, `run.json` keeps `esp-go-light`, the steps show a `go-light` step (`escalate`) and a `go` step, and the summary says `esp-go`: report it as "started as esp-go-light, escalated to esp-go". Child runs of an overseer run (`tasks/<id>/`) carry a `parent`; group them under it.
+A digest's `workflow` comes from `summary.md`, and `run_workflow` keeps the `run.json` value. Report an esp-ship run with its `track` (`{ current, history }`): `esp-ship, inline`, `esp-ship, orchestrated`, or `esp-ship, inline then orchestrated` when `history` holds both. Runs from before `0.8.0` have no `track`: report them under their recorded names (`esp-go`, `esp-go-light`). When `run_workflow` is `esp-go-light` and the summary says `esp-go`, the run escalated: report "started as esp-go-light, escalated to esp-go". Group child runs of an overseer run (`tasks/<id>/`, with a `parent`) under their parent.
 
 ### Fan-Out
 

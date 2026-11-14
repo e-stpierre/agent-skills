@@ -1,0 +1,157 @@
+name: esp-go
+version: "1.0"
+description: |
+  Take a feature from request to merged pull request with esp-skills under agentic-forge:
+  plan, approve, branch, build one verified commit per milestone (one ralph-loop iteration
+  each), internal review (Claude or Codex) and fixes, pull request, bot review wait and fix
+  rounds, required checks, merge. Every step is a steering boundary.
+requires: { agentic-forge: ">=0.12", contract: 1 }
+settings:
+  required-tools: [Read, Edit, Write, Glob, Grep, Bash, Agent]
+  timeout-minutes: 480
+  amend:
+    step: plan
+  worktree:
+    enabled: "{{ variables.use_worktree }}"
+    cleanup: on-merge
+
+variables:
+  - name: task
+    type: string
+    required: true
+    description: The task, a GitHub issue URL or #number, or a path to a file that describes it
+  - name: interactive
+    type: string
+    required: false
+    default: plan
+    description: "plan stops for plan approval after the plan step, off runs without stopping"
+  - name: review_runtime
+    type: string
+    required: false
+    default: claude
+    description: Runtime of the internal review step, claude or codex
+  - name: reviewers
+    type: string
+    required: false
+    default: claude
+    description: Pull request reviewers to wait for, comma-separated (claude, codex or GitHub logins)
+  - name: slug
+    type: string
+    required: false
+    default: ""
+    description: Branch slug (default derived from the task)
+  - name: max_milestones
+    type: number
+    required: false
+    default: 12
+    description: Maximum build iterations, one milestone each
+  - name: use_worktree
+    type: boolean
+    required: false
+    default: false
+    description: Run in an isolated worktree (needed to run beside another run of the same repository)
+
+steps:
+  # A pending `af amend` reruns this step at the next boundary: plan_version is then
+  # at least 1, so the step amends the latest plan with the amendment in its
+  # Operator Messages section instead of planning again.
+  - name: plan
+    type: skill
+    skill: esp-skills:esp-plan
+    args: >-
+      {% if plan_version > 0 %}--amend "the amendment in the Operator Messages section"{% else %}{{ variables.task }}{% endif %}
+    model: opus
+    timeout-minutes: 60
+
+  - name: approval
+    type: conditional
+    condition: "{{ variables.interactive != 'off' }}"
+    then:
+      - name: approve-plan
+        type: human-input
+        message: "Approve the plan at {{ plan_path }}?"
+        context: "To change it first, run af amend <run> with the change: the plan step amends the plan at the next boundary, before the branch is created."
+        options:
+          - {
+              id: approve,
+              label: Approve,
+              description: Build the plan as written
+            }
+        recommended: approve
+
+  - name: branch
+    type: skill
+    skill: esp-skills:esp-branch
+    args: >-
+      --type {{ outputs.plan.plan_type or 'feature' }}{% if variables.slug %} --slug {{ variables.slug }}{% endif %}
+    model: haiku
+
+  # One iteration = one milestone = one verified commit. A ralph-loop prompt cannot
+  # start with a slash command (the loop prepends its own instructions), so the
+  # iteration reads the esp-ship skill file and follows its Single Milestone Mode.
+  - name: build
+    type: ralph-loop
+    max-iterations: "{{ variables.max_milestones }}"
+    completion-promise: ALL_MILESTONES_DONE
+    timeout-minutes: 90
+    prompt: |
+      Build the next milestone of the plan in {{ output_dir }} with the esp-skills esp-ship skill.
+
+      1. Find the esp-skills plugin root: the `installPath` of the `esp-skills@<marketplace>` entry in
+         `installed_plugins.json` under the Claude config directory (`$CLAUDE_CONFIG_DIR`, else `~/.claude`), in `plugins/`.
+      2. Read `<plugin root>/skills/sdlc/esp-ship/SKILL.md` and follow its Instructions as if invoked with:
+         `--milestone next --run-dir {{ output_dir }} --config-snapshot {{ output_dir }}/skill-config/esp-skills.json`.
+         In that file and its references, `${CLAUDE_PLUGIN_ROOT}` means the plugin root.
+      3. An `## Operator Messages` section above, if any, overrides the plan for this milestone.
+
+      End with the result line printed by `runs.mjs result`. Then, when its `outputs.milestones_remaining` is empty
+      and its status is `done`, output on its own line:
+      {"ralph_complete": true, "promise": "ALL_MILESTONES_DONE"}
+      When its status is `halted` or `awaiting-human`, output {"ralph_complete": false} instead, so the run stops.
+
+  - name: review
+    type: conditional
+    condition: "{{ variables.review_runtime == 'codex' }}"
+    then:
+      - name: review-codex
+        type: skill
+        skill: esp-skills:esp-review
+        args: "--plan {{ plan_path }}"
+        runtime: codex
+        timeout-minutes: 45
+    else:
+      - name: review-claude
+        type: skill
+        skill: esp-skills:esp-review
+        args: "--plan {{ plan_path }}"
+        runtime: claude
+        timeout-minutes: 45
+
+  - name: fix
+    type: skill
+    skill: esp-skills:esp-fix-review
+    args: "--internal"
+    timeout-minutes: 60
+
+  - name: pr
+    type: skill
+    skill: esp-skills:esp-pr
+    model: sonnet
+
+  - name: wait-review
+    type: wait-for-review
+    reviewers: "{{ variables.reviewers }}"
+    trigger: true
+
+  - name: fix-review
+    type: skill
+    skill: esp-skills:esp-fix-review
+    args: "--reviewers {{ variables.reviewers }}"
+    timeout-minutes: 90
+
+  - name: wait-checks
+    type: wait-for-checks
+
+  - name: merge
+    type: merge
+    skill: esp-skills:esp-merge

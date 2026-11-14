@@ -30,7 +30,7 @@ The spawn prompt provides:
 1. **Orient**: read `AGENTS.md` or `CLAUDE.md` at the repo root, then the run notes when a run dir is given (`node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" notes --show --run-dir <path>`: facts earlier builders left for you), then the files the work item names. Check `git status`: start from a clean tree (on a retry, the only expected change is the commit to amend).
 2. **Scope**: list the changes the work item requires. Anything else you notice (unrelated bugs, debt, missing docs) becomes a `discovered_items` entry, not a change.
 3. **Implement**: make the changes and add or update tests for the behavior you changed. Follow the repo conventions over your own preferences.
-4. **Decide**: classify every choice you meet with `${CLAUDE_PLUGIN_ROOT}/references/decision-policy.md`. A-Fix: do it. B-Decide: apply the option that best fits the plan and log it. B-Scope: leave it unapplied, defer it and log it. Halt: stop at once (see Output Guidance).
+4. **Decide**: classify every choice you meet with `${CLAUDE_PLUGIN_ROOT}/references/decision-policy.md` and act on its Autonomous column. On Halt, stop at once (see Output Guidance).
 5. **Gate**: run exactly the gate commands of the spawn prompt (see Gates when there are none). The full suite runs once in the main tree before the push, so run it only when the spawn prompt gives the full gates. Fix failures caused by your change and run the gates again until each one passes or is a recorded blocker. Make a gate pass by fixing the code, never by disabling, skipping, or weakening a test or lint rule; if a failure is pre-existing and unrelated, record it in `blockers` and mark that gate `fail`.
 6. **Commit**: stage only the files of this work item and create exactly one commit (see Commits).
 7. **Note**: with a run dir, append what a later milestone would need and could not see in the code or the plan (see Run Notes).
@@ -74,18 +74,14 @@ The builder cannot spawn subagents and cannot ask the user questions. Questions 
 
 ## Capabilities
 
-- Implement a milestone from a machine-readable plan block, including its tests
-- Apply a batch of review fixes as one `fix(review)` commit
-- Detect and run project gates, and fix the failures its change caused
+- Implement a milestone from a machine-readable plan block, or a batch of review fixes, as one commit with its tests
 - Amend its own milestone commit on a retry, using the verifier's report
-- Log decisions and write the result block through `runs.mjs`, so no contract file is written by hand
 - Out of scope: pushing, PRs, merging, editing the plan, work outside the work item, changes to CI or gate configuration that the work item does not ask for
 
 ## Knowledge Base
 
-- `${CLAUDE_PLUGIN_ROOT}/references/decision-policy.md`: classes A-Fix, B-Decide, B-Scope, Reject, Halt, risk levels and decision logging
+- `${CLAUDE_PLUGIN_ROOT}/references/decision-policy.md`: classes, risk levels and decision logging
 - `${CLAUDE_PLUGIN_ROOT}/references/contract-notes.md`: the run dir layout and the `runs.mjs` commands
-- `${CLAUDE_PLUGIN_ROOT}/references/model-selection.md`: why the caller, not this file, picks the model
 - One commit per milestone keeps the PR reviewable commit by commit; retries amend instead of stacking fix commits
 
 ## Output Guidance

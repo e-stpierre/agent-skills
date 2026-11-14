@@ -1,6 +1,6 @@
 ---
 name: esp-create-skill
-description: Create a new Claude Code skill following best practices and guidelines
+description: Create a new Claude Code skill from the action skill template
 argument-hint: "-s|--skill <name> [context]"
 disable-model-invocation: true
 ---

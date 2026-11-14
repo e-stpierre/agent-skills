@@ -7,7 +7,7 @@ The format of `summary.md`, written once per run by the skill that owns the run 
 - Write it from the run artifacts, not from memory: `run.json`, `plan.md` (latest version from `runs.mjs plan`), `decisions.jsonl`, `steps/*/result.json`, `amendments.jsonl`, and delivered inbox messages (`runs.mjs messages --all`).
 - Keep every section. When a section has nothing to report, write `None.` so readers know it was checked.
 - Reference decisions by ID (`D003`), milestones by ID (`M2`), amendments by ID (`A001`), and messages by ID (`m001`).
-- Be factual and short. The summary answers "what happened and what should I look at", not "how the work was done".
+- The summary answers "what happened and what should I look at", not "how the work was done".
 - Validate after writing: `node "${CLAUDE_PLUGIN_ROOT}/scripts/runs.mjs" validate <run-dir>/summary.md`.
 
 ## Frontmatter

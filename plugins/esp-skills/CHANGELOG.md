@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0
+
+- Added the agentic-forge workflow pack in `af-workflows/`: `esp-go` (plan, approval, one ralph-loop iteration and one verified commit per milestone, internal review on Claude or Codex, PR, harness review and checks waits, merge), `esp-go-light` (inline `esp-ship` until the PR is open, then the harness waits and merge) and `esp-epic` (an epic file for the overseer backlog). Each declares `requires: { agentic-forge: ">=0.12", contract: 1 }`
+- Re-synced `references/contract/v1/` with the contract agentic-forge publishes: `needs_input` gains optional `kind` (`question`, `permission`, `decision`) and `risk`, and an amendment delivered as an operator message has `plan_version: null`. `decision-policy.md` tells skills to set `kind` and `risk` on their requests
+- Tightened the git, github, helper, style and authoring skill prompts with no behavior change: duplicated rules point to their single source (decision policy classes, argument conventions), `esp-pr` has two size categories instead of four identical pairs, `esp-markdown` drops the rules the formatter already fixes, and several descriptions are shorter. `AGENTS.md` matches the current repository layout
+- Tightened the SDLC, review, recap, analyze and config skill prompts, the agents and the shared references with no behavior change: plan amendments are defined only in `plan-format.md`, builder reuse only in the esp-ship milestones reference, and the decision classes only in `decision-policy.md`; `esp-ship` lists only the config keys it reads itself, and `contract-notes.md` drops the outdated planned-level table
+
 ## 0.8.0
 
 - **Migration from 0.7.0**: `esp-go`, `esp-go-light`, `esp-build` and `esp-await-review` are removed, with no aliases. Replace them in your prompts, scripts and workflows:

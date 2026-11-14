@@ -1,7 +1,7 @@
 ---
 name: esp-branch
-description: Create and check out a git branch named by the configured convention. Use when starting work that needs a new branch.
-argument-hint: "-s|--slug <slug> [-t|--type <type>] [-g|--issue <id>] [-b|--base <branch>]"
+description: Create a git branch named by the configured convention. Use when starting work that needs a new branch.
+argument-hint: "[-s|--slug <slug>] [-t|--type <type>] [-g|--issue <id>] [-b|--base <branch>]"
 ---
 
 # Git Branch
@@ -14,7 +14,7 @@ Create and check out a new branch whose name follows the configured pattern and 
 
 ### Definitions
 
-- **`-s|--slug <slug>`** (required): Read from `-s` or `--slug`. Short kebab-case description of the work. When absent, derive it from the task in the conversation.
+- **`[-s|--slug <slug>]`** (optional): Read from `-s` or `--slug`. Defaults to a slug derived from the task in the conversation.
 - **`[-t|--type <type>]`** (optional): Read from `-t` or `--type`. Branch type (the `{category}` of the pattern). Common values: `poc`, `feature`, `fix`, `chore`, `doc`, `refactor`; any value is accepted. Defaults to the type inferred from the work, else `branch.default_category` (`feature`).
 - **`[-g|--issue <id>]`** (optional): Read from `-g` or `--issue`. GitHub issue number of this work. Defaults to an issue referenced in the conversation (`#123`, `issue 123`), else none.
 - **`[-b|--base <branch>]`** (optional): Read from `-b` or `--base`. Branch to create from. Defaults to the current location.
@@ -25,9 +25,8 @@ Arguments: $ARGUMENTS
 
 ## Core Principles
 
-- Run without prompting: every missing value comes from the conversation context or the defaults
-- Branch names are concise kebab-case (lowercase, hyphens)
-- Arguments override configuration; missing configuration falls back to the defaults below
+- Run without prompting: every missing value comes from the conversation or the defaults
+- The slug is a concise kebab-case summary of the work, three to five words
 
 ## Skill-Specific Guidelines
 

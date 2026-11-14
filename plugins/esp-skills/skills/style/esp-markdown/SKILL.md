@@ -1,15 +1,15 @@
 ---
 name: esp-markdown
 description: >-
-  MUST be used before creating, editing, or reviewing any markdown (.md) file.
-  Enforces project formatting conventions and non-auto-fixable lint rules.
+  Markdown rules the formatter cannot fix. MUST be used before creating,
+  editing, or reviewing any .md file.
 ---
 
 # Markdown
 
 ## Overview
 
-Keep every markdown file the agent creates, edits, or reviews within the project's formatting conventions. markdownlint-cli2 and prettier fix most formatting automatically; the rules below are the ones they cannot fix, so they are respected while writing.
+Keep every markdown file the agent creates, edits, or reviews within the project's conventions. The formatter (prettier, markdownlint-cli2) fixes most formatting; the rules below are the ones it cannot fix, so they hold while writing.
 
 ## Additional Resources
 
@@ -17,51 +17,10 @@ Keep every markdown file the agent creates, edits, or reviews within the project
 
 ## Core Principles
 
-- **Auto-fixable formatting**: prettier and markdownlint-cli2 correct spacing, table alignment and trailing whitespace. Match the expected format while writing; the formatter settles the rest
-- **Non-auto-fixable rules are mandatory**: every rule under Skill-Specific Guidelines, and any lint rule that is not auto-fixable, holds in the file as written
+- The formatter settles spacing, blank lines around headings, table alignment and trailing whitespace. In a project without one, write them that way: a blank line after every heading, table pipes aligned
+- Every rule under Skill-Specific Guidelines, and any other lint rule the formatter cannot fix, holds in the file as written
 
 ## Skill-Specific Guidelines
-
-### Blank line after headings (MD022)
-
-Every heading is followed by a blank line before any content. This is not auto-fixable.
-
-```text
-<!-- Bad: no blank line after heading -->
-
-## Configuration
-Configure the settings.
-```
-
-```md
-<!-- Good -->
-
-## Configuration
-
-Configure the settings.
-```
-
-### Format tables with aligned columns
-
-Pad each cell so the pipe characters (`|`) align vertically, and make each separator row's dashes match the column width, so the table reads in source form.
-
-```text
-<!-- Bad: unaligned, minimal separators -->
-
-| Component | Technology | Notes |
-|---|---|---|
-| Backend | NestJS | Same as production |
-| Database | PostgreSQL 16 | Docker |
-```
-
-```md
-<!-- Good: aligned columns with consistent width -->
-
-| Component | Technology    | Notes              |
-| --------- | ------------- | ------------------ |
-| Backend   | NestJS        | Same as production |
-| Database  | PostgreSQL 16 | Docker             |
-```
 
 ### Number headings without parentheses
 
@@ -81,14 +40,11 @@ A numbered heading uses a number and a period, or no number at all.
 
 ### Use emojis only when they carry information
 
-Emojis must serve a functional purpose.
-
 **Valid uses:**
 
 - Check and cross marks for pros/cons or allowed/disallowed in tables or short lists
 - Warning symbols for important warnings or notices
 - Color circles or squares to indicate criticality levels (green/yellow/orange/red)
-- Other emojis with a clear functional purpose: the list above is not exhaustive
 
 **Invalid uses:**
 
