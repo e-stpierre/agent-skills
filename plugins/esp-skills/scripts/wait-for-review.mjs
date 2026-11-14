@@ -259,6 +259,14 @@ export function triggerPosted(trigger, snapshot) {
  * `graceSeconds` after the head commit date, since checks register a short
  * time after a push, then counts as "no checks".
  */
+function latestDate(a, b) {
+  const ta = Date.parse(a ?? "");
+  const tb = Date.parse(b ?? "");
+  if (!Number.isFinite(ta)) return Number.isFinite(tb) ? b : null;
+  if (!Number.isFinite(tb)) return a;
+  return ta >= tb ? a : b;
+}
+
 export function checksStatus(list, { headDate, now, graceSeconds }) {
   const checks = list ?? [];
   if (checks.length > 0) {
@@ -490,10 +498,12 @@ export async function waitForReview(options, deps) {
     options.pr == null ||
     String(previous?.pr) === String(options.pr) ||
     previous?.url === options.pr;
+  let carriedClock = false;
   if (previous && !previous.ended_at && previous.started_at && samePr) {
     state.started_at = previous.started_at;
+    carriedClock = true;
   }
-  const deadline = Date.parse(state.started_at) + timeoutMs;
+  let deadline = Date.parse(state.started_at) + timeoutMs;
   const announced = new Set(
     Object.entries(previous?.reviewers ?? {})
       .filter(([, r]) => r.status === "reviewed" && r.head === previous.head)
@@ -565,6 +575,18 @@ export async function waitForReview(options, deps) {
     let closedState = null;
     try {
       const pr = client.pr(options.pr);
+      // Without a PR argument, a clock carried from another pull request
+      // is reset once the pull request is known.
+      if (
+        carriedClock &&
+        options.pr == null &&
+        previous.pr != null &&
+        String(previous.pr) !== String(pr.number)
+      ) {
+        state.started_at = startedAt.toISOString();
+        deadline = startedAt.getTime() + timeoutMs;
+      }
+      carriedClock = false;
       state.pr = pr.number;
       state.url = pr.url;
       state.repo ??= repoFromUrl(pr.url);
@@ -575,8 +597,15 @@ export async function waitForReview(options, deps) {
           log(
             `head changed: ${state.head.slice(0, SHORT_SHA)} -> ${pr.head.slice(0, SHORT_SHA)}, waiting on the new head`
           );
+        // Fetch the date first: a failed call leaves the old head in place,
+        // so the next poll retries instead of keeping the old head's date.
+        const headDate = client.commitDate(state.repo, pr.head);
         state.head = pr.head;
-        state.head_date = client.commitDate(state.repo, pr.head);
+        state.head_date = headDate;
+        state.head_seen_at =
+          previous?.head === pr.head && previous?.head_seen_at
+            ? previous.head_seen_at
+            : now().toISOString();
         if (!state.heads.includes(pr.head)) state.heads.push(pr.head);
         idle = 0;
       }
@@ -642,7 +671,9 @@ export async function waitForReview(options, deps) {
 
     if (withChecks) {
       state.checks = checksStatus(snapshot.checks, {
-        headDate: state.head_date ?? state.started_at,
+        // The grace runs from when this wait first saw the head, not from
+        // the commit date: a push can land minutes after the commit.
+        headDate: latestDate(state.head_date, state.head_seen_at) ?? state.started_at,
         now: now(),
         graceSeconds
       });

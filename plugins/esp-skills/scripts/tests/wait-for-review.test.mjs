@@ -639,7 +639,9 @@ describe("waiting for checks", () => {
       { client, ...fakeClock() }
     );
     assert.equal(result.status, "done");
-    assert.equal(client.calls.pr, 1);
+    // The grace runs from when the wait first saw the head, not from its
+    // older commit date, so the first empty poll is still pending.
+    assert.ok(client.calls.pr > 1);
     assert.match(result.summary, /no checks/);
     assert.deepEqual(result.outputs.checks, {
       failing: [],

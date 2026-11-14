@@ -800,6 +800,15 @@ describe("loops", () => {
     );
     assert.equal(pushed.action, "wait");
     assert.deepEqual(pushed.update, { done: 1, commits: 1 });
+    // A fixer spawned with --rounds 1 reports its own limit as exhausted.
+    assert.equal(
+      prLoopAction(
+        s,
+        "fix",
+        done({ rounds: 1, max_rounds: 1, exhausted: true, commits: ["a"] })
+      ).action,
+      "wait"
+    );
     const quiet = prLoopAction(
       { ...s, pr_rounds: { max: 2, done: 1, commits: 1 } },
       "fix",

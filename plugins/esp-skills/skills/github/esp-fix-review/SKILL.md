@@ -133,7 +133,7 @@ The wait command (add `--config-snapshot <path>` when given):
 node "${CLAUDE_PLUGIN_ROOT}/scripts/wait-for-review.mjs" <pr> --reviewers <a,b> --checks [--timeout-minutes <n>] --state <state-file> [--run-dir <path>]
 ```
 
-- `--reviewers`: the reviewer names joined with commas. Leave it out to wait for `fix-review.wait.default_reviewers`. With no reviewer at all, `--checks` still waits for the checks. `--timeout-minutes`: the `--timeout` value, left out without it.
+- `--reviewers`: the reviewer names joined with commas. Leave it out to wait for `fix-review.wait.default_reviewers`. For a checks-only wait, pass `--reviewers ""`: `--checks` still waits for the checks. `--timeout-minutes`: the `--timeout` value, left out without it.
 - `<state-file>`: `<run-dir>/fix-review-wait.json` with `--run-dir` (the script's default), else a file in the temporary state directory. The script posts the trigger comments itself when `fix-review.wait.auto_trigger` is on.
 - The wait is done when every reviewer reviewed the head commit **and** no check is pending. A failing check never ends it early: the reviews are always awaited, so one round fixes both. The result block carries `outputs.checks` (`{ failing, pending, passing }`). The wait belongs to this step: keep its result, with no `runs.mjs result` call.
 - Progress goes to stderr, the last stdout line is the result block. Exit codes: 0 done, 10 awaiting-human (timeout), 1 failed (closed pull request, `gh` failed 5 times in a row), 2 usage error.
@@ -186,7 +186,7 @@ When `fix-review.fix_ci` is on, in pull request mode, after the comments of a ro
 
 A round is: fetch, classify, fix, commit, push, respond. Between rounds, the bots re-review the new head and the checks run again:
 
-- Wait only when the round pushed a commit and the limit is not reached (`last` is false). The reviewers are the `--reviewers`, else the `fix-review.wait.default_reviewers` in `reviewers_seen`; with none, the wait covers the checks only.
+- Wait only when the round pushed a commit and the limit is not reached (`last` is false). The reviewers are the `--reviewers`, else the `fix-review.wait.default_reviewers` in `reviewers_seen`; with none, the wait covers the checks only (`--reviewers ""`).
 - Wait with the command of Waiting for Reviews and Checks, `--checks` included.
 - Stop the loop when the wait ends `failed`, or `awaiting-human` with no choice to continue, when a fetch returns no items and no failing check, or when `round` returns `exhausted: true`. Count the items still unhandled at that point: they are `--remaining <n>` for `result`.
 

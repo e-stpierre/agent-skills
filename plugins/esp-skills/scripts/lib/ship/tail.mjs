@@ -114,7 +114,9 @@ export function prLoopAction(
       update,
       reason: `${o.open} review item(s) open`
     };
-  if (pushed && rounds < max && !o.exhausted)
+  // `o.exhausted` is not read: each fixer spawn runs with --rounds <round>,
+  // so it always reports its own limit as reached. `max` is the run limit.
+  if (pushed && rounds < max)
     return { action: "wait", round: rounds + 1, max_rounds: max, update };
   return {
     action: "merge",

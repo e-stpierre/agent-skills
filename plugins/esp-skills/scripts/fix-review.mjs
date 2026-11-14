@@ -524,7 +524,14 @@ export function cmdFetch(ctx, target) {
       includeHandled: ctx.includeHandled
     });
     storeItems(state, items);
-    const seen = reviewers
+    // Without --reviewers, the wait between rounds targets the default
+    // reviewers that commented on the pull request.
+    const wait = ctx.config?.["fix-review"]?.wait ?? {};
+    const candidates =
+      reviewers.length > 0
+        ? reviewers
+        : resolveReviewers(wait.default_reviewers ?? [], wait.reviewers ?? {});
+    const seen = candidates
       .filter((r) => authors.some((a) => sameLogin(a, r.login)))
       .map((r) => r.name);
     return {

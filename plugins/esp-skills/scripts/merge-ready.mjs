@@ -171,6 +171,20 @@ export function ghClient({ cwd, env = process.env } = {}) {
         auto_merge: Boolean(pr.autoMergeRequest)
       };
     },
+    commitDate(repo, sha) {
+      try {
+        return (
+          gh([
+            "api",
+            `repos/${repo}/commits/${sha}`,
+            "--jq",
+            ".commit.committer.date"
+          ]).trim() || null
+        );
+      } catch {
+        return null;
+      }
+    },
     checks(number, { required = false } = {}) {
       return fetchChecks(call, number, { required, ErrorClass: MergeError });
     },
@@ -651,6 +665,15 @@ export function gather(ctx, target) {
   const checks = classifyChecks(all, required, {
     requireGreen: merge.require_green_checks !== false
   });
+  // Checks register a short time after a push: an empty list on a head
+  // committed within the grace period is pending, not "no checks".
+  if (open && all.length === 0 && typeof client.commitDate === "function") {
+    const grace = config["fix-review"]?.wait?.checks_grace_seconds ?? 120;
+    const since = Date.parse(client.commitDate(repo, pr.head) ?? "");
+    const at = (ctx.now ?? (() => new Date()))().getTime();
+    if (Number.isFinite(since) && at - since < grace * 1000)
+      checks.pending = [...checks.pending, "(not registered yet)"];
+  }
   const threads =
     open && merge.require_resolved_threads !== false
       ? client.unresolvedThreads(repo, pr.number)
